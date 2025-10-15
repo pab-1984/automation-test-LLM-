@@ -1,0 +1,47 @@
+# Archivo: tests/suites/ecommerce-suite.yml
+
+suite: "Funcionalidad Principal de E-commerce"
+description: "Pruebas del flujo de compra básico"
+baseUrl: "http://localhost:3000" # Apuntamos a nuestra app local
+timeout: 10000
+
+# No necesitamos variables de usuario por ahora
+
+# Casos de prueba
+tests:
+  - name: "TC001 - La página de productos se carga y se puede añadir al carrito"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Navegar a la página principal"
+      
+      - action: "waitForSelector"
+        selector: "h1" # Esperar a que el título 'Products' esté presente
+        timeout: 5000
+      
+      - action: "verifyElementText"
+        selector: "h1"
+        expectedPatterns:
+          - "Products"
+
+      - action: "verifyElementExists"
+        selectors:
+          - ".card" # Verificar que existen tarjetas de producto
+          - "button.btn-primary" # Verificar que existen botones 'Add to Cart'
+      
+      - action: "click"
+        selector: ".card:first-of-type button" # Clic en el botón del primer producto
+        description: "Añadir el primer producto al carrito"
+
+      - action: "waitForSelector"
+        selector: ".badge" # Esperar a que el contador del carrito aparezca/se actualice
+      
+      - action: "verifyElementText"
+        selector: ".badge"
+        expectedPatterns:
+          - "1" # Verificar que el contador del carrito muestra '1'
+      
+      - action: "screenshot"
+        filename: "tc001-producto-anadido"
+    
+    expectedResult: "La página de productos se carga y el usuario puede añadir un producto al carrito exitosamente."

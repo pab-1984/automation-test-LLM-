@@ -1,0 +1,29 @@
+{
+  "name": "universal-testing-automation",
+  "version": "1.0.0",
+  "description": "Sistema de testing automatizado agnóstico de LLM",
+  "main": "runners/universal-runner.js",
+  "scripts": {
+    "test": "node runners/universal-runner.js",
+    "test:suite": "node runners/universal-runner.js tests/suites/$npm_config_suite",
+    "switch-llm": "node scripts/switch-llm.js",
+    "status": "node scripts/switch-llm.js status",
+    "setup": "node scripts/setup.js",
+    "compare": "node scripts/compare-llms.js"
+  },
+  "keywords": [
+    "testing",
+    "automation",
+    "llm",
+    "playwright",
+    "ollama",
+    "gemini"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {}
+}

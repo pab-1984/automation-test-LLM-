@@ -1,0 +1,59 @@
+{
+  "browser": {
+    "type": "chromium",
+    "headless": false,
+    "slowMo": 0,
+    "args": [
+      "--start-maximized",
+      "--disable-blink-features=AutomationControlled"
+    ]
+  },
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "timeouts": {
+    "default": 30000,
+    "navigation": 30000,
+    "action": 10000
+  },
+  "screenshots": {
+    "enabled": true,
+    "onError": true,
+    "onSuccess": false,
+    "format": "png",
+    "quality": 90,
+    "fullPage": true
+  },
+  "video": {
+    "enabled": false,
+    "onFailureOnly": true,
+    "size": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "retry": {
+    "failedTests": 1,
+    "failedSteps": 0
+  },
+  "execution": {
+    "continueOnFailure": true,
+    "parallel": false,
+    "workers": 1
+  },
+  "reporting": {
+    "formats": ["markdown", "json"],
+    "captureConsoleLogs": true,
+    "captureNetworkLogs": true,
+    "includeTimings": true,
+    "includeBrowserInfo": true
+  },
+  "chrome": {
+    "paths": {
+      "windows": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "mac": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "linux": "/usr/bin/google-chrome"
+    }
+  }
+}

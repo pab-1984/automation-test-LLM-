@@ -1,0 +1,21 @@
+{
+  "provider": "ollama",
+  "enabled": true,
+  "baseUrl": "http://localhost:11434",
+  "model": "phi3:mini",
+  "alternativeModels": [
+    "phi3:mini",
+    "llama3.1:8b",
+    "mistral:7b"
+  ],
+  "temperature": 0.1,
+  "maxTokens": 4096,
+  "streaming": false,
+  "timeout": 120000,
+  "options": {
+    "num_predict": 2000,
+    "top_p": 0.9,
+    "top_k": 40
+  },
+  "description": "Ollama - Local, sin límites, requiere recursos"
+}

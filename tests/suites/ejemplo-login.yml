@@ -1,0 +1,179 @@
+# Suite de Pruebas: Funcionalidad de Login
+# Archivo: tests/suites/ejemplo-login.yml
+
+suite: "Login y Autenticación"
+description: "Pruebas del flujo de autenticación de usuarios"
+baseUrl: "https://tu-app-staging.com"
+timeout: 30000
+
+# Variables reutilizables
+variables:
+  testUser:
+    email: "test@example.com"
+    password: "Test123456!"
+  invalidUser:
+    email: "noexiste@example.com"
+    password: "wrongpass"
+
+# Pre-condiciones para toda la suite
+setup:
+  - action: "navigate"
+    url: "${baseUrl}/logout"
+    description: "Cerrar sesión previa si existe"
+  - action: "clearCookies"
+    description: "Limpiar cookies de sesión"
+
+# Casos de prueba
+tests:
+  - name: "TC001 - Página de login se carga correctamente"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/login"
+      
+      - action: "waitForSelector"
+        selector: "form#login-form"
+        timeout: 5000
+      
+      - action: "verifyElementExists"
+        selectors:
+          - "input[name='email']"
+          - "input[name='password']"
+          - "button[type='submit']"
+      
+      - action: "verifyNoConsoleErrors"
+        allowedPatterns:
+          - ".*warning.*"
+    
+    expectedResult: "Formulario de login visible con todos los campos requeridos"
+
+  - name: "TC002 - Login exitoso con credenciales válidas"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/login"
+      
+      - action: "waitForSelector"
+        selector: "input[name='email']"
+      
+      - action: "fillInput"
+        selector: "input[name='email']"
+        value: "${testUser.email}"
+      
+      - action: "fillInput"
+        selector: "input[name='password']"
+        value: "${testUser.password}"
+      
+      - action: "screenshot"
+        filename: "tc002-antes-submit"
+      
+      - action: "click"
+        selector: "button[type='submit']"
+      
+      - action: "waitForNavigation"
+        timeout: 10000
+      
+      - action: "verifyUrl"
+        expectedPattern: ".*/dashboard.*"
+      
+      - action: "verifyElementExists"
+        selectors:
+          - "[data-testid='user-menu']"
+          - ".dashboard-welcome"
+      
+      - action: "screenshot"
+        filename: "tc002-dashboard-logueado"
+    
+    expectedResult: "Usuario redirigido al dashboard con sesión activa"
+
+  - name: "TC003 - Login fallido con credenciales inválidas"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/login"
+      
+      - action: "fillInput"
+        selector: "input[name='email']"
+        value: "${invalidUser.email}"
+      
+      - action: "fillInput"
+        selector: "input[name='password']"
+        value: "${invalidUser.password}"
+      
+      - action: "click"
+        selector: "button[type='submit']"
+      
+      - action: "waitForSelector"
+        selector: ".error-message, .alert-danger"
+        timeout: 5000
+      
+      - action: "verifyElementText"
+        selector: ".error-message"
+        expectedPatterns:
+          - ".*credenciales.*incorrectas.*"
+          - ".*usuario.*contraseña.*inválidos.*"
+      
+      - action: "verifyUrl"
+        expectedPattern: ".*/login.*"
+        description: "Usuario permanece en página de login"
+      
+      - action: "screenshot"
+        filename: "tc003-error-login"
+    
+    expectedResult: "Mensaje de error visible, usuario no es autenticado"
+
+  - name: "TC004 - Validación de campos vacíos"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/login"
+      
+      - action: "click"
+        selector: "button[type='submit']"
+        description: "Intentar enviar formulario vacío"
+      
+      - action: "verifyElementExists"
+        selectors:
+          - "input[name='email']:invalid, .email-error"
+          - "input[name='password']:invalid, .password-error"
+        description: "Verificar que campos muestran validación HTML5 o errores custom"
+      
+      - action: "verifyUrl"
+        expectedPattern: ".*/login.*"
+        description: "Formulario no se envía"
+    
+    expectedResult: "Validación de campos requeridos impide envío del formulario"
+
+  - name: "TC005 - Link 'Olvidé mi contraseña' funciona"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/login"
+      
+      - action: "click"
+        selector: "a[href*='forgot-password'], a:contains('Olvidé')"
+      
+      - action: "waitForNavigation"
+      
+      - action: "verifyUrl"
+        expectedPattern: ".*/forgot-password.*"
+      
+      - action: "verifyElementExists"
+        selectors:
+          - "input[name='email']"
+          - "button:contains('Recuperar')"
+      
+      - action: "screenshot"
+        filename: "tc005-forgot-password"
+    
+    expectedResult: "Usuario redirigido a página de recuperación de contraseña"
+
+# Post-condiciones para toda la suite
+teardown:
+  - action: "clearCookies"
+    description: "Limpiar cookies de sesión"
+  - action: "navigate"
+    url: "${baseUrl}/logout"
+    description: "Cerrar sesión si quedó activa"
+
+# Configuración de reporte
+reporting:
+  captureNetworkLogs: true
+  captureConsoleLogs: true
+  screenshotOnFailure: true
+  includeTimings: true

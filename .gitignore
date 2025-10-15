@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Test results
+tests/results/*.md
+tests/results/*.json
+tests/screenshots/*.png
+tests/videos/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local
+
+# Backups
+backup/
+backup-*/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Playwright
+playwright-report/
+test-results/
+
+# Document
+ESTRUCTURA.md
+SOLUCION_RUNNER.txt
+
+# Ejemplo
+
+ecommerce-test-app/
