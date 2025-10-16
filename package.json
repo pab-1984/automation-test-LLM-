@@ -4,12 +4,12 @@
   "description": "Sistema de testing automatizado agnóstico de LLM",
   "main": "runners/universal-runner.js",
   "scripts": {
-    "test": "node runners/universal-runner.js",
-    "test-direct": "node runners/universal-runner.js --mode direct",
-    "test-llm": "node runners/universal-runner.js --mode llm",
-    "test-auto": "node runners/universal-runner.js --mode auto",
+    "setup": "node scripts/setup.js",
+    "config": "node scripts/switch-llm.js status",
     "switch-llm": "node scripts/switch-llm.js",
-    "status": "node scripts/switch-llm.js status"
+    "test": "node scripts/test.js",
+    "compare": "node scripts/compare.js",
+    "migrate": "node scripts/migrate.js"
   },
   "keywords": [
     "testing",
