@@ -1,5 +1,5 @@
 {
-  "name": "universal-testing-automation",
+  "name": "llm-testing-automation",
   "version": "1.0.0",
   "description": "Sistema de testing automatizado agnóstico de LLM",
   "main": "runners/universal-runner.js",
