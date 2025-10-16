@@ -1,0 +1,17 @@
+suite: "Test Simple de Debug"
+description: "Test básico para verificar que todo funciona"
+baseUrl: "http://localhost:3000"
+timeout: 30000
+
+tests:
+  - name: "TC001 - Verificar que la página carga"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}"
+        description: "Ir a la página principal"
+      
+      - action: "screenshot"
+        filename: "debug-pagina-inicial"
+        description: "Capturar la página inicial"
+    
+    expectedResult: "La página carga correctamente"

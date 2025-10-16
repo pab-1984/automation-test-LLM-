@@ -5,11 +5,8 @@
   "main": "runners/universal-runner.js",
   "scripts": {
     "test": "node runners/universal-runner.js",
-    "test:suite": "node runners/universal-runner.js tests/suites/$npm_config_suite",
     "switch-llm": "node scripts/switch-llm.js",
-    "status": "node scripts/switch-llm.js status",
-    "setup": "node scripts/setup.js",
-    "compare": "node scripts/compare-llms.js"
+    "status": "node scripts/switch-llm.js status"
   },
   "keywords": [
     "testing",
@@ -22,8 +19,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "playwright": "^1.40.0",
-    "js-yaml": "^4.1.0"
-  },
-  "devDependencies": {}
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "js-yaml": "^4.1.0",
+    "playwright": "^1.40.0"
+  }
 }
