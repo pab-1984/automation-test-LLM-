@@ -29,6 +29,7 @@ Thumbs.db
 # Backups
 backup/
 backup-*/
+runners/backup.universal-runner.js
 
 # Temporary files
 tmp/
