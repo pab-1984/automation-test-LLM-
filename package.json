@@ -5,6 +5,9 @@
   "main": "runners/universal-runner.js",
   "scripts": {
     "test": "node runners/universal-runner.js",
+    "test-direct": "node runners/universal-runner.js --mode direct",
+    "test-llm": "node runners/universal-runner.js --mode llm",
+    "test-auto": "node runners/universal-runner.js --mode auto",
     "switch-llm": "node scripts/switch-llm.js",
     "status": "node scripts/switch-llm.js status"
   },
@@ -15,7 +18,7 @@
     "ollama",
     "gemini"
   ],
-  "author": "",
+  "author": "Pablo Flores",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.20.0",

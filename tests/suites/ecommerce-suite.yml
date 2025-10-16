@@ -2,21 +2,21 @@
 
 suite: "Funcionalidad Principal de E-commerce"
 description: "Pruebas del flujo de compra básico"
-baseUrl: "http://localhost:3000" # Apuntamos a nuestra app local
+baseUrl: "http://localhost:3000"
 timeout: 10000
-
-# No necesitamos variables de usuario por ahora
+mode: "auto"  # Modo automático por defecto
 
 # Casos de prueba
 tests:
-  - name: "TC001 - La página de productos se carga y se puede añadir al carrito"
+  - name: "TC001 - La página de productos se carga (Modo Directo)"
+    mode: "direct"  # Ejecución rápida sin IA
     steps:
       - action: "navigate"
         url: "${baseUrl}/"
         description: "Navegar a la página principal"
       
       - action: "waitForSelector"
-        selector: "h1" # Esperar a que el título 'Products' esté presente
+        selector: "h1"
         timeout: 5000
       
       - action: "verifyElementText"
@@ -26,22 +26,58 @@ tests:
 
       - action: "verifyElementExists"
         selectors:
-          - ".card" # Verificar que existen tarjetas de producto
-          - "button.btn-primary" # Verificar que existen botones 'Add to Cart'
+          - ".card"
+          - "button.btn-primary"
+      
+      - action: "screenshot"
+        filename: "tc001-productos-directo"
+    
+    expectedResult: "La página de productos se carga correctamente en modo directo"
+
+  - name: "TC002 - Análisis Inteligente del Catálogo"
+    mode: "llm"  # Usa inteligencia artificial
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Navegar a la página principal"
+      
+      - action: "analyzePage"
+        description: "Analizar contenido del catálogo con IA"
+        intelligent: true
+      
+      - action: "screenshot"
+        filename: "tc002-analisis-ia"
+    
+    expectedResult: "La página se analiza usando inteligencia artificial para identificar productos"
+
+  - name: "TC003 - Flujo Completo de Compra (Modo Automático)"
+    mode: "auto"  # Modo inteligente: usa IA cuando sea necesario
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Navegar a la página principal"
+      
+      - action: "waitForSelector"
+        selector: "h1"
+        timeout: 5000
+      
+      - action: "analyzePage"  # Este paso usará IA automáticamente
+        description: "Analizar productos destacados"
+        intelligent: true
       
       - action: "click"
-        selector: ".card:first-of-type button" # Clic en el botón del primer producto
+        selector: ".card:first-of-type button"
         description: "Añadir el primer producto al carrito"
 
       - action: "waitForSelector"
-        selector: ".badge" # Esperar a que el contador del carrito aparezca/se actualice
+        selector: ".badge"
       
       - action: "verifyElementText"
         selector: ".badge"
         expectedPatterns:
-          - "1" # Verificar que el contador del carrito muestra '1'
+          - "1"
       
       - action: "screenshot"
-        filename: "tc001-producto-anadido"
+        filename: "tc003-flujo-completo"
     
-    expectedResult: "La página de productos se carga y el usuario puede añadir un producto al carrito exitosamente."
+    expectedResult: "El flujo completo de compra funciona correctamente con asistencia de IA"
