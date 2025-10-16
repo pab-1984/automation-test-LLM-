@@ -20,19 +20,24 @@ class VariableReplacer {
   replaceVariables(value, suite) {
     if (typeof value !== 'string') return value;
     
-    let result = value.replace('${baseUrl}', suite.baseUrl);
+    // Reemplazar baseUrl
+    let result = value.replace(/\$\{baseUrl\}/g, suite.baseUrl);
     
     const variables = suite.variables || {};
     for (const key in variables) {
       const val = variables[key];
       if (typeof val === 'object') {
         for (const subKey in val) {
-          const placeholder = `${key}.${subKey}`;
-          result = result.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\\\]/g, '\\$&'), 'g'), val[subKey]);
+          const placeholder = `\${${key}.${subKey}}`;
+          // Escapar caracteres especiales para regex
+          const escapedPlaceholder = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          result = result.replace(new RegExp(escapedPlaceholder, 'g'), val[subKey]);
         }
       } else {
-        const placeholder = `${key}`;
-        result = result.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\\\]/g, '\\$&'), 'g'), val);
+        const placeholder = `\${${key}}`;
+        // Escapar caracteres especiales para regex
+        const escapedPlaceholder = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        result = result.replace(new RegExp(escapedPlaceholder, 'g'), val);
       }
     }
     
