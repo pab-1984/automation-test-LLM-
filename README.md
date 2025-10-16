@@ -1,8 +1,8 @@
-# 🧪 Testing Automatizado con Gemini CLI + Chrome DevTools MCP
+# 🧪 Testing Automatizado con LLM + Chrome DevTools MCP
 
 Sistema de testing automatizado que permite ejecutar pruebas web en lenguaje natural.
 
-<<<<<<< HEAD
+
 # 🏗️ Estructura Universal de Testing Automatizado
 
 Esta arquitectura te permite **cambiar de LLM sin modificar tus tests**.
@@ -318,7 +318,3 @@ mi-proyecto-testing/
 
 **MCP no responde**: Reinstala con `npm install -g @modelcontextprotocol/server-chrome-devtools`
 
----
-
-Para más detalles, consulta la guía completa de instalación.
->>>>>>> 3e77a48557d182f257a02a22277c79e962ae595d
