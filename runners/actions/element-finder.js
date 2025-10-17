@@ -3,108 +3,64 @@
 class ElementFinder {
   findUidInSnapshot(snapshotText, selector) {
     if (!snapshotText) return null;
-    
     const lines = snapshotText.split('\n');
-    
-    // 1. Intentar buscar selector exacto primero
+
+    // Try to find by exact UID if selector is a UID (e.g., "uid=1_4")
+    const uidExactMatch = selector.match(/^uid=(\d+_\d+)$/);
+    if (uidExactMatch) {
+      for (const line of lines) {
+        if (line.includes(selector)) {
+          const uidMatch = line.match(/uid=(\d+_\d+)/);
+          if (uidMatch) return uidMatch[1];
+        }
+      }
+    }
+
+    // General approach: iterate lines and match based on selector type
     for (const line of lines) {
-      if (line.includes(selector)) {
-        const uidMatch = line.match(/uid=(\d+)/);
-        if (uidMatch) {
-          return uidMatch[1];
+      const uidMatch = line.match(/uid=(\d+_\d+)/);
+      if (!uidMatch) continue; // Skip lines without UID
+
+      const uid = uidMatch[1];
+
+      // 1. Selector de tag simple (h1, button, div, etc.)
+      const tagMatch = selector.match(/^([a-z][a-z0-9]*)$/i);
+      if (tagMatch) {
+        const tag = tagMatch[1].toLowerCase();
+        // Snapshot format: 'heading "Products" level="1"' for h1
+        // 'button "Cart 0"' for button
+        if (tag === 'h1' && line.includes('heading') && line.includes('level="1"')) {
+          return uid;
         }
-      }
-    }
-    
-    // 2. Parsear selectores específicos
-    // Selector de tag simple (h1, button, div, etc.)
-    const tagMatch = selector.match(/^([a-z][a-z0-9]*)$/i);
-    if (tagMatch) {
-      const tag = tagMatch[1].toLowerCase();
-      for (const line of lines) {
-        // Buscar apertura de tag
-        const tagRegex = new RegExp(`<${tag}[\s>]`, 'i');
-        if (tagRegex.test(line)) {
-          const uidMatch = line.match(/uid=(\d+)/);
-          if (uidMatch) {
-            return uidMatch[1];
-          }
+        if (tag === 'h2' && line.includes('heading') && line.includes('level="2"')) {
+          return uid;
         }
+        if (tag === 'button' && line.includes('button')) {
+          return uid;
+        }
+        // Add more tag mappings as needed
       }
-    }
-    
-    // 3. Selector de clase (.card, .btn-primary, etc.)
-    const classMatch = selector.match(/^\.([a-zA-Z0-9_-]+)$/);
-    if (classMatch) {
-      const className = classMatch[1];
-      for (const line of lines) {
-        // Buscar class="..." o class='...'
-        const classRegex = new RegExp(`class="[^"]*\b${className}\b[^"]*"`);
+
+      // 2. Selector de clase (.card, .btn-primary, etc.)
+      const classMatch = selector.match(/^\.([a-zA-Z0-9_-]+)$/);
+      if (classMatch) {
+        const className = classMatch[1];
+        // Snapshot format: 'class="btn btn-primary"'
+        const classRegex = new RegExp(`class="[^"]*\\b${className}\\b[^"]*"`);
         if (classRegex.test(line)) {
-          const uidMatch = line.match(/uid=(\d+)/);
-          if (uidMatch) {
-            return uidMatch[1];
-          }
+          return uid;
         }
       }
-    }
-    
-    // 4. Selector compuesto con clase (.card button, button.btn-primary)
-    const compoundMatch = selector.match(/^([a-z]+)\.([a-zA-Z0-9_-]+)$/i);
-    if (compoundMatch) {
-      const tag = compoundMatch[1].toLowerCase();
-      const className = compoundMatch[2];
-      for (const line of lines) {
-        const tagRegex = new RegExp(`<${tag}[\s>]`, 'i');
-        const classRegex = new RegExp(`class="[^"]*\b${className}\b[^"]*"`);
-        if (tagRegex.test(line) && classRegex.test(line)) {
-          const uidMatch = line.match(/uid=(\d+)/);
-          if (uidMatch) {
-            return uidMatch[1];
-          }
-        }
+
+      // 3. Selector de texto (e.g., "Products")
+      // This is a common way to find elements in snapshots
+      if (line.includes(`"${selector}"`)) { // Exact text match
+        return uid;
       }
-    }
-    
-    // 5. Selector descendiente (.card button, .card:first-of-type button)
-    const descendantMatch = selector.match(/^(.+)\s+([a-z]+)$/i);
-    if (descendantMatch) {
-      const parentSelector = descendantMatch[1];
-      const childTag = descendantMatch[2].toLowerCase();
-      
-      // Primero encontrar el padre
-      const parentUid = this.findUidInSnapshot(snapshotText, parentSelector);
-      if (parentUid) {
-        // Buscar hijos del padre (esto es aproximado)
-        let foundParent = false;
-        for (const line of lines) {
-          if (line.includes(`uid=${parentUid}`)) {
-            foundParent = true;
-            continue;
-          }
-          if (foundParent) {
-            const tagRegex = new RegExp(`<${childTag}[\s>]`, 'i');
-            if (tagRegex.test(line)) {
-              const uidMatch = line.match(/uid=(\d+)/);
-              if (uidMatch) {
-                return uidMatch[1];
-              }
-            }
-            // Si encontramos un tag de cierre del padre, parar
-            if (line.includes('</')) {
-              break;
-            }
-          }
-        }
+      // Or if selector is text and line contains it as StaticText
+      if (line.includes('StaticText') && line.includes(`"${selector}"`)) {
+        return uid;
       }
-    }
-    
-    // 6. Pseudo-selector :first-of-type, :first-child
-    const pseudoMatch = selector.match(/^(.+):first-of-type$/);
-    if (pseudoMatch) {
-      const baseSelector = pseudoMatch[1];
-      // Buscar el primero que coincida con el selector base
-      return this.findUidInSnapshot(snapshotText, baseSelector);
     }
     
     console.log(`   ⚠️  No se pudo encontrar UID para selector: ${selector}`);

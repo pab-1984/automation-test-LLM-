@@ -10,16 +10,15 @@ if (require.main === module) {
   
   runner.initialize()
     .then(() => runner.runSuite(suiteFile))
-    .then(results => {
-      runner.cleanup();
-      const exitCode = results.failed > 0 ? 1 : 0;
-      process.exit(exitCode);
-    })
-    .catch(error => {
-      console.error('❌ Error fatal:', error);
-      runner.cleanup();
-      process.exit(1);
-    });
-}
+          .then(async results => {
+            await runner.cleanup();
+            const exitCode = results.failed > 0 ? 1 : 0;
+            process.exit(exitCode);
+          })
+          .catch(async error => {
+            console.error('❌ Error fatal:', error);
+            await runner.cleanup();
+            process.exit(1);
+          });}
 
 module.exports = { UniversalTestRunnerCore };

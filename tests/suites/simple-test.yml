@@ -1,6 +1,7 @@
 suite: "Test Simple de Debug"
 description: "Test básico para verificar que todo funciona"
 baseUrl: "http://localhost:3000"
+executionMode: llm
 timeout: 30000
 
 tests:

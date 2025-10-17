@@ -1,7 +1,7 @@
 // runners/core/test-executor.js
 const fs = require('fs');
 const yaml = require('js-yaml');
-const { sleep } = require('./runner-core.js');
+const { sleep } = require('../utils/helpers.js'); // CORREGIDO: Apunta a runner-core para sleep
 
 class TestExecutor {
   async runSuite(suiteFile) {
@@ -14,18 +14,16 @@ class TestExecutor {
     this.results.suite = suite.suite;
     this.results.startTime = new Date();
     
-    // Modo de ejecución global
     this.executionMode = suite.executionMode || 'direct';
     
     console.log(`📝 Suite: ${suite.suite}`);
-    console.log(`📖 Descripción: ${suite.description}`);
+    console.log(`📖 Descripcion: ${suite.description}`);
     console.log(`🌐 Base URL: ${suite.baseUrl}`);
-    console.log(`⚙️  Modo de ejecución: ${this.executionMode}`);
+    console.log(`⚙️  Modo de ejecucion: ${this.executionMode}`);
     console.log('='.repeat(60));
 
     const systemPrompt = fs.readFileSync('./prompts/system.md', 'utf8');
     
-    // Setup
     if (suite.setup) {
       console.log('\n⚙️  Ejecutando SETUP...');
       for (const step of suite.setup) {
@@ -33,12 +31,10 @@ class TestExecutor {
       }
     }
 
-    // Tests
     for (const test of suite.tests) {
       await this.executeTest(test, suite, systemPrompt);
     }
 
-    // Teardown
     if (suite.teardown) {
       console.log('\n🧹 Ejecutando TEARDOWN...');
       for (const step of suite.teardown) {
@@ -47,20 +43,19 @@ class TestExecutor {
     }
 
     this.results.endTime = new Date();
-    await this.generateReport();
+    await this.reportGenerator.generateReport(this);
     
     return this.results;
   }
 
   async executeTest(test, suite, systemPrompt) {
-    console.log(`\n${'='.repeat(60)}`);
+    console.log('\n' + '='.repeat(60));
     console.log(`🧪 Test: ${test.name}`);
     console.log(`📌 Objetivo: ${test.expectedResult}`);
     
-    // Determinar modo de ejecución para este test
     const testMode = test.mode || this.executionMode || 'direct';
     console.log(`⚙️  Modo: ${testMode}`);
-    console.log(`${ '='.repeat(60)}`);
+    console.log('='.repeat(60));
     
     const startTime = Date.now();
     const testResult = {
@@ -83,7 +78,6 @@ class TestExecutor {
           console.log(`   💬 ${step.description}`);
         }
 
-        // Determinar modo para este paso específico
         const stepMode = step.mode || testMode;
         let stepResult;
 
@@ -91,89 +85,73 @@ class TestExecutor {
           console.log(`   🤖 Usando LLM para interpretar...`);
           stepResult = await this.executeStepWithLLM(step, suite, systemPrompt);
         } else {
-          // Modo 'direct' o 'hybrid' ejecuta directo por defecto
           stepResult = await this.executeStepDirect(step, suite);
         }
 
         testResult.steps.push(stepResult);
         
         if (!stepResult.success) {
-          throw new Error(stepResult.error || 'Paso falló');
+          throw new Error(stepResult.error || 'Paso fallo');
         }
         
         await sleep(500);
       }
 
       testResult.status = 'PASS';
-      testResult.duration = Date.now() - startTime;
       this.results.passed++;
-      
-      console.log(`\n✅ PASS (${testResult.duration}ms)`);
+      console.log(`\n✅ PASS (${Date.now() - startTime}ms)`);
 
     } catch (error) {
       testResult.status = 'FAIL';
       testResult.error = error.message;
-      testResult.duration = Date.now() - startTime;
       this.results.failed++;
-      
-      console.log(`\n❌ FAIL (${testResult.duration}ms)`);
+      console.log(`\n❌ FAIL (${Date.now() - startTime}ms)`);
       console.log(`   Error: ${error.message}`);
       
-      // Capturar screenshot
       const screenshotName = `error-${Date.now()}.png`;
       testResult.screenshot = `./tests/screenshots/${screenshotName}`;
       
       try {
-        await this.mcpClient.callTool({
-          name: 'take_screenshot',
-          arguments: {
-            filePath: testResult.screenshot,
-            fullPage: true
-          }
-        });
+        await this.browserActions.executeActionMCP('screenshot', { filePath: testResult.screenshot, fullPage: true }, suite, this.mcpClient, this.elementFinder, this.config);
         console.log(`   📸 Screenshot: ${testResult.screenshot}`);
       } catch (e) {
         console.log(`   ⚠️  No se pudo capturar screenshot: ${e.message}`);
       }
+    } finally {
+        testResult.duration = Date.now() - startTime;
+        this.results.tests.push(testResult);
     }
-
-    this.results.tests.push(testResult);
   }
 
   async executeStepWithLLM(step, suite, systemPrompt) {
-    // Obtener URL actual
     let currentUrl = 'unknown';
     try {
-      const pagesResult = await this.mcpClient.callTool({
-        name: 'list_pages',
-        arguments: {}
-      });
-      const pagesText = pagesResult.content[0]?.text || '[]';
-      const pages = JSON.parse(pagesText);
-      const currentPage = pages.find(p => p.selected);
-      if (currentPage) currentUrl = currentPage.url;
+      const pagesResult = await this.mcpClient.callTool({ name: 'list_pages', arguments: {} });
+      const pagesText = pagesResult.content[0]?.text || '';
+      
+      const selectedPageLine = pagesText.split('\n').find(line => line.includes('[selected]'));
+      const urlMatch = selectedPageLine ? selectedPageLine.match(/^\d+:\s*(.*?)\s*\[selected\]/) : null;
+      currentUrl = urlMatch ? urlMatch[1] : 'unknown';
+      
     } catch (e) {
       console.log(`   ⚠️  No se pudo obtener URL actual`);
     }
 
-    const context = {
-      currentUrl,
-      step,
-      baseUrl: suite.baseUrl,
-      variables: suite.variables || {}
-    };
+    // Reemplazar variables en el paso ANTES de enviarlo al LLM
+    const stepWithReplacedVars = this.variableReplacer.replaceVariablesInParams(step, suite);
 
-    const stepPrompt = this.buildStepPrompt(step, context, systemPrompt);
+    const context = { currentUrl, step: stepWithReplacedVars, baseUrl: suite.baseUrl, variables: suite.variables || {} };
+    const stepPrompt = this.buildStepPrompt(stepWithReplacedVars, context, systemPrompt);
     
     let llmResponse;
     try {
       llmResponse = await this.llmAdapter.processStep(stepPrompt, context);
     } catch (error) {
-      console.log(`   ⚠️  LLM falló, ejecutando directo: ${error.message}`);
+      console.log(`   ⚠️  LLM fallo, ejecutando directo: ${error.message}`);
       return await this.executeStepDirect(step, suite);
     }
 
-    return await this.executeActionMCP(llmResponse.action, llmResponse.params, suite);
+    return await this.browserActions.executeActionMCP(llmResponse.action, llmResponse.params, suite, this.mcpClient, this.elementFinder, this.config);
   }
 
   async executeStepDirect(step, suite) {
@@ -181,18 +159,30 @@ class TestExecutor {
     const params = { ...step };
     delete params.action;
     
-    // Reemplazar variables usando la utilidad
     const replacedParams = this.variableReplacer.replaceVariablesInParams(params, suite);
 
-    return await this.executeActionMCP(action, replacedParams, suite);
+    return await this.browserActions.executeActionMCP(action, replacedParams, suite, this.mcpClient, this.elementFinder, this.config);
   }
 
   buildStepPrompt(step, context, systemPrompt) {
-    return `${systemPrompt}\n\n## Contexto Actual\n- URL actual: ${context.currentUrl}\n- Base URL: ${context.baseUrl}\n\n## Paso a Ejecutar\n\
-```yaml\n${yaml.dump(step)}\n\
-```\n\n## Variables Disponibles\n\
-```json\n${JSON.stringify(context.variables, null, 2)}\n\
-```\n\n## Instrucción\nAnaliza el paso YAML y decide qué acción ejecutar. Responde SOLO con JSON:\n{\n  "action": "nombre_accion",\n  "params": { "clave": "valor" },\n  "reasoning": "explicación breve"\n}`;
+    const yamlBlock = '```yaml\n' + yaml.dump(step) + '\n```';
+    const jsonBlock = '```json\n' + JSON.stringify(context.variables, null, 2) + '\n```';
+
+    return systemPrompt +
+      '\n\n## Contexto Actual\n' +
+      `- URL actual: ${context.currentUrl}\n` +
+      `- Base URL: ${context.baseUrl}\n\n` +
+      '## Paso a Ejecutar\n' +
+      yamlBlock +
+      '\n\n## Variables Disponibles\n' +
+      jsonBlock +
+      '\n\n## Instruccion\n' +
+      'Analiza el paso YAML y decide que accion ejecutar. Responde SOLO con JSON:\n' +
+      '{\n' +
+      '  "action": "nombre_accion",\n' +
+      '  "params": { "clave": "valor" },\n' +
+      '  "reasoning": "explicacion breve"\n' +
+      '}';
   }
 }
 

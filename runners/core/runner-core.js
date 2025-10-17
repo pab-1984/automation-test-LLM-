@@ -10,8 +10,6 @@ const { VariableReplacer } = require('../actions/variable-replacer.js');
 const { LLMProcessor } = require('../llm/llm-processor.js');
 const { ElementFinder } = require('../actions/element-finder.js');
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
 class UniversalTestRunnerCore extends TestExecutor {
   constructor(configPath = './config/llm.config.json') {
     super();
@@ -39,21 +37,18 @@ class UniversalTestRunnerCore extends TestExecutor {
   }
 
   async initialize() {
-    console.log('🚀 Iniciando Universal Test Runner (Modo MCP)...
-');
+    console.log('Iniciando Universal Test Runner (Modo MCP)...');
     
-    // 1. Inicializar LLM Adapter
     const activeProvider = this.config.activeProvider;
-    console.log(`📡 Proveedor activo: ${activeProvider}`);
+    console.log(`Proveedor activo: ${activeProvider}`);
     
     const AdapterClass = require(`../adapters/${activeProvider}.adapter.js`);
     this.llmAdapter = new AdapterClass(this.config.providers[activeProvider]);
     await this.llmAdapter.initialize();
-    console.log(`✅ LLM ${activeProvider} inicializado
+    console.log(`LLM ${activeProvider} inicializado
 `);
 
-    // 2. Conectar al servidor MCP de Chrome DevTools
-    console.log('🔌 Conectando al servidor MCP de Chrome DevTools...');
+    console.log('Conectando al servidor MCP de Chrome DevTools...');
     
     const chromePath = this.config.testing.chrome?.paths?.windows || 
                       'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
@@ -75,12 +70,10 @@ class UniversalTestRunnerCore extends TestExecutor {
     });
 
     await this.mcpClient.connect(this.mcpTransport);
-    console.log('✅ Conectado al servidor MCP de Chrome DevTools
-');
+    console.log('Conectado al servidor MCP de Chrome DevTools');
 
-    // 3. Listar herramientas disponibles
     const toolsResult = await this.mcpClient.listTools();
-    console.log(`🔧 Herramientas MCP disponibles (${toolsResult.tools.length}):`);
+    console.log(`Herramientas MCP disponibles (${toolsResult.tools.length}):`);
     toolsResult.tools.slice(0, 5).forEach(tool => {
       console.log(`   - ${tool.name}`);
     });
@@ -89,8 +82,7 @@ class UniversalTestRunnerCore extends TestExecutor {
 `);
     }
 
-    // 4. Crear una nueva página
-    console.log('📄 Creando nueva página en el navegador...');
+    console.log('Creando nueva página en el navegador...');
     console.log('   Llamando a new_page con url="about:blank"...');
     
     try {
@@ -99,12 +91,76 @@ class UniversalTestRunnerCore extends TestExecutor {
         arguments: { url: 'about:blank' }
       });
       
-      console.log('   📦 Resultado completo de new_page:');
+      console.log('   Resultado completo de new_page:');
       console.log(JSON.stringify(newPageResult, null, 2));
       
-      // Parsear el resultado para obtener el pageIdx
       if (newPageResult.content && newPageResult.content[0]) {
         const resultText = newPageResult.content[0].text;
-        console.log('   📄 Texto del resultado:', resultText);
+        console.log('   Texto del resultado:', resultText);
         
-        const match = resultText.match(/
+        const match = resultText.match(/^(\d+):[\s\S]*?\[selected\]/m);
+        
+        if (match) {
+          this.pageIndex = parseInt(match[1]);
+          console.log(`Página creada (índice: ${this.pageIndex})`);
+        } else {
+          console.log('No se pudo extraer pageIdx del resultado usando regex.');
+        }
+      } else {
+        console.log('newPageResult no tiene el formato esperado');
+      }
+      
+      console.log('\n   Verificando páginas disponibles...');
+      const pagesListResult = await this.mcpClient.callTool({
+        name: 'list_pages',
+        arguments: {}
+      });
+      console.log('   Páginas actuales:', pagesListResult.content[0]?.text);
+      
+    } catch (error) {
+      console.error('Error al crear página:', error);
+      throw error;
+    }
+
+    console.log('');
+    this.ensureDirectories();
+  }
+
+  ensureDirectories() {
+    const dirs = ['./tests/results', './tests/screenshots'];
+    dirs.forEach(dir => {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+    });
+  }
+
+  async cleanup() {
+    console.log('\nLimpiando...');
+    
+    if (this.pageIndex !== null && this.mcpClient) {
+      try {
+        await this.mcpClient.callTool({
+          name: 'close_page',
+          arguments: { pageIdx: this.pageIndex }
+        });
+        console.log(`Página cerrada (índice: ${this.pageIndex})`);
+      } catch (e) {
+        console.log(`No se pudo cerrar la página: ${e.message}`);
+      }
+    }
+    
+    if (this.mcpClient) {
+      await this.mcpClient.close();
+      console.log('Cliente MCP cerrado');
+    }
+    
+    if (this.llmAdapter && this.llmAdapter.cleanup) {
+      await this.llmAdapter.cleanup();
+    }
+    
+    console.log('Limpieza completada');
+  }
+}
+
+module.exports = { UniversalTestRunnerCore };

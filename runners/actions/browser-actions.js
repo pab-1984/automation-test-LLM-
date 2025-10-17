@@ -1,5 +1,5 @@
 // runners/actions/browser-actions.js
-const { sleep } = require('../core/runner-core.js');
+const { sleep } = require('../utils/helpers.js');
 
 class BrowserActions {
   async executeActionMCP(action, params, suite, mcpClient, elementFinder, config) {
@@ -32,9 +32,11 @@ class BrowserActions {
               name: 'list_pages',
               arguments: {}
             });
-            const pagesData = JSON.parse(pagesAfter.content[0]?.text || '[]');
-            const currentPage = pagesData.find(p => p.selected);
-            console.log(`   ✅ URL actual: ${currentPage?.url || 'unknown'}`);
+            const pagesText = pagesAfter.content[0]?.text || '';
+            const selectedPageLine = pagesText.split('\n').find(line => line.includes('[selected]'));
+            const urlMatch = selectedPageLine ? selectedPageLine.match(/^\d+:\s*(.*?)\s*\[selected\]/) : null;
+            const currentUrl = urlMatch ? urlMatch[1] : 'unknown';
+            console.log(`   ✅ URL actual: ${currentUrl}`);
           } catch (e) {
             console.log(`   ⚠️  No se pudo verificar URL`);
           }
