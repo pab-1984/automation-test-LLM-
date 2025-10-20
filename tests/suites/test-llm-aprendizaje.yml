@@ -1,0 +1,40 @@
+# tests/suites/test-llm-aprendizaje.yml
+
+suite: "Test LLM Aprendizaje"
+description: "Test que entrena al LLM con ejemplos"
+baseUrl: "http://localhost:3000"
+timeout: 15000
+mode: "llm"
+
+tests:
+  - name: "LLMA001 - Mostrar acciones disponibles"
+    mode: "llm"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "showAvailableActions"
+        description: "Mostrar acciones disponibles al LLM"
+      
+      - action: "screenshot"
+        filename: "acciones-disponibles"
+        description: "Captura de acciones"
+    
+    expectedResult: "LLM reconoce acciones disponibles"
+
+  - name: "LLMA002 - Ejecutar acción correcta"
+    mode: "llm"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "scanPage"
+        description: "Escanear página - LLM debe devolver scanPage"
+      
+      - action: "screenshot"
+        filename: "accion-correcta"
+        description: "Captura de ejecución correcta"
+    
+    expectedResult: "LLM ejecuta acción correcta"

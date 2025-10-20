@@ -1,0 +1,47 @@
+# tests/suites/test-escaneo-inteligente.yml
+
+suite: "Escaneo Inteligente de Página"
+description: "Test que escanea toda la página y luego ejecuta acciones específicas"
+baseUrl: "http://localhost:3000"
+timeout: 25000
+mode: "auto"
+
+tests:
+  - name: "EI001 - Escaneo e identificación completa"
+    mode: "llm"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "scanPage"
+        description: "Escanear completamente la página y catalogar elementos"
+        detailLevel: "full"  # full, basic, quick
+      
+      - action: "identifyTestElements"
+        description: "Identificar elementos específicos para testing"
+        targetElements: ["add_to_cart_buttons", "cart_indicator", "product_cards"]
+      
+      - action: "screenshot"
+        filename: "pagina-escaneada"
+        description: "Captura de la página analizada"
+    
+    expectedResult: "Página escaneada y elementos identificados correctamente"
+
+  - name: "EI002 - Ejecución basada en escaneo"
+    mode: "direct"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "scanAndExecute"
+        description: "Escanear y ejecutar acción específica"
+        actionToExecute: "click_add_to_cart"
+        verification: "cart_updated"
+      
+      - action: "screenshot"
+        filename: "accion-ejecutada"
+        description: "Captura después de la ejecución"
+    
+    expectedResult: "Acción ejecutada basada en escaneo previo"

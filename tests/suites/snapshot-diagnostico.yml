@@ -1,0 +1,68 @@
+# Archivo: tests/suites/snapshot-diagnostico.yml
+
+suite: "Diagnóstico de Snapshot"
+description: "Test para obtener el snapshot detallado de la página"
+baseUrl: "http://localhost:3000"
+timeout: 10000
+mode: "direct"
+
+tests:
+  - name: "DS001 - Obtener snapshot completo de la página"
+    mode: "direct"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "take_snapshot"
+        description: "Obtener snapshot detallado de la página"
+      
+      - action: "screenshot"
+        filename: "snapshot-completo"
+        description: "Capturar pantalla completa"
+    
+    expectedResult: "Obtener el snapshot completo para analizar la estructura"
+
+  - name: "DS002 - Verificar elementos específicos con snapshot"
+    mode: "direct"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "take_snapshot"
+        description: "Obtener snapshot para análisis"
+      
+      - action: "verifyElementExists"
+        selectors:
+          - "heading"
+          - "StaticText"
+          - "button"
+        description: "Verificar elementos clave"
+      
+      - action: "screenshot"
+        filename: "verificacion-con-snapshot"
+        description: "Capturar verificación"
+    
+    expectedResult: "Confirmar existencia de elementos con snapshot"
+
+  - name: "DS003 - Análisis específico del contenido"
+    mode: "llm"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "take_snapshot"
+        description: "Primero obtener el snapshot"
+      
+      - action: "analyzeSnapshot"
+        description: "Analizar el snapshot obtenido"
+        objective: "Identificar texto exacto de heading, botones y productos"
+        focus: "heading text, button labels, product names"
+      
+      - action: "screenshot"
+        filename: "analisis-contenido"
+        description: "Capturar análisis del contenido"
+    
+    expectedResult: "Obtener información específica del contenido de los elementos"

@@ -1,0 +1,64 @@
+# Archivo: tests/suites/diagnostico.yml
+
+suite: "Diagnóstico de Elementos"
+description: "Test para entender la estructura real de la página"
+baseUrl: "http://localhost:3000"
+timeout: 10000
+mode: "auto"
+
+tests:
+  - name: "TD001 - Análisis completo de la página"
+    mode: "llm"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "analyzePage"
+        description: "Analizar completamente la estructura de la página"
+        intelligent: true
+        objective: "Identificar todos los elementos: títulos, textos, botones y sus contenidos"
+      
+      - action: "screenshot"
+        filename: "diagnostico-completo"
+        description: "Capturar toda la página"
+    
+    expectedResult: "Obtener un mapa completo de los elementos de la página"
+
+  - name: "TD002 - Verificación específica de elementos"
+    mode: "direct"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "verifyElementExists"
+        selectors:
+          - "heading"
+          - "StaticText"
+          - "button"
+        description: "Verificar existencia de elementos básicos"
+      
+      - action: "screenshot"
+        filename: "verificacion-elementos"
+        description: "Capturar elementos encontrados"
+    
+    expectedResult: "Confirmar que los elementos básicos existen"
+
+  - name: "TD003 - Exploración de botones específicos"
+    mode: "llm"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "analyzePage"
+        description: "Buscar específicamente botones con ciertos textos"
+        intelligent: true
+        objective: "Encontrar botones que contengan 'Add', 'Cart', 'Buy', 'Shop'"
+      
+      - action: "screenshot"
+        filename: "exploracion-botones"
+        description: "Capturar análisis de botones específicos"
+    
+    expectedResult: "Identificar botones con funcionalidad de carrito"

@@ -1,0 +1,35 @@
+suite: "Test Simple con LLM"
+description: "Test básico para verificar funcionamiento del LLM"
+baseUrl: "http://localhost:3000"
+timeout: 15000
+mode: "llm"
+
+tests:
+  - name: "TSLLM001 - Navegación controlada por LLM"
+    mode: "llm"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal usando LLM"
+      
+      - action: "screenshot"
+        filename: "pagina-llm-basica"
+        description: "Captura controlada por LLM"
+    
+    expectedResult: "LLM controla la navegación básica correctamente"
+
+  - name: "TSLLM002 - Click específico con LLM"
+    mode: "direct"  # Este lo hacemos directo para evitar problemas de LLM
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "clickActionButton"
+        description: "Hacer clic en botón de acción identificado automáticamente"
+      
+      - action: "screenshot"
+        filename: "click-accion-llm"
+        description: "Captura del click automático"
+    
+    expectedResult: "Click automático en botón de acción funciona"

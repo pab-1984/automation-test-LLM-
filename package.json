@@ -9,7 +9,13 @@
     "switch-llm": "node scripts/switch-llm.js",
     "test": "node scripts/test.js",
     "compare": "node scripts/compare.js",
-    "migrate": "node scripts/migrate.js"
+    "migrate": "node scripts/migrate.js",
+    "test-direct": "node scripts/test.js --mode direct",
+    "test-llm": "node scripts/test.js --mode llm",
+    "test-auto": "node scripts/test.js --mode auto",
+    "cli-test": "node scripts/cli.js",
+    "web": "node scripts/web-server.js",
+    "status": "node scripts/switch-llm.js status"
   },
   "keywords": [
     "testing",
@@ -22,6 +28,7 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.20.0",
+    "inquirer": "^8.2.0",
     "js-yaml": "^4.1.0"
   }
 }

@@ -1,0 +1,45 @@
+suite: "Test Inteligente con Análisis"
+description: "Test que usa análisis para encontrar botones"
+baseUrl: "http://localhost:3000"
+timeout: 25000
+mode: "auto"
+
+tests:
+  - name: "TI001 - Análisis inteligente de botones"
+    mode: "llm"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "analyzePageForButtons"
+        description: "Analizar página para identificar botones de acción"
+        objective: "Encontrar botones de 'Add to Cart', 'Comprar', 'Agregar'"
+      
+      - action: "clickActionButton"
+        description: "Hacer clic en el botón de acción identificado"
+      
+      - action: "screenshot"
+        filename: "analisis-inteligente"
+        description: "Captura del resultado"
+    
+    expectedResult: "Identificación y click inteligente en botones de acción"
+
+  - name: "TI002 - Verificación post-acción"
+    mode: "direct"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "clickActionButton"
+        description: "Hacer clic en botón de acción identificado automáticamente"
+      
+      - action: "verifyPageChange"
+        description: "Verificar que la página responda a la acción"
+      
+      - action: "screenshot"
+        filename: "verificacion-cambio"
+        description: "Captura de la verificación"
+    
+    expectedResult: "La página responde correctamente a la acción del botón"

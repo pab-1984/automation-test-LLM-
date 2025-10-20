@@ -1,0 +1,43 @@
+suite: "Selector Dinámico por Texto"
+description: "Test que selecciona botones basados en su texto visible"
+baseUrl: "http://localhost:3000"
+timeout: 20000
+mode: "direct"
+
+tests:
+  - name: "SD001 - Identificar y seleccionar botón por texto"
+    mode: "direct"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "take_snapshot"
+        description: "Obtener snapshot para análisis"
+      
+      - action: "findButtonByText"
+        text: "Add to Cart"
+        description: "Buscar botón con texto 'Add to Cart'"
+      
+      - action: "screenshot"
+        filename: "boton-encontrado"
+        description: "Captura del botón identificado"
+    
+    expectedResult: "Encontrar y preparar clic en botón 'Add to Cart'"
+
+  - name: "SD002 - Click dinámico en botón identificado"
+    mode: "direct"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a la página principal"
+      
+      - action: "clickButtonWithText"
+        text: "Add to Cart"
+        description: "Hacer clic en botón que contiene 'Add to Cart'"
+      
+      - action: "screenshot"
+        filename: "click-dinamico-exito"
+        description: "Captura después del click dinámico"
+    
+    expectedResult: "Click exitoso en botón identificado por texto"

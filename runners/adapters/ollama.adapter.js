@@ -1,6 +1,8 @@
 // runners/adapters/ollama.adapter.js
 // Adapter para conectar con Ollama (LLM local)
 
+const fs = require('fs');
+
 class OllamaAdapter {
   constructor(config) {
     this.config = config;
@@ -90,12 +92,13 @@ class OllamaAdapter {
         throw new Error('Ollama no retornó respuesta');
       }
 
-      console.log(`   💭 Respuesta recibida`);
+      console.log(`   💭 Respuesta recibida (${data.response.length} caracteres)`);
       
       // Intentar parsear JSON de la respuesta
       const parsed = this.parseResponse(data.response);
       
       if (parsed) {
+        console.log(`   🎯 Acción interpretada: ${parsed.action}`);
         return parsed;
       }
 
@@ -112,19 +115,29 @@ class OllamaAdapter {
   }
 
   buildPrompt(basePrompt, context) {
-    // Construir prompt más específico
-    return `${basePrompt}
+    // Usar prompt simplificado si existe, sino el original
+    let simplePrompt = basePrompt;
+    try {
+      if (fs.existsSync('./prompts/system-simple.md')) {
+        simplePrompt = fs.readFileSync('./prompts/system-simple.md', 'utf8');
+      }
+    } catch (e) {
+      // Usar el prompt original si hay error
+      console.log('   ⚠️  No se pudo cargar prompt simplificado, usando original');
+    }
+    
+    return `${simplePrompt}
 
-IMPORTANTE: Responde SOLO con un objeto JSON válido, sin markdown, sin explicaciones adicionales.
+## Tarea actual:
+Acción solicitada: ${context.step.action}
+Descripción: ${context.step.description || 'Sin descripción'}
+Parámetros completos: ${JSON.stringify(context.step, null, 2)}
 
-Formato requerido:
-{
-  "action": "nombre_de_accion",
-  "params": { "key": "value" },
-  "reasoning": "explicación breve"
-}
+## Contexto:
+URL actual: ${context.currentUrl}
+Base URL: ${context.baseUrl}
 
-Analiza el paso YAML y responde con el JSON correspondiente.`;
+Responde SOLO con JSON válido usando el formato exacto mostrado arriba:`;
   }
 
   parseResponse(responseText) {
@@ -143,7 +156,7 @@ Analiza el paso YAML y responde con el JSON correspondiente.`;
     if (jsonMatch) {
       try {
         const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.action) {
+        if (parsed.action && parsed.action !== 'navigate') { // Evitar navegaciones incorrectas
           return parsed;
         }
       } catch (e) {
@@ -156,7 +169,7 @@ Analiza el paso YAML y responde con el JSON correspondiente.`;
     if (codeBlockMatch) {
       try {
         const parsed = JSON.parse(codeBlockMatch[1]);
-        if (parsed.action) {
+        if (parsed.action && parsed.action !== 'navigate') { // Evitar navegaciones incorrectas
           return parsed;
         }
       } catch (e) {
@@ -171,9 +184,15 @@ Analiza el paso YAML y responde con el JSON correspondiente.`;
     // Respuesta de emergencia cuando el LLM no responde correctamente
     console.log(`   🔄 Ejecutando acción directa del YAML`);
     
+    // Crear una copia limpia de los parámetros
+    const params = { ...step };
+    delete params.action;
+    delete params.description;
+    delete params.mode;
+    
     return {
       action: step.action,
-      params: { ...step },
+      params: params,
       reasoning: 'Fallback - ejecutando acción directa sin interpretación del LLM'
     };
   }

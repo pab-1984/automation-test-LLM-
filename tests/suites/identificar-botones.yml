@@ -1,0 +1,43 @@
+# tests/suites/identificar-botones.yml
+
+suite: "Identificar Botones Específicos"
+description: "Test para encontrar el botón 'Add to Cart'"
+baseUrl: "http://localhost:3000"
+timeout: 15000
+mode: "direct"
+
+tests:
+  - name: "IB001 - Análisis de estructura de botones"
+    mode: "direct"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a página principal"
+      
+      - action: "take_snapshot"
+        description: "Obtener snapshot completo de la página"
+      
+      - action: "screenshot"
+        filename: "snapshot-botones"
+        description: "Captura del estado inicial"
+    
+    expectedResult: "Obtener información detallada de los botones en la página"
+
+  - name: "IB002 - Verificación específica de botones"
+    mode: "direct"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}/"
+        description: "Ir a página principal"
+      
+      - action: "verifyElementExists"
+        selectors:
+          - "button"
+          - "StaticText"
+        description: "Verificar existencia de botones y texto"
+      
+      - action: "screenshot"
+        filename: "verificacion-botones"
+        description: "Captura de verificación"
+    
+    expectedResult: "Confirmar que existen botones y texto de productos"
