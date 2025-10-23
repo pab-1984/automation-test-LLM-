@@ -214,22 +214,6 @@ npm test tests/suites/ecommerce-suite.yml
 
 ---
 
-## 🔄 Migración desde Proyecto Actual
-
-```bash
-# 1. Backup de archivos actuales
-mkdir backup
-cp -r .gemini backup/
-cp GEMINI.md backup/
-
-# 2. Crear nueva estructura
-npm run migrate
-
-# 3. Tus tests YAML se mantienen igual
-# No necesitas cambiar nada en tests/suites/
-```
-
----
 
 ## 📊 Comparación de Proveedores
 
