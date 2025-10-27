@@ -34,11 +34,20 @@ testing-automation/
 │
 ├── runners/
 │   ├── universal-runner.js      # Runner principal
+│   ├── core/
+│   │   ├── runner-core.js       # Núcleo del runner
+│   │   ├── test-executor.js     # Ejecución de tests
+│   │   └── report-generator.js  # Generación de reportes
 │   ├── adapters/
 │   │   ├── gemini.adapter.js    # Adaptador para Gemini
 │   │   ├── ollama.adapter.js    # Adaptador para Ollama
 │   │   └── openai.adapter.js    # Adaptador para OpenAI
-│   └── executor.js              # Motor de ejecución
+│   ├── actions/
+│   │   ├── browser-actions.js   # Acciones del navegador
+│   │   ├── element-finder.js    # Localización de elementos
+│   │   └── variable-replacer.js # Reemplazo de variables
+│   └── llm/
+│       └── llm-processor.js     # Procesamiento y compilación LLM
 │
 ├── scripts/
 │   ├── setup.js                 # Script de configuración

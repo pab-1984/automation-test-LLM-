@@ -6,6 +6,7 @@ tests/results/*.md
 tests/results/*.json
 tests/screenshots/*.png
 tests/videos/
+tests/compiled/
 
 # Logs
 *.log
