@@ -55,7 +55,7 @@ class UniversalTestRunnerCore extends TestExecutor {
     
     this.mcpTransport = new StdioClientTransport({
       command: 'npx',
-      args: ['-y', 'chrome-devtools-mcp@latest'],
+      args: ['chrome-devtools-mcp'],
       env: {
         ...process.env,
         CHROME_PATH: chromePath

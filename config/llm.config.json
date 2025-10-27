@@ -29,7 +29,7 @@
     "servers": {
       "chrome-devtools": {
         "command": "npx",
-        "args": ["-y", "chrome-devtools-mcp@latest"],
+        "args": ["chrome-devtools-mcp"],
         "env": {
           "CHROME_PATH": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
         }
