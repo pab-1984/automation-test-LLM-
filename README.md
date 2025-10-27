@@ -272,30 +272,54 @@ npm run create-test
 
 ---
 
-### 3️⃣ Interfaz Web (Para acceso desde navegador)
+### 3️⃣ Interfaz Web (Para acceso desde navegador) ✨ **MEJORADA**
 
 **Comando**: `npm run web`
 
 **URL**: `http://localhost:3001`
 
 **Características**:
-- ✅ Visualiza estado del sistema en tiempo real
-- ✅ Lista tests disponibles
-- ✅ Ver configuración de LLM
-- ✅ Métricas de uso y memoria
-- ⚠️ **Básico**: No puede ejecutar ni crear tests aún
+- ✅ **Crear tests desde lenguaje natural** (integrado con IA)
+- ✅ **Ejecutar tests** con visualización en tiempo real
+- ✅ **Ver logs de ejecución** con streaming
+- ✅ **Visualizar resultados y reportes** generados
+- ✅ Dashboard con métricas en tiempo real
+- ✅ Diseño moderno con gradientes y animaciones
+- ✅ 4 tabs: Dashboard, Crear, Ejecutar, Resultados
+- ✅ Auto-refresh cada 30 segundos
 
 **Cuándo usarla**:
-- Para monitorear el sistema
-- Para ver tests disponibles
-- Para acceso rápido desde navegador
-- Para dashboards y visualización
+- Para crear tests sin CLI (desde el navegador)
+- Para ejecutar y monitorear tests visualmente
+- Para ver reportes de forma amigable
+- Para usuarios que prefieren interfaces gráficas
+- Para dashboards y visualización de equipo
 
-**API disponible**:
+**API REST completa**:
 ```bash
-GET /api/status   # Estado del sistema
-GET /api/tests    # Lista de tests
+# Estado y configuración
+GET  /api/status                    # Estado del sistema
+GET  /api/tests                     # Lista de tests
+
+# Crear tests
+POST /api/tests/create              # Crear test desde lenguaje natural
+     Body: { name, baseUrl, instructions }
+
+# Ejecutar tests
+POST /api/tests/run                 # Ejecutar test en background
+     Body: { testPath, mode }
+GET  /api/tests/status/:testId      # Estado de ejecución (polling)
+
+# Resultados
+GET  /api/results                   # Lista de reportes
+GET  /api/results/:filename         # Ver reporte específico
 ```
+
+**Interfaz con 4 tabs**:
+1. **📊 Dashboard**: Estado del sistema, tests disponibles, tests activos
+2. **➕ Crear Test**: Formulario para lenguaje natural → genera YAML con IA
+3. **▶️ Ejecutar Test**: Seleccionar test, configurar modo, ver logs en tiempo real
+4. **📈 Resultados**: Ver reportes generados, ordenados por fecha
 
 ---
 
@@ -303,12 +327,14 @@ GET /api/tests    # Lista de tests
 
 | Necesitas... | Usa... |
 |--------------|---------|
-| Crear test SIN conocimientos técnicos | `npm run create-test` ⭐ |
-| Ejecutar tests existentes | `npm run cli-test` o `npm test` |
+| Crear test SIN conocimientos técnicos | `npm run create-test` ⭐ o `npm run web` 🌐 |
+| Ejecutar tests existentes | `npm run cli-test`, `npm test`, o `npm run web` 🌐 |
 | Configurar LLM | `npm run cli-test` o `npm run switch-llm` |
-| Ver estado del sistema | `npm run web` o `npm run cli-test` |
+| Ver estado del sistema | `npm run web` 🌐 o `npm run cli-test` |
 | Crear test técnico manualmente | Editar `.yml` directamente |
-| Monitorear desde navegador | `npm run web` |
+| Monitorear tests en tiempo real | `npm run web` 🌐 |
+| Interfaz gráfica completa | `npm run web` 🌐 ✨ |
+| Ver reportes de forma visual | `npm run web` 🌐 |
 
 ---
 
