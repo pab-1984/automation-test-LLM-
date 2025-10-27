@@ -1,0 +1,19 @@
+suite: "Test de Compilación - Flujo LLM"
+description: "Test para verificar el flujo de compilación automática"
+baseUrl: "https://example.com"
+executionMode: "llm"
+timeout: 30000
+
+tests:
+  - name: "TC001 - Test con compilación automática"
+    mode: "llm"
+    steps:
+      - action: "navigate"
+        url: "${baseUrl}"
+        description: "Navegar a example.com con LLM"
+
+      - action: "screenshot"
+        filename: "test-compilacion-llm"
+        description: "Capturar pantalla usando LLM"
+
+    expectedResult: "Primera ejecución con LLM compila el test automáticamente"

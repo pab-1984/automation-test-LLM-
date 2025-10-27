@@ -5,6 +5,7 @@ const fs = require('fs');
 // Parsear argumentos
 let suiteFile = null;
 let executionMode = 'auto';
+let recompile = false;
 let args = [];
 
 // Procesar argumentos
@@ -12,6 +13,8 @@ for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === '--mode' || process.argv[i] === '-m') {
     executionMode = process.argv[i + 1];
     i++; // Saltar el valor del modo
+  } else if (process.argv[i] === '--recompile' || process.argv[i] === '-r') {
+    recompile = true;
   } else if (!process.argv[i].startsWith('-')) {
     suiteFile = process.argv[i];
   } else {
@@ -37,13 +40,21 @@ if (!fs.existsSync(absoluteSuitePath)) {
 }
 
 console.log(`▶️  Iniciando la suite de pruebas: ${suiteFile}`);
-console.log(`⚙️  Modo de ejecución: ${executionMode}\n`);
+console.log(`⚙️  Modo de ejecución: ${executionMode}`);
+if (recompile) {
+  console.log(`🔄 Forzar recompilación: Sí`);
+}
+console.log('');
 
 // Definir el proceso a ejecutar
 const runnerPath = path.join(__dirname, '..', 'runners', 'universal-runner.js');
 
 // Construir argumentos para el runner
-const runnerArgs = [runnerPath, suiteFile, '--mode', executionMode, ...args];
+const runnerArgs = [runnerPath, suiteFile, '--mode', executionMode];
+if (recompile) {
+  runnerArgs.push('--recompile');
+}
+runnerArgs.push(...args);
 
 const child = spawn('node', runnerArgs, {
   stdio: 'inherit'

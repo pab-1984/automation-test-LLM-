@@ -4,22 +4,50 @@ const yaml = require('js-yaml');
 const { sleep } = require('../utils/helpers.js'); // CORREGIDO: Apunta a runner-core para sleep
 
 class TestExecutor {
-  async runSuite(suiteFile) {
+  async runSuite(suiteFile, options = {}) {
     console.log(`📋 Cargando suite: ${suiteFile}
 `);
-    
-    const suiteContent = fs.readFileSync(suiteFile, 'utf8');
-    const suite = yaml.load(suiteContent);
-    
+
+    // Verificar si existe test compilado y debemos usarlo
+    const forceRecompile = options.recompile || false;
+    let suite;
+    let usingCompiledVersion = false;
+
+    if (!forceRecompile && this.llmProcessor.hasCompiledVersion(suiteFile)) {
+      console.log('🔍 Test compilado encontrado...');
+      const compiled = this.llmProcessor.loadCompiledTest(suiteFile);
+
+      if (compiled) {
+        suite = compiled;
+        usingCompiledVersion = true;
+        console.log('⚡ Usando test compilado (ejecución rápida sin LLM)\n');
+      }
+    }
+
+    // Si no hay compilado o se forzó recompilación, cargar original
+    if (!suite) {
+      const suiteContent = fs.readFileSync(suiteFile, 'utf8');
+      suite = yaml.load(suiteContent);
+
+      if (forceRecompile) {
+        console.log('🔄 Forzando recompilación del test...\n');
+      }
+    }
+
     this.results.suite = suite.suite;
     this.results.startTime = new Date();
-    
-    this.executionMode = suite.executionMode || 'direct';
-    
+    this.originalSuiteFile = suiteFile;
+    this.usingCompiledVersion = usingCompiledVersion;
+
+    this.executionMode = suite.executionMode || suite.mode || 'direct';
+
     console.log(`📝 Suite: ${suite.suite}`);
     console.log(`📖 Descripcion: ${suite.description}`);
     console.log(`🌐 Base URL: ${suite.baseUrl}`);
     console.log(`⚙️  Modo de ejecucion: ${this.executionMode}`);
+    if (usingCompiledVersion) {
+      console.log(`🔨 Test compilado: Sí (compilado el ${suite.compiledAt})`);
+    }
     console.log('='.repeat(60));
 
     const systemPrompt = fs.readFileSync('./prompts/system.md', 'utf8');
@@ -44,8 +72,56 @@ class TestExecutor {
 
     this.results.endTime = new Date();
     await this.reportGenerator.generateReport(this);
-    
+
+    // Si se ejecutó con LLM y no se usó test compilado, compilar ahora
+    if (!this.usingCompiledVersion && this.executionMode === 'llm') {
+      await this.compileAndSaveTest(this.originalSuiteFile, suite);
+    }
+
     return this.results;
+  }
+
+  /**
+   * Compila un test después de ejecutarlo con LLM
+   * Mapea los pasos con UIDs del DOM y guarda el test compilado
+   */
+  async compileAndSaveTest(suiteFile, originalSuite) {
+    console.log('\n🔨 Compilando test para futuras ejecuciones...');
+
+    try {
+      // 1. Obtener snapshot del DOM actual
+      console.log('  📸 Capturando snapshot del DOM...');
+      const snapshot = await this.mcpClient.callTool({
+        name: 'take_snapshot',
+        arguments: {}
+      });
+      const snapshotText = snapshot.content[0]?.text || '';
+
+      if (!snapshotText) {
+        console.warn('  ⚠️  No se pudo obtener snapshot, compilación cancelada');
+        return;
+      }
+
+      console.log(`  📄 Snapshot obtenido (${snapshotText.length} caracteres)`);
+
+      // 2. Compilar test usando LLMProcessor
+      console.log('  🔨 Mapeando pasos con elementos del DOM...');
+      const compiledSuite = await this.llmProcessor.compileTest(
+        originalSuite,
+        snapshotText,
+        this.llmAdapter,
+        this.elementFinder
+      );
+
+      // 3. Guardar test compilado
+      const savedPath = this.llmProcessor.saveCompiledTest(suiteFile, compiledSuite);
+      console.log(`  ✅ Test compilado guardado: ${savedPath}`);
+      console.log('  ⚡ Próxima ejecución será 10x más rápida!');
+
+    } catch (error) {
+      console.error(`  ❌ Error compilando test: ${error.message}`);
+      console.error(`  ℹ️  El test seguirá funcionando, pero sin optimización`);
+    }
   }
 
   async executeTest(test, suite, systemPrompt) {
