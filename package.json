@@ -12,6 +12,7 @@
     "test-direct": "node scripts/test.js --mode direct",
     "test-llm": "node scripts/test.js --mode llm",
     "test-auto": "node scripts/test.js --mode auto",
+    "create-test": "node scripts/create-test.js",
     "cli-test": "node scripts/cli.js",
     "web": "node scripts/web-server.js",
     "status": "node scripts/switch-llm.js status"
