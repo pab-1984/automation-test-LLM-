@@ -749,7 +749,10 @@ function getMainHTML() {
 
           <div class="form-group">
             <label for="base-url">URL de la Aplicación *</label>
-            <input type="url" id="base-url" placeholder="http://localhost:3000" required>
+            <input type="text" id="base-url" placeholder="https://www.ejemplo.com o localhost:3000" required>
+            <small style="color: #7f8c8d; font-size: 0.9em;">
+              💡 Puedes escribir con o sin https:// - se agregará automáticamente
+            </small>
           </div>
 
           <div class="form-group">
@@ -921,15 +924,36 @@ Verifica que aparezca un mensaje de bienvenida." required></textarea>
       }
     }
 
+    // Normalizar URL (agregar protocolo si falta)
+    function normalizeUrl(url) {
+      url = url.trim();
+
+      // Si ya tiene protocolo, devolver tal cual
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+      }
+
+      // Si es localhost, usar http://
+      if (url.startsWith('localhost')) {
+        return 'http://' + url;
+      }
+
+      // Si no tiene protocolo, agregar https://
+      return 'https://' + url;
+    }
+
     // Crear test desde lenguaje natural
     async function createTest(event) {
       event.preventDefault();
 
       const name = document.getElementById('test-name').value;
-      const baseUrl = document.getElementById('base-url').value;
+      let baseUrl = document.getElementById('base-url').value;
       const instructions = document.getElementById('instructions').value;
       const btn = document.getElementById('create-btn');
       const alertDiv = document.getElementById('create-alert');
+
+      // Normalizar URL
+      baseUrl = normalizeUrl(baseUrl);
 
       btn.disabled = true;
       btn.innerHTML = '<span class="loading"></span> Generando con IA...';
