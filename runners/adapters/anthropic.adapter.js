@@ -1,73 +1,70 @@
-// runners/adapters/gemini.adapter.js
-// Adapter para conectar con Google Gemini API
+// runners/adapters/anthropic.adapter.js
+// Adapter para conectar con Anthropic (Claude) API
 
 const fs = require('fs');
 
-class GeminiAdapter {
+class AnthropicAdapter {
   constructor(config) {
     this.config = config;
-    this.model = config.model || 'gemini-2.0-flash-exp';
+    this.model = config.model || 'claude-3-5-sonnet-20241022';
     this.temperature = config.temperature || 0.1;
     this.maxTokens = config.maxTokens || 4096;
     this.apiKey = null;
-    this.genAI = null;
+    this.anthropic = null;
   }
 
   async initialize() {
-    console.log(`🔌 Inicializando Gemini...`);
+    console.log(`🔌 Inicializando Anthropic (Claude)...`);
 
     // Obtener API key
     this.apiKey = this.getApiKey();
 
     if (!this.apiKey) {
       throw new Error(
-        '❌ API Key de Gemini no configurada.\n' +
+        '❌ API Key de Anthropic no configurada.\n' +
         '   Opciones:\n' +
-        '   1. Set GEMINI_API_KEY environment variable\n' +
-        '   2. Crea un archivo .env con: GEMINI_API_KEY=tu_key\n' +
-        '   3. Obtén tu key en: https://makersuite.google.com/app/apikey'
+        '   1. Set ANTHROPIC_API_KEY environment variable\n' +
+        '   2. Crea un archivo .env con: ANTHROPIC_API_KEY=tu_key\n' +
+        '   3. Obtén tu key en: https://console.anthropic.com/settings/keys'
       );
     }
 
     try {
-      // Importar SDK de Gemini
-      const { GoogleGenerativeAI } = require('@google/generative-ai');
+      // Importar SDK de Anthropic
+      const Anthropic = require('@anthropic-ai/sdk');
 
-      this.genAI = new GoogleGenerativeAI(this.apiKey);
-
-      // Verificar conexión con un test simple
-      const model = this.genAI.getGenerativeModel({
-        model: this.model,
-        generationConfig: {
-          temperature: this.temperature,
-          maxOutputTokens: this.maxTokens,
-        }
+      this.anthropic = new Anthropic({
+        apiKey: this.apiKey
       });
 
-      // Test rápido
-      const result = await model.generateContent('Responde solo: OK');
-      const response = await result.response;
-      const text = response.text();
+      // Verificar conexión con un test simple
+      const message = await this.anthropic.messages.create({
+        model: this.model,
+        max_tokens: 50,
+        messages: [
+          { role: 'user', content: 'Responde solo: OK' }
+        ]
+      });
 
-      if (!text) {
+      if (!message.content || !message.content[0]) {
         throw new Error('No se recibió respuesta del modelo');
       }
 
-      console.log(`✅ Conectado a Gemini`);
+      console.log(`✅ Conectado a Anthropic (Claude)`);
       console.log(`   Modelo: ${this.model}`);
       console.log(`   Temperatura: ${this.temperature}`);
 
     } catch (error) {
-      if (error.message.includes('API_KEY')) {
-        throw new Error('❌ API Key inválida o no autorizada');
+      if (error.message.includes('invalid_api_key')) {
+        throw new Error('❌ API Key inválida');
       }
-      if (error.message.includes('quota')) {
-        throw new Error('❌ Cuota de Gemini excedida. Intenta mañana o usa otro LLM.');
+      if (error.message.includes('overloaded') || error.message.includes('rate_limit')) {
+        throw new Error('❌ Servicio sobrecargado o límite alcanzado. Intenta más tarde.');
       }
       if (error.code === 'MODULE_NOT_FOUND') {
         throw new Error(
-          '❌ SDK de Gemini no instalado.\n' +
-          '   Instala con: npm install @google/generative-ai'
+          '❌ SDK de Anthropic no instalado.\n' +
+          '   Instala con: npm install @anthropic-ai/sdk'
         );
       }
       throw error;
@@ -76,15 +73,15 @@ class GeminiAdapter {
 
   getApiKey() {
     // 1. Intentar desde variable de entorno
-    if (process.env.GEMINI_API_KEY) {
-      return process.env.GEMINI_API_KEY;
+    if (process.env.ANTHROPIC_API_KEY) {
+      return process.env.ANTHROPIC_API_KEY;
     }
 
     // 2. Intentar desde archivo .env
     try {
       if (fs.existsSync('.env')) {
         const envContent = fs.readFileSync('.env', 'utf8');
-        const match = envContent.match(/GEMINI_API_KEY=(.+)/);
+        const match = envContent.match(/ANTHROPIC_API_KEY=(.+)/);
         if (match) {
           return match[1].trim();
         }
@@ -101,24 +98,27 @@ class GeminiAdapter {
       // Construir el prompt final
       const fullPrompt = this.buildPrompt(prompt, context);
 
-      console.log(`   🤖 Consultando a Gemini...`);
+      console.log(`   🤖 Consultando a Claude...`);
 
-      const model = this.genAI.getGenerativeModel({
+      const message = await this.anthropic.messages.create({
         model: this.model,
-        generationConfig: {
-          temperature: this.temperature,
-          maxOutputTokens: this.maxTokens,
-        }
+        max_tokens: this.maxTokens,
+        temperature: this.temperature,
+        system: 'Eres un asistente especializado en testing automatizado. Respondes SIEMPRE en formato JSON válido.',
+        messages: [
+          {
+            role: 'user',
+            content: fullPrompt
+          }
+        ]
       });
 
-      const result = await model.generateContent(fullPrompt);
-      const response = await result.response;
-      const text = response.text();
+      const responseText = message.content[0].text;
 
-      console.log(`   💭 Respuesta recibida (${text.length} caracteres)`);
+      console.log(`   💭 Respuesta recibida (${responseText.length} caracteres)`);
 
       // Intentar parsear JSON de la respuesta
-      const parsed = this.parseResponse(text);
+      const parsed = this.parseResponse(responseText);
 
       if (parsed) {
         console.log(`   🎯 Acción interpretada: ${parsed.action}`);
@@ -130,10 +130,10 @@ class GeminiAdapter {
       return this.fallbackResponse(context.step);
 
     } catch (error) {
-      console.error(`   ❌ Error en Gemini: ${error.message}`);
+      console.error(`   ❌ Error en Claude: ${error.message}`);
 
-      if (error.message.includes('quota')) {
-        console.error('   💡 Cambia a Ollama: npm run switch-llm ollama');
+      if (error.message.includes('rate_limit')) {
+        console.error('   💡 Límite alcanzado. Cambia a Ollama: npm run switch-llm ollama');
       }
 
       // En caso de error, ejecutar directo sin IA
@@ -223,9 +223,9 @@ Responde SOLO con JSON válido usando el formato exacto mostrado arriba.`;
   }
 
   async cleanup() {
-    // Gemini SDK no necesita limpieza específica
-    console.log('✓ Gemini adapter limpiado');
+    // Anthropic SDK no necesita limpieza específica
+    console.log('✓ Anthropic adapter limpiado');
   }
 }
 
-module.exports = GeminiAdapter;
+module.exports = AnthropicAdapter;

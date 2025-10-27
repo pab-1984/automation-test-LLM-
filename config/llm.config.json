@@ -23,6 +23,13 @@
       "model": "gpt-4o-mini",
       "temperature": 0.1,
       "maxTokens": 4096
+    },
+    "anthropic": {
+      "enabled": false,
+      "apiKey": "env:ANTHROPIC_API_KEY",
+      "model": "claude-3-5-sonnet-20241022",
+      "temperature": 0.1,
+      "maxTokens": 4096
     }
   },
   "mcp": {

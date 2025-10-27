@@ -22,7 +22,10 @@
     "automation",
     "llm",
     "ollama",
-    "gemini"
+    "gemini",
+    "openai",
+    "anthropic",
+    "claude"
   ],
   "author": "Pablo Flores",
   "license": "MIT",
@@ -33,5 +36,26 @@
   },
   "devDependencies": {
     "chrome-devtools-mcp": "^0.4.0"
+  },
+  "optionalDependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "openai": "^4.77.3",
+    "@anthropic-ai/sdk": "^0.32.1"
+  },
+  "peerDependencies": {
+    "@google/generative-ai": ">=0.21.0",
+    "openai": ">=4.0.0",
+    "@anthropic-ai/sdk": ">=0.32.0"
+  },
+  "peerDependenciesMeta": {
+    "@google/generative-ai": {
+      "optional": true
+    },
+    "openai": {
+      "optional": true
+    },
+    "@anthropic-ai/sdk": {
+      "optional": true
+    }
   }
 }
