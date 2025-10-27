@@ -199,6 +199,119 @@ npm run config
 
 ---
 
+## 🖥️ Interfaces Disponibles
+
+El sistema ofrece **3 interfaces independientes** según tu necesidad:
+
+### 1️⃣ CLI Interactiva (Para usuarios técnicos)
+
+**Comando**: `npm run cli-test`
+
+**Características**:
+- ✅ Menú interactivo con opciones
+- ✅ Ejecutar tests existentes
+- ✅ Configurar LLM activo
+- ✅ Ver estado del sistema
+- ✅ Crear tests básicos manualmente
+- ✅ Ver reportes y screenshots
+
+**Cuándo usarla**:
+- Cuando quieres control total del proceso
+- Para ejecutar y gestionar tests existentes
+- Para configurar el sistema
+- Cuando tienes conocimientos técnicos
+
+**Ejemplo**:
+```bash
+npm run cli-test
+
+# Menú interactivo:
+# 🚀 Ejecutar tests
+# ⚙️  Configurar LLM
+# 📊 Ver estado del sistema
+# 📋 Crear nuevo test
+# 🔍 Escanear proyecto
+```
+
+---
+
+### 2️⃣ CLI Lenguaje Natural (Para usuarios no técnicos) ⭐
+
+**Comando**: `npm run create-test`
+
+**Características**:
+- ✅ Convierte lenguaje natural a tests YAML
+- ✅ NO requiere conocimientos técnicos
+- ✅ NO necesitas especificar selectores CSS
+- ✅ Usa IA para entender tus instrucciones
+- ✅ Genera tests optimizados
+- ✅ Integrado con compilación (35x más rápido)
+
+**Cuándo usarla**:
+- Cuando no sabes programar
+- Para crear tests rápidamente
+- Cuando no conoces selectores CSS
+- Para prototipar tests nuevos
+
+**Ejemplo**:
+```bash
+npm run create-test
+
+# Guiado paso a paso:
+# 📝 Nombre del test: Test de Login
+# 🌐 URL: http://localhost:3000
+# 📖 Describe qué quieres probar:
+#    "Abre la aplicación.
+#     Haz click en el botón 'Login'.
+#     Ingresa 'test@example.com' en el email.
+#     Ingresa 'password123' en la contraseña.
+#     Verifica que aparezca el mensaje de bienvenida."
+```
+
+**Ver documentación completa**: [GUIA_RAPIDA.md](GUIA_RAPIDA.md)
+
+---
+
+### 3️⃣ Interfaz Web (Para acceso desde navegador)
+
+**Comando**: `npm run web`
+
+**URL**: `http://localhost:3001`
+
+**Características**:
+- ✅ Visualiza estado del sistema en tiempo real
+- ✅ Lista tests disponibles
+- ✅ Ver configuración de LLM
+- ✅ Métricas de uso y memoria
+- ⚠️ **Básico**: No puede ejecutar ni crear tests aún
+
+**Cuándo usarla**:
+- Para monitorear el sistema
+- Para ver tests disponibles
+- Para acceso rápido desde navegador
+- Para dashboards y visualización
+
+**API disponible**:
+```bash
+GET /api/status   # Estado del sistema
+GET /api/tests    # Lista de tests
+```
+
+---
+
+## 📌 ¿Cuál Interface Usar?
+
+| Necesitas... | Usa... |
+|--------------|---------|
+| Crear test SIN conocimientos técnicos | `npm run create-test` ⭐ |
+| Ejecutar tests existentes | `npm run cli-test` o `npm test` |
+| Configurar LLM | `npm run cli-test` o `npm run switch-llm` |
+| Ver estado del sistema | `npm run web` o `npm run cli-test` |
+| Crear test técnico manualmente | Editar `.yml` directamente |
+| Monitorear desde navegador | `npm run web` |
+
+---
+
 ## 🎨 Ejemplo de Uso
 
 ### 1. Primera configuración:
