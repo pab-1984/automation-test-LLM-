@@ -151,74 +151,146 @@ IMPORTANTE: Responde SOLO con el YAML, sin explicaciones adicionales.`;
 
   /**
    * Extrae pasos básicos de las instrucciones en lenguaje natural
+   * Mejorado con mejor parsing y soporte multi-idioma
    */
   extractStepsFromInstructions(instructions) {
     const steps = [];
-    const lowerInstructions = instructions.toLowerCase();
+    const lines = instructions.split(/\n|\.(?=\s|$)/).filter(line => line.trim().length > 0);
 
-    // Detectar navegación
-    if (lowerInstructions.includes('abre') ||
-        lowerInstructions.includes('navega') ||
-        lowerInstructions.includes('ve a')) {
-      steps.push({
+    let hasNavigate = false;
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
+
+      const lowerLine = trimmedLine.toLowerCase();
+
+      // Detectar navegación (ES/EN)
+      if (!hasNavigate && this.matchesPattern(lowerLine, [
+        /^(?:abre|navega|ve a|ir a|abre la|navega a la|ve a la)/i,
+        /^(?:open|navigate|go to|visit|load)/i
+      ])) {
+        steps.push({
+          action: 'navigate',
+          url: '${baseUrl}',
+          description: 'Navegar a la aplicación'
+        });
+        hasNavigate = true;
+        continue;
+      }
+
+      // Detectar clicks - Mejorado con más patrones (ES/EN)
+      const clickMatch = this.extractAction(lowerLine, [
+        // Español
+        /(?:haz|hacer|realiza|realiza un|da|dar) click (?:en|sobre) (?:el |la |los |las )?(?:bot[oó]n |enlace |link )?["']?([^"',\.]+)["']?/i,
+        /(?:clickea|clickear|presiona|presionar|pulsa|pulsar|toca|tocar|selecciona|seleccionar) (?:el |la |los |las )?(?:bot[oó]n |enlace |link )?["']?([^"',\.]+)["']?/i,
+        /click (?:en|sobre) (?:el |la |los |las )?(?:bot[oó]n |enlace |link )?["']?([^"',\.]+)["']?/i,
+        // English
+        /(?:click|press|tap|hit|select) (?:on |the )?(?:button |link )?["']?([^"',\.]+)["']?/i,
+        /(?:click|press|tap) (?:the )?["']?([^"',\.]+)["']? (?:button|link)/i
+      ]);
+
+      if (clickMatch) {
+        steps.push({
+          action: 'click',
+          description: `Hacer click en ${clickMatch}`
+        });
+        continue;
+      }
+
+      // Detectar llenado de campos - Mejorado (ES/EN)
+      const fillMatch = this.extractFillAction(lowerLine, trimmedLine);
+      if (fillMatch) {
+        steps.push({
+          action: 'fill',
+          description: `Llenar campo: ${fillMatch.field}`,
+          value: fillMatch.value
+        });
+        continue;
+      }
+
+      // Detectar verificaciones (ES/EN)
+      const verifyMatch = this.extractAction(lowerLine, [
+        /^(?:verifica|verificar|comprueba|comprobar|aseg[uú]rate?|asegurar|valida|validar|confirma|confirmar) (?:que )?(.+)/i,
+        /^(?:verify|check|ensure|validate|confirm|assert) (?:that )?(.+)/i
+      ]);
+
+      if (verifyMatch) {
+        steps.push({
+          action: 'verify',
+          description: `Verificar que ${verifyMatch}`
+        });
+        continue;
+      }
+
+      // Detectar esperas (ES/EN)
+      const waitMatch = this.extractAction(lowerLine, [
+        /^(?:espera|esperar|aguarda|aguardar) (?:a )?(?:que )?(.+)/i,
+        /^(?:wait|await) (?:for |until )?(.+)/i
+      ]);
+
+      if (waitMatch) {
+        steps.push({
+          action: 'wait',
+          description: `Esperar a que ${waitMatch}`
+        });
+        continue;
+      }
+
+      // Detectar scroll (ES/EN)
+      if (this.matchesPattern(lowerLine, [
+        /(?:scroll|desplaza|desplazar|baja|bajar|sube|subir)/i
+      ])) {
+        steps.push({
+          action: 'scroll',
+          description: trimmedLine
+        });
+        continue;
+      }
+
+      // Detectar hover (ES/EN)
+      const hoverMatch = this.extractAction(lowerLine, [
+        /(?:pasa el (?:mouse|cursor|rat[oó]n)|posiciona el cursor|hover) (?:sobre|en) (?:el |la )?(.+)/i,
+        /^(?:hover|mouse over) (?:the )?(.+)/i
+      ]);
+
+      if (hoverMatch) {
+        steps.push({
+          action: 'hover',
+          description: `Pasar el cursor sobre ${hoverMatch}`
+        });
+        continue;
+      }
+
+      // Detectar selección de dropdown/select (ES/EN)
+      const selectMatch = this.extractSelectAction(lowerLine);
+      if (selectMatch) {
+        steps.push({
+          action: 'select',
+          description: `Seleccionar '${selectMatch.value}' en ${selectMatch.field}`,
+          value: selectMatch.value
+        });
+        continue;
+      }
+
+      // Si la línea parece una acción pero no coincidió con ningún patrón
+      // Agregarla como descripción genérica
+      if (lowerLine.length > 5 && !lowerLine.startsWith('//') && !lowerLine.startsWith('#')) {
+        steps.push({
+          action: 'custom',
+          description: trimmedLine
+        });
+      }
+    }
+
+    // Si no detectamos navegación al inicio, agregarla
+    if (!hasNavigate && steps.length > 0) {
+      steps.unshift({
         action: 'navigate',
         url: '${baseUrl}',
         description: 'Navegar a la aplicación'
       });
     }
-
-    // Detectar clicks
-    const clickPatterns = [
-      /haz click en (?:el |la )?(.+?)(?:\.|,|$)/gi,
-      /clickea (?:el |la )?(.+?)(?:\.|,|$)/gi,
-      /presiona (?:el |la )?(.+?)(?:\.|,|$)/gi,
-      /selecciona (?:el |la )?(.+?)(?:\.|,|$)/gi
-    ];
-
-    clickPatterns.forEach(pattern => {
-      let match;
-      while ((match = pattern.exec(lowerInstructions)) !== null) {
-        steps.push({
-          action: 'click',
-          description: `Hacer click en ${match[1]}`
-        });
-      }
-    });
-
-    // Detectar llenado de campos
-    const fillPatterns = [
-      /ingresa (.+?) en (?:el campo )?(.+?)(?:\.|,|$)/gi,
-      /escribe (.+?) en (?:el campo )?(.+?)(?:\.|,|$)/gi,
-      /llena (?:el campo )?(.+?) con (.+?)(?:\.|,|$)/gi
-    ];
-
-    fillPatterns.forEach(pattern => {
-      let match;
-      while ((match = pattern.exec(lowerInstructions)) !== null) {
-        steps.push({
-          action: 'fill',
-          description: `Llenar campo: ${match[2] || match[1]}`,
-          value: match[1]
-        });
-      }
-    });
-
-    // Detectar verificaciones
-    const verifyPatterns = [
-      /verifica (?:que )?(.+?)(?:\.|,|$)/gi,
-      /comprueba (?:que )?(.+?)(?:\.|,|$)/gi,
-      /asegura(?:te)? (?:que )?(.+?)(?:\.|,|$)/gi
-    ];
-
-    verifyPatterns.forEach(pattern => {
-      let match;
-      while ((match = pattern.exec(lowerInstructions)) !== null) {
-        steps.push({
-          action: 'verify',
-          description: `Verificar que ${match[1]}`
-        });
-      }
-    });
 
     // Si no detectamos pasos, agregar uno genérico
     if (steps.length === 0) {
@@ -242,6 +314,83 @@ IMPORTANTE: Responde SOLO con el YAML, sin explicaciones adicionales.`;
     });
 
     return steps;
+  }
+
+  /**
+   * Helper: Verifica si una línea coincide con algún patrón
+   */
+  matchesPattern(text, patterns) {
+    return patterns.some(pattern => pattern.test(text));
+  }
+
+  /**
+   * Helper: Extrae la acción de una línea usando múltiples patrones
+   */
+  extractAction(text, patterns) {
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Helper: Extrae acción de llenado de campo con valor
+   */
+  extractFillAction(lowerText, originalText) {
+    // Patrones para detectar campo y valor
+    const patterns = [
+      // Español: "ingresa X en Y", "escribe X en Y"
+      /(?:ingresa|ingresar|escribe|escribir|llena|llenar|completa|completar|introduce|introducir) (?:el valor )?["']?([^"']+?)["']? (?:en|dentro de|dentro del) (?:el |la )?(?:campo |input )?["']?([^"',\.]+?)["']?/i,
+      // Español: "llena Y con X"
+      /(?:llena|llenar|completa|completar) (?:el |la )?(?:campo |input )?["']?([^"']+?)["']? (?:con|con el valor) ["']?([^"',\.]+?)["']?/i,
+      // English: "enter X in Y", "type X in Y"
+      /(?:enter|type|input|fill|write) (?:the value )?["']?([^"']+?)["']? (?:in|into|in the|into the) (?:field )?["']?([^"',\.]+?)["']?/i,
+      // English: "fill Y with X"
+      /(?:fill|complete) (?:the )?(?:field )?["']?([^"']+?)["']? (?:with|with the value) ["']?([^"',\.]+?)["']?/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = originalText.match(pattern);
+      if (match) {
+        // Determinar qué grupo es el campo y cuál el valor
+        const group1 = match[1].trim();
+        const group2 = match[2].trim();
+
+        // Si el patrón es del tipo "llena Y con X", invertir
+        if (pattern.source.includes('llena|llenar|completa|completar') &&
+            pattern.source.includes('con|con el valor')) {
+          return { field: group1, value: group2 };
+        }
+
+        return { field: group2, value: group1 };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Helper: Extrae acción de selección de dropdown
+   */
+  extractSelectAction(lowerText) {
+    const patterns = [
+      // Español: "selecciona X del dropdown Y"
+      /(?:selecciona|seleccionar|elige|elegir|escoge|escoger) ["']?([^"']+?)["']? (?:del|de la|en el|en la) (?:dropdown|select|lista|men[uú]) ["']?([^"',\.]+?)["']?/i,
+      // English: "select X from Y"
+      /(?:select|choose|pick) ["']?([^"']+?)["']? (?:from|in) (?:the )?(?:dropdown|select|list) ["']?([^"',\.]+?)["']?/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = lowerText.match(pattern);
+      if (match) {
+        return { value: match[1].trim(), field: match[2].trim() };
+      }
+    }
+
+    return null;
   }
 
   /**

@@ -1,5 +1,5 @@
 {
-  "activeProvider": "ollama",
+  "activeProvider": "gemini",
   "fallbackProvider": null,
   "providers": {
     "ollama": {
@@ -36,7 +36,9 @@
     "servers": {
       "chrome-devtools": {
         "command": "npx",
-        "args": ["chrome-devtools-mcp"],
+        "args": [
+          "chrome-devtools-mcp"
+        ],
         "env": {
           "CHROME_PATH": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
         }

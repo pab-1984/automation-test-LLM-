@@ -36,14 +36,19 @@ tmp/
 temp/
 *.tmp
 
+# Local documentation and backups (not for git)
+.local-docs/
+.local-backup/
+
 # Playwright
 playwright-report/
 test-results/
 
-# Document
-ESTRUCTURA.md
+# Temporary documentation
 SOLUCION_RUNNER.txt
 
-# Ejemplo
-
+# Example app (not versioned)
 ecommerce-test-app/
+
+# Test natural examples (keep the directory structure, ignore specific tests if needed)
+# tests/natural/*.txt  # Uncomment to ignore all natural test files

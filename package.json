@@ -15,6 +15,7 @@
     "create-test": "node scripts/create-test.js",
     "cli-test": "node scripts/cli.js",
     "web": "node scripts/web-server.js",
+    "test-natural": "node scripts/test-natural.js",
     "status": "node scripts/switch-llm.js status"
   },
   "keywords": [
@@ -38,14 +39,13 @@
     "chrome-devtools-mcp": "^0.4.0"
   },
   "optionalDependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "@google/generative-ai": "^0.21.0",
-    "openai": "^4.77.3",
-    "@anthropic-ai/sdk": "^0.32.1"
+    "openai": "^4.77.3"
   },
   "peerDependencies": {
-    "@google/generative-ai": ">=0.21.0",
-    "openai": ">=4.0.0",
-    "@anthropic-ai/sdk": ">=0.32.0"
+    "@anthropic-ai/sdk": ">=0.32.0",
+    "openai": ">=4.0.0"
   },
   "peerDependenciesMeta": {
     "@google/generative-ai": {

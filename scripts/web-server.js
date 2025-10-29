@@ -111,7 +111,13 @@ async function handleApi(req, res, pathname) {
       uptime: process.uptime(),
       memory: process.memoryUsage(),
       config: {},
-      activeTests: activeTestRuns.size
+      activeTests: activeTestRuns.size,
+      statistics: {
+        totalTests: 0,
+        passedTests: 0,
+        failedTests: 0,
+        successRate: 0
+      }
     };
 
     try {
@@ -120,6 +126,37 @@ async function handleApi(req, res, pathname) {
       }
     } catch (e) {
       status.config.error = 'No se pudo leer la configuración';
+    }
+
+    // Calcular estadísticas de tests desde reportes
+    try {
+      if (fs.existsSync('./tests/results')) {
+        const reports = fs.readdirSync('./tests/results').filter(f => f.endsWith('.md'));
+        let totalPassed = 0;
+        let totalFailed = 0;
+
+        reports.forEach(file => {
+          try {
+            const content = fs.readFileSync(`./tests/results/${file}`, 'utf8');
+            const passMatch = content.match(/✅ Exitosas.*?(\d+)/);
+            const failMatch = content.match(/❌ Fallidas.*?(\d+)/);
+
+            if (passMatch) totalPassed += parseInt(passMatch[1]);
+            if (failMatch) totalFailed += parseInt(failMatch[1]);
+          } catch (e) {
+            // Ignorar errores en reportes individuales
+          }
+        });
+
+        status.statistics.totalTests = totalPassed + totalFailed;
+        status.statistics.passedTests = totalPassed;
+        status.statistics.failedTests = totalFailed;
+        status.statistics.successRate = status.statistics.totalTests > 0
+          ? ((totalPassed / status.statistics.totalTests) * 100).toFixed(1)
+          : 0;
+      }
+    } catch (e) {
+      // Ignorar error de estadísticas
     }
 
     res.end(JSON.stringify(status, null, 2));
@@ -292,6 +329,59 @@ async function handleApi(req, res, pathname) {
     } else {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Reporte no encontrado' }));
+    }
+    return;
+  }
+
+  // POST /api/llm/switch - Cambiar LLM activo
+  if (pathname === '/api/llm/switch' && method === 'POST') {
+    try {
+      const body = await getRequestBody(req);
+      const { provider } = body;
+
+      if (!provider) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Campo requerido: provider' }));
+        return;
+      }
+
+      const configPath = './config/llm.config.json';
+      if (!fs.existsSync(configPath)) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Configuración no encontrada' }));
+        return;
+      }
+
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+      if (!config.providers[provider]) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: `Proveedor '${provider}' no existe`,
+          available: Object.keys(config.providers)
+        }));
+        return;
+      }
+
+      // Cambiar proveedor activo
+      const previousProvider = config.activeProvider;
+      config.activeProvider = provider;
+      config.providers[provider].enabled = true;
+
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        previous: previousProvider,
+        current: provider,
+        message: `LLM cambiado de ${previousProvider} a ${provider}`
+      }));
+
+    } catch (error) {
+      console.error('Error cambiando LLM:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
     }
     return;
   }
@@ -683,6 +773,107 @@ function getMainHTML() {
       overflow-x: auto;
       border: 1px solid #e0e0e0;
     }
+
+    /* LLM Selector */
+    .llm-selector-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .llm-option {
+      padding: 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+    }
+
+    .llm-option:hover {
+      border-color: #667eea;
+      background: #f8f9fa;
+    }
+
+    .llm-option.active {
+      border-color: #667eea;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .llm-option h3 {
+      font-size: 1.2em;
+      margin-bottom: 5px;
+    }
+
+    .llm-option p {
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+
+    /* Statistics cards */
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .stat-card h3 {
+      font-size: 2.5em;
+      margin: 0;
+    }
+
+    .stat-card p {
+      font-size: 1em;
+      margin: 5px 0 0 0;
+      opacity: 0.9;
+    }
+
+    /* Scrollable test list */
+    .scrollable-list {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .scrollable-list::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .scrollable-list::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    .scrollable-list::-webkit-scrollbar-thumb {
+      background: #667eea;
+      border-radius: 4px;
+    }
+
+    .scrollable-list::-webkit-scrollbar-thumb:hover {
+      background: #5568d3;
+    }
+
+    /* Search box */
+    .search-box {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1em;
+    }
+
+    .search-box:focus {
+      outline: none;
+      border-color: #667eea;
+    }
   </style>
 </head>
 <body>
@@ -702,9 +893,21 @@ function getMainHTML() {
     <!-- Dashboard Tab -->
     <div id="dashboard" class="tab-content active">
       <div class="grid">
+        <div class="card" style="grid-column: 1 / -1;">
+          <h2>🤖 Modelo LLM Activo</h2>
+          <div id="llm-selector" style="margin-top: 20px;">
+            <div class="status">
+              <div class="loading"></div>
+              <span>Cargando...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
         <div class="card">
-          <h2>📊 Estado del Sistema</h2>
-          <div id="system-status">
+          <h2>📊 Tests Ejecutados</h2>
+          <div id="test-statistics">
             <div class="status">
               <div class="loading"></div>
               <span>Cargando...</span>
@@ -713,8 +916,8 @@ function getMainHTML() {
         </div>
 
         <div class="card">
-          <h2>📋 Tests Disponibles</h2>
-          <div id="tests-count">
+          <h2>💻 Sistema</h2>
+          <div id="system-info">
             <div class="status">
               <div class="loading"></div>
               <span>Cargando...</span>
@@ -724,9 +927,9 @@ function getMainHTML() {
       </div>
 
       <div class="card">
-        <h2>🔄 Tests Activos</h2>
+        <h2>🔄 Tests en Ejecución</h2>
         <div id="active-tests">
-          <p style="color: #7f8c8d;">No hay tests en ejecución</p>
+          <p style="color: #7f8c8d;">No hay tests en ejecución en este momento</p>
         </div>
       </div>
     </div>
@@ -783,7 +986,8 @@ Verifica que aparezca un mensaje de bienvenida." required></textarea>
       <div class="grid">
         <div class="card">
           <h2>📋 Seleccionar Test</h2>
-          <div id="test-selector">
+          <input type="text" class="search-box" id="test-search" placeholder="🔍 Buscar test..." onkeyup="filterTests()">
+          <div class="scrollable-list" id="test-selector">
             <div class="status">
               <div class="loading"></div>
               <span>Cargando tests...</span>
@@ -858,7 +1062,6 @@ Verifica que aparezca un mensaje de bienvenida." required></textarea>
       // Cargar datos según el tab
       if (tabName === 'dashboard') {
         loadSystemStatus();
-        loadTestsCount();
       } else if (tabName === 'run') {
         loadTestSelector();
       } else if (tabName === 'results') {
@@ -868,59 +1071,151 @@ Verifica que aparezca un mensaje de bienvenida." required></textarea>
 
     // Cargar estado del sistema
     async function loadSystemStatus() {
+      await loadLLMSelector();
+      await loadTestStatistics();
+      await loadSystemInfo();
+    }
+
+    // Cargar selector de LLM
+    async function loadLLMSelector() {
       try {
         const response = await fetch('/api/status');
         const status = await response.json();
 
-        const statusDiv = document.getElementById('system-status');
-        statusDiv.innerHTML = \`
+        const selectorDiv = document.getElementById('llm-selector');
+        const providers = status.config.providers;
+        const activeProvider = status.config.activeProvider;
+
+        const providerCards = Object.keys(providers).map(key => {
+          const provider = providers[key];
+          const isActive = key === activeProvider;
+          const emoji = {
+            'ollama': '🦙',
+            'gemini': '🔮',
+            'openai': '🤖',
+            'anthropic': '🧠'
+          }[key] || '⚙️';
+
+          return \`
+            <div class="llm-option \${isActive ? 'active' : ''}" onclick="switchLLM('\${key}')" style="cursor: \${provider.enabled ? 'pointer' : 'not-allowed'}; opacity: \${provider.enabled ? '1' : '0.5'};">
+              <div style="font-size: 2em; margin-bottom: 10px;">\${emoji}</div>
+              <div style="font-weight: bold; text-transform: capitalize;">\${key}</div>
+              <div style="font-size: 0.9em; margin-top: 5px;">\${provider.model}</div>
+              \${isActive ? '<div style="margin-top: 10px; color: #4caf50;">✓ Activo</div>' : ''}
+              \${!provider.enabled ? '<div style="margin-top: 10px; color: #e74c3c;">⚠️ Deshabilitado</div>' : ''}
+            </div>
+          \`;
+        }).join('');
+
+        selectorDiv.innerHTML = \`
+          <div class="llm-selector-container">
+            \${providerCards}
+          </div>
+        \`;
+      } catch (error) {
+        document.getElementById('llm-selector').innerHTML =
+          '<p class="alert alert-error">Error al cargar LLM selector</p>';
+      }
+    }
+
+    // Cambiar LLM activo
+    async function switchLLM(provider) {
+      try {
+        const response = await fetch('/api/llm/switch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // Recargar selector para reflejar el cambio
+          await loadLLMSelector();
+
+          // Mostrar notificación
+          const notification = document.createElement('div');
+          notification.className = 'alert alert-success';
+          notification.style.position = 'fixed';
+          notification.style.top = '20px';
+          notification.style.right = '20px';
+          notification.style.zIndex = '1000';
+          notification.innerHTML = \`✅ LLM cambiado a: \${provider}\`;
+          document.body.appendChild(notification);
+
+          setTimeout(() => notification.remove(), 3000);
+        } else {
+          alert('Error al cambiar LLM: ' + result.error);
+        }
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    }
+
+    // Cargar estadísticas de tests
+    async function loadTestStatistics() {
+      try {
+        const response = await fetch('/api/status');
+        const status = await response.json();
+
+        const statsDiv = document.getElementById('test-statistics');
+        const stats = status.statistics;
+
+        statsDiv.innerHTML = \`
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+            <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+              <h3>\${stats.totalTests}</h3>
+              <p>Tests Totales</p>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%); color: white;">
+              <h3>\${stats.passedTests}</h3>
+              <p>Exitosos</p>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #f44336 0%, #e91e63 100%); color: white;">
+              <h3>\${stats.failedTests}</h3>
+              <p>Fallidos</p>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%); color: white;">
+              <h3>\${stats.successRate}%</h3>
+              <p>Tasa de Éxito</p>
+            </div>
+          </div>
+        \`;
+      } catch (error) {
+        document.getElementById('test-statistics').innerHTML =
+          '<p class="alert alert-error">Error al cargar estadísticas</p>';
+      }
+    }
+
+    // Cargar información del sistema
+    async function loadSystemInfo() {
+      try {
+        const response = await fetch('/api/status');
+        const status = await response.json();
+
+        const infoDiv = document.getElementById('system-info');
+
+        infoDiv.innerHTML = \`
           <div class="status">
-            <div class="status-indicator \${status.config.activeProvider ? 'status-active' : 'status-inactive'}"></div>
-            <strong>LLM Activo:</strong> \${status.config.activeProvider || 'Ninguno'}
+            <div class="status-indicator status-active"></div>
+            <strong>Memoria:</strong> \${Math.round(status.memory.heapUsed / 1024 / 1024)} MB / \${Math.round(status.memory.heapTotal / 1024 / 1024)} MB
           </div>
           <div class="status">
             <div class="status-indicator status-active"></div>
-            <strong>Memoria:</strong> \${Math.round(status.memory.heapUsed / 1024 / 1024)} MB
-          </div>
-          <div class="status">
-            <div class="status-indicator status-active"></div>
-            <strong>Uptime:</strong> \${Math.round(status.uptime)} segundos
+            <strong>Uptime:</strong> \${Math.floor(status.uptime / 60)} minutos
           </div>
           <div class="status">
             <div class="status-indicator \${status.activeTests > 0 ? 'status-running' : 'status-inactive'}"></div>
             <strong>Tests Activos:</strong> \${status.activeTests}
           </div>
-        \`;
-      } catch (error) {
-        document.getElementById('system-status').innerHTML =
-          '<p class="alert alert-error">Error al cargar el estado</p>';
-      }
-    }
-
-    // Cargar contador de tests
-    async function loadTestsCount() {
-      try {
-        const response = await fetch('/api/tests');
-        const tests = await response.json();
-
-        const countDiv = document.getElementById('tests-count');
-        countDiv.innerHTML = \`
           <div class="status">
             <div class="status-indicator status-active"></div>
-            <strong>Tests Disponibles:</strong> \${tests.length}
+            <strong>Node Version:</strong> \${process.version || 'N/A'}
           </div>
-          <ul class="test-list">
-            \${tests.slice(0, 5).map(test => \`
-              <li class="test-item">
-                <span>📄 \${test.name}</span>
-              </li>
-            \`).join('')}
-          </ul>
-          \${tests.length > 5 ? '<p style="color: #7f8c8d; margin-top: 10px;">... y ' + (tests.length - 5) + ' más</p>' : ''}
         \`;
       } catch (error) {
-        document.getElementById('tests-count').innerHTML =
-          '<p class="alert alert-error">Error al cargar tests</p>';
+        document.getElementById('system-info').innerHTML =
+          '<p class="alert alert-error">Error al cargar información del sistema</p>';
       }
     }
 
@@ -1050,6 +1345,22 @@ Verifica que aparezca un mensaje de bienvenida." required></textarea>
           📄 Test seleccionado: <strong>\${name}</strong>
         </div>
       \`;
+    }
+
+    // Filtrar tests por búsqueda
+    function filterTests() {
+      const searchInput = document.getElementById('test-search');
+      const filter = searchInput.value.toLowerCase();
+      const testItems = document.querySelectorAll('#test-selector .test-item');
+
+      testItems.forEach(item => {
+        const testName = item.textContent.toLowerCase();
+        if (testName.includes(filter)) {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+        }
+      });
     }
 
     // Ejecutar test seleccionado
@@ -1202,7 +1513,7 @@ Verifica que aparezca un mensaje de bienvenida." required></textarea>
                   </span>
                 </div>
                 <button onclick="viewReport('\${result.file}'); event.stopPropagation();">
-                  👁️ Ver
+                  Ver
                 </button>
               </li>
             \`).join('')}

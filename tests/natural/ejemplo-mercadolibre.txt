@@ -1,0 +1,25 @@
+TEST: Búsqueda en MercadoLibre
+================================
+
+Objetivo: Verificar que la búsqueda funciona correctamente
+
+Pasos:
+------
+
+1. Navega a https://www.mercadolibre.com.uy
+
+2. Encuentra el cuadro de búsqueda principal en la página
+
+3. Escribe "laptops" en el cuadro de búsqueda
+
+4. Haz click en el botón de búsqueda (puede decir "Buscar" o tener un ícono de lupa)
+
+5. Espera a que carguen los resultados
+
+6. Verifica que aparezcan productos relacionados con laptops
+
+7. Toma un screenshot como evidencia
+
+Resultado esperado:
+-------------------
+La página debe mostrar resultados de búsqueda con laptops

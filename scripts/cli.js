@@ -61,10 +61,11 @@ async function main() {
       name: 'action',
       message: '¿Qué deseas hacer?',
       choices: [
-        { name: '🚀 Ejecutar tests', value: 'run' },
+        { name: '🚀 Ejecutar tests (YAML)', value: 'run' },
+        { name: '💬 Tests en Lenguaje Natural', value: 'natural' },
         { name: '⚙️  Configurar LLM', value: 'config' },
         { name: '📊 Ver estado del sistema', value: 'status' },
-        { name: '📋 Crear nuevo test', value: 'create' },
+        { name: '📋 Crear nuevo test (YAML)', value: 'create' },
         { name: '🔍 Escanear proyecto', value: 'scan' },
         { name: '🚪 Salir', value: 'exit' }
       ]
@@ -75,6 +76,10 @@ async function main() {
     case 'run':
       navigationStack.push('main');
       await runTests();
+      break;
+    case 'natural':
+      navigationStack.push('main');
+      await runNaturalLanguageTests();
       break;
     case 'config':
       navigationStack.push('main');
@@ -448,7 +453,31 @@ function showLastScreenshot() {
 
 async function createTest() {
   log.header('📋 Crear Nuevo Test');
-  
+
+  // Preguntar método de creación
+  const methodAnswer = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'method',
+      message: '¿Cómo deseas crear el test?',
+      choices: [
+        { name: '🤖 Desde lenguaje natural (IA genera el test)', value: 'natural' },
+        { name: '📝 Plantilla básica (manual)', value: 'template' },
+        { name: '⬅️  Volver atrás', value: 'back' }
+      ]
+    }
+  ]);
+
+  if (methodAnswer.method === 'back') {
+    return;
+  }
+
+  if (methodAnswer.method === 'natural') {
+    await createTestFromNaturalLanguage();
+    return;
+  }
+
+  // Método de plantilla básica (código original)
   const answers = await inquirer.prompt([
     {
       type: 'input',
@@ -615,9 +644,514 @@ async function scanProject() {
   }
 }
 
+async function createTestFromNaturalLanguage() {
+  log.header('🤖 Crear Test desde Lenguaje Natural');
+
+  const answers = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'name',
+      message: 'Nombre del test:',
+      validate: (input) => input.length > 0 ? true : 'El nombre es requerido'
+    },
+    {
+      type: 'input',
+      name: 'baseUrl',
+      message: 'URL base de la aplicación:',
+      default: 'http://localhost:3000',
+      validate: (input) => {
+        // Normalizar URL si no tiene protocolo
+        if (!input.startsWith('http://') && !input.startsWith('https://')) {
+          return input.startsWith('localhost') || input.length > 0 ? true : 'Debe ser una URL válida';
+        }
+        return true;
+      }
+    },
+    {
+      type: 'editor',
+      name: 'instructions',
+      message: 'Instrucciones en lenguaje natural (se abrirá un editor):',
+      default: `Abre la aplicación.
+Haz click en el botón 'Login'.
+Ingresa 'user@example.com' en el campo de email.
+Ingresa 'password123' en el campo de contraseña.
+Haz click en 'Enviar'.
+Verifica que aparezca un mensaje de bienvenida.`,
+      validate: (input) => input.length > 10 ? true : 'Las instrucciones son muy cortas'
+    }
+  ]);
+
+  // Normalizar URL
+  let baseUrl = answers.baseUrl.trim();
+  if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+    baseUrl = baseUrl.startsWith('localhost') ? `http://${baseUrl}` : `https://${baseUrl}`;
+  }
+
+  log.info('Generando test con IA...');
+  log.info('Esto puede tardar unos segundos...');
+
+  try {
+    // Cargar configuración de LLM
+    const configPath = './config/llm.config.json';
+    if (!fs.existsSync(configPath)) {
+      log.error('Configuración de LLM no encontrada');
+      return;
+    }
+
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+    // Verificar que hay un LLM activo
+    if (!config.activeProvider) {
+      log.error('No hay un proveedor LLM activo');
+      log.info('Configura un LLM con: npm run switch-llm');
+      return;
+    }
+
+    // Cargar el adapter del LLM activo
+    const adapterMap = {
+      'ollama': './runners/adapters/ollama.adapter.js',
+      'gemini': './runners/adapters/gemini.adapter.js',
+      'openai': './runners/adapters/openai.adapter.js',
+      'anthropic': './runners/adapters/anthropic.adapter.js'
+    };
+
+    const adapterPath = adapterMap[config.activeProvider];
+    if (!adapterPath) {
+      log.error(`Adapter no encontrado para: ${config.activeProvider}`);
+      return;
+    }
+
+    const AdapterClass = require(path.join(__dirname, '..', adapterPath));
+    const adapter = new (AdapterClass)(config.providers[config.activeProvider]);
+
+    // Inicializar adapter
+    log.info(`Conectando a ${config.activeProvider}...`);
+    await adapter.initialize();
+
+    // Cargar TestGenerator
+    const { TestGenerator } = require(path.join(__dirname, '..', 'runners', 'test-generator.js'));
+    const generator = new TestGenerator(adapter, config);
+
+    // Generar test
+    const testName = answers.name.toLowerCase().replace(/\s+/g, '-');
+    log.info('Convirtiendo lenguaje natural a test...');
+
+    const testStructure = await generator.convertNaturalLanguageToTest(
+      answers.instructions,
+      baseUrl,
+      answers.name
+    );
+
+    // Guardar test
+    const testPath = generator.saveTest(testStructure, testName);
+
+    log.success(`✅ Test generado exitosamente!`);
+    log.success(`📄 Archivo: ${testPath}`);
+
+    // Mostrar preview del test
+    console.log(`\n${colors.fg.blue}📋 Vista previa:${colors.reset}`);
+    console.log(`  Suite: ${testStructure.suite}`);
+    console.log(`  Tests: ${testStructure.tests.length}`);
+    console.log(`  Pasos totales: ${testStructure.tests.reduce((sum, t) => sum + t.steps.length, 0)}`);
+
+    // Preguntar si quiere ejecutarlo o editarlo
+    const nextAction = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'action',
+        message: '¿Qué deseas hacer ahora?',
+        choices: [
+          { name: '▶️  Ejecutar test', value: 'run' },
+          { name: '✏️  Editar test', value: 'edit' },
+          { name: '👀 Ver archivo completo', value: 'view' },
+          { name: '⬅️  Volver atrás', value: 'back' }
+        ]
+      }
+    ]);
+
+    switch (nextAction.action) {
+      case 'run':
+        // Ejecutar el test recién creado
+        log.info('Ejecutando test...');
+        return new Promise((resolve) => {
+          const child = spawn('node', [
+            path.join(__dirname, 'test.js'),
+            '--mode', 'auto',
+            testPath
+          ], {
+            stdio: 'inherit'
+          });
+
+          child.on('close', (code) => {
+            if (code === 0) {
+              log.success('Test ejecutado correctamente');
+            } else {
+              log.error(`Test fallido con código ${code}`);
+            }
+            resolve();
+          });
+        });
+
+      case 'edit':
+        const editor = process.env.EDITOR || 'code';
+        const child = spawn(editor, [testPath], { stdio: 'inherit' });
+        child.on('error', () => {
+          log.warn(`No se pudo abrir el editor. Edita manualmente: ${testPath}`);
+        });
+        break;
+
+      case 'view':
+        const yaml = require('js-yaml');
+        const yamlContent = yaml.dump(testStructure, {
+          indent: 2,
+          lineWidth: 120
+        });
+        console.log(`\n${colors.fg.blue}📄 Contenido completo:${colors.reset}\n`);
+        console.log(yamlContent);
+        break;
+
+      case 'back':
+        return;
+    }
+
+    // Cleanup
+    if (adapter.cleanup) {
+      await adapter.cleanup();
+    }
+
+  } catch (error) {
+    log.error(`Error al generar test: ${error.message}`);
+    console.error(error);
+  }
+}
+
 async function createTestFromScan() {
   log.header('📋 Crear Test desde Escaneo');
   log.info('Funcionalidad próximamente: Crear test basado en el análisis del proyecto');
+}
+
+// ========================================
+// TESTS EN LENGUAJE NATURAL
+// ========================================
+
+async function runNaturalLanguageTests() {
+  log.header('💬 Tests en Lenguaje Natural');
+  console.log(`${colors.dim}Tests sin YAML, sin selectores CSS - solo instrucciones humanas${colors.reset}\n`);
+
+  const naturalDir = './tests/natural';
+
+  // Asegurar que el directorio existe
+  if (!fs.existsSync(naturalDir)) {
+    fs.mkdirSync(naturalDir, { recursive: true });
+  }
+
+  // Obtener tests naturales disponibles
+  let naturalTests = [];
+  if (fs.existsSync(naturalDir)) {
+    naturalTests = fs.readdirSync(naturalDir)
+      .filter(file => file.endsWith('.txt') || file.endsWith('.md'))
+      .map(file => ({
+        name: `📄 ${file}`,
+        value: path.join(naturalDir, file)
+      }));
+  }
+
+  const choices = [
+    { name: '✨ Crear nuevo test interactivo', value: 'create' },
+  ];
+
+  if (naturalTests.length > 0) {
+    choices.push(new inquirer.Separator('─── Tests Disponibles ───'));
+    choices.push(...naturalTests);
+  }
+
+  choices.push(new inquirer.Separator());
+  choices.push({ name: '⬅️  Volver atrás', value: 'back' });
+
+  const answer = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'action',
+      message: '¿Qué deseas hacer?',
+      choices
+    }
+  ]);
+
+  if (answer.action === 'back') {
+    return;
+  }
+
+  if (answer.action === 'create') {
+    await createNaturalTest();
+  } else {
+    await executeNaturalTest(answer.action);
+  }
+}
+
+async function createNaturalTest() {
+  log.header('✨ Crear Test en Lenguaje Natural');
+  console.log(`${colors.dim}Vamos a crear un test paso a paso${colors.reset}\n`);
+
+  // 1. Información básica
+  const basicInfo = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'name',
+      message: 'Nombre del test:',
+      validate: (input) => input.length > 0 || 'El nombre es requerido'
+    },
+    {
+      type: 'input',
+      name: 'url',
+      message: 'URL inicial (ej: https://mercadolibre.com.uy):',
+      validate: (input) => {
+        if (!input) return 'URL es requerida';
+        if (!input.includes('.')) return 'URL inválida';
+        return true;
+      }
+    },
+    {
+      type: 'input',
+      name: 'description',
+      message: 'Descripción breve del test:',
+      default: ''
+    }
+  ]);
+
+  // 2. Opciones avanzadas
+  const advancedOptions = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'screenshotPerStep',
+      message: '¿Capturar screenshot después de cada paso?',
+      default: false
+    },
+    {
+      type: 'confirm',
+      name: 'captureLogs',
+      message: '¿Capturar logs de consola del navegador?',
+      default: true
+    },
+    {
+      type: 'confirm',
+      name: 'captureNetwork',
+      message: '¿Capturar requests de red?',
+      default: false
+    },
+    {
+      type: 'confirm',
+      name: 'performanceMetrics',
+      message: '¿Analizar métricas de rendimiento?',
+      default: false
+    }
+  ]);
+
+  // 3. Agregar pasos del test
+  const steps = [];
+  let addingSteps = true;
+
+  console.log(`\n${colors.fg.cyan}Ahora vamos a agregar los pasos del test...${colors.reset}\n`);
+
+  while (addingSteps) {
+    const stepNumber = steps.length + 1;
+
+    const stepAnswer = await inquirer.prompt([
+      {
+        type: 'editor',
+        name: 'instruction',
+        message: `Paso ${stepNumber} - Describe qué debe hacer (se abrirá tu editor):`,
+        default: steps.length === 0 ?
+          `Navega a ${basicInfo.url}\n\n(Describe la acción en lenguaje natural)` :
+          '(Describe la siguiente acción en lenguaje natural)',
+        validate: (input) => {
+          const trimmed = input.trim();
+          if (!trimmed) return 'La instrucción no puede estar vacía';
+          if (trimmed.length < 10) return 'La instrucción debe ser más descriptiva';
+          return true;
+        }
+      }
+    ]);
+
+    steps.push(stepAnswer.instruction.trim());
+    log.success(`Paso ${stepNumber} agregado`);
+
+    const continueAnswer = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'continue',
+        message: '¿Qué deseas hacer?',
+        choices: [
+          { name: '➕ Agregar otro paso', value: 'add' },
+          { name: '✅ Finalizar y guardar', value: 'finish' },
+          { name: '🗑️  Cancelar', value: 'cancel' }
+        ]
+      }
+    ]);
+
+    if (continueAnswer.continue === 'finish') {
+      addingSteps = false;
+    } else if (continueAnswer.continue === 'cancel') {
+      log.warn('Creación de test cancelada');
+      return;
+    }
+  }
+
+  // 4. Generar contenido del test
+  let testContent = `TEST: ${basicInfo.name}\n`;
+  testContent += `URL: ${basicInfo.url}\n`;
+  if (basicInfo.description) {
+    testContent += `Descripción: ${basicInfo.description}\n`;
+  }
+  testContent += `\n`;
+
+  testContent += `Opciones:\n`;
+  testContent += `- Screenshot por paso: ${advancedOptions.screenshotPerStep ? 'Sí' : 'No'}\n`;
+  testContent += `- Capturar logs: ${advancedOptions.captureLogs ? 'Sí' : 'No'}\n`;
+  testContent += `- Capturar network: ${advancedOptions.captureNetwork ? 'Sí' : 'No'}\n`;
+  testContent += `- Performance: ${advancedOptions.performanceMetrics ? 'Sí' : 'No'}\n`;
+  testContent += `\n`;
+
+  testContent += `Pasos:\n`;
+  testContent += `${'='.repeat(50)}\n\n`;
+
+  steps.forEach((step, index) => {
+    testContent += `${index + 1}. ${step}\n\n`;
+  });
+
+  testContent += `\n${'='.repeat(50)}\n`;
+  testContent += `\n# Opciones de ejecución (JSON)\n`;
+  testContent += `${JSON.stringify(advancedOptions, null, 2)}\n`;
+
+  // 5. Vista previa y confirmación
+  console.log(`\n${colors.fg.blue}Vista previa del test:${colors.reset}`);
+  console.log(colors.dim + '─'.repeat(60) + colors.reset);
+  console.log(testContent);
+  console.log(colors.dim + '─'.repeat(60) + colors.reset);
+
+  const confirmAnswer = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'action',
+      message: '¿Qué deseas hacer?',
+      choices: [
+        { name: '💾 Guardar y ejecutar ahora', value: 'save_run' },
+        { name: '💾 Solo guardar', value: 'save' },
+        { name: '🗑️  Descartar', value: 'discard' }
+      ]
+    }
+  ]);
+
+  if (confirmAnswer.action === 'discard') {
+    log.warn('Test descartado');
+    return;
+  }
+
+  // 6. Guardar archivo
+  const filename = basicInfo.name
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\-]/g, '');
+
+  const naturalDir = './tests/natural';
+  if (!fs.existsSync(naturalDir)) {
+    fs.mkdirSync(naturalDir, { recursive: true });
+  }
+
+  const filePath = path.join(naturalDir, `${filename}.txt`);
+  fs.writeFileSync(filePath, testContent, 'utf8');
+
+  log.success(`Test guardado en: ${filePath}`);
+
+  // 7. Ejecutar si se solicitó
+  if (confirmAnswer.action === 'save_run') {
+    console.log('');
+    await executeNaturalTest(filePath, advancedOptions);
+  }
+}
+
+async function executeNaturalTest(testFilePath, options = null) {
+  log.header('▶️  Ejecutar Test Natural');
+
+  // Leer archivo
+  if (!fs.existsSync(testFilePath)) {
+    log.error(`Archivo no encontrado: ${testFilePath}`);
+    return;
+  }
+
+  const testContent = fs.readFileSync(testFilePath, 'utf8');
+
+  console.log(`${colors.fg.cyan}Archivo:${colors.reset} ${testFilePath}`);
+  console.log(`${colors.fg.cyan}Contenido:${colors.reset}`);
+  console.log(colors.dim + testContent.substring(0, 300) + '...' + colors.reset);
+  console.log('');
+
+  // Extraer opciones del archivo si no se pasaron
+  if (!options) {
+    const optionsMatch = testContent.match(/# Opciones de ejecución \(JSON\)\n({[\s\S]*?})/);
+    if (optionsMatch) {
+      try {
+        options = JSON.parse(optionsMatch[1]);
+      } catch (e) {
+        options = {};
+      }
+    } else {
+      options = {};
+    }
+  }
+
+  const confirmAnswer = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'execute',
+      message: '¿Confirmar ejecución?',
+      default: true
+    }
+  ]);
+
+  if (!confirmAnswer.execute) {
+    log.info('Ejecución cancelada');
+    return;
+  }
+
+  log.info('Ejecutando test natural con LLM + MCP...');
+
+  // Construir opciones para el runner
+  const runnerOptions = {
+    screenshotPerStep: options.screenshotPerStep || false,
+    captureLogs: options.captureLogs !== false, // default true
+    captureNetwork: options.captureNetwork || false,
+    performanceMetrics: options.performanceMetrics || false
+  };
+
+  console.log(`${colors.dim}Opciones: ${JSON.stringify(runnerOptions)}${colors.reset}\n`);
+
+  // Ejecutar usando test-natural.js pasando opciones
+  return new Promise((resolve) => {
+    const args = [
+      path.join(__dirname, 'test-natural.js'),
+      testFilePath
+    ];
+
+    // Pasar opciones como variables de entorno
+    const env = {
+      ...process.env,
+      NATURAL_TEST_OPTIONS: JSON.stringify(runnerOptions)
+    };
+
+    const child = spawn('node', args, {
+      stdio: 'inherit',
+      env
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        log.success('✅ Test ejecutado correctamente');
+      } else {
+        log.error(`❌ Test fallido con código ${code}`);
+      }
+      resolve();
+    });
+  });
 }
 
 // Iniciar CLI
