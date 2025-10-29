@@ -35,25 +35,10 @@ class GeminiAdapter {
 
       this.genAI = new GoogleGenerativeAI(this.apiKey);
 
-      // Verificar conexión con un test simple
-      const model = this.genAI.getGenerativeModel({
-        model: this.model,
-        generationConfig: {
-          temperature: this.temperature,
-          maxOutputTokens: this.maxTokens,
-        }
-      });
+      // No hacemos verificación inicial para no gastar requests del rate limit
+      // La conexión se verifica en el primer uso real
 
-      // Test rápido
-      const result = await model.generateContent('Responde solo: OK');
-      const response = await result.response;
-      const text = response.text();
-
-      if (!text) {
-        throw new Error('No se recibió respuesta del modelo');
-      }
-
-      console.log(`✅ Conectado a Gemini`);
+      console.log(`✅ Gemini configurado`);
       console.log(`   Modelo: ${this.model}`);
       console.log(`   Temperatura: ${this.temperature}`);
 

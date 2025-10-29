@@ -1,0 +1,27 @@
+TEST: busqueda en mercadolibre
+URL: https://mercadolibre.com.uy
+Descripción: busqueda de items
+
+Opciones:
+- Screenshot por paso: Sí
+- Capturar logs: Sí
+- Capturar network: Sí
+- Performance: Sí
+
+Pasos:
+==================================================
+
+navegar a la url indicada
+en el cuadro de busqueda buscar alquieleres en montevideo
+hacer clic en el boton de busqueda o icono de lupa
+ordenar los resultados de menor a mayor precio
+
+==================================================
+
+# Opciones de ejecución (JSON)
+{
+  "screenshotPerStep": true,
+  "captureLogs": true,
+  "captureNetwork": true,
+  "performanceMetrics": true
+}

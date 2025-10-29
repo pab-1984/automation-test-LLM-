@@ -1,0 +1,30 @@
+TEST: prueba desde cli
+URL: http://mercadolibre.com.uy
+Descripción: navegar y buscar items en mercadolibre
+
+Opciones:
+- Screenshot por paso: Sí
+- Capturar logs: Sí
+- Capturar network: Sí
+- Performance: Sí
+
+Pasos:
+==================================================
+
+1. Navega a http://mercadolibre.com.uy
+
+ingresar a MercadoLibre
+en la barra de búsqueda buscar alquileres en Montevideo
+hacer click en buscar o en el botón de la lupa
+ordenar los resultados de menor precio a mayor precio
+
+
+==================================================
+
+# Opciones de ejecución (JSON)
+{
+  "screenshotPerStep": true,
+  "captureLogs": true,
+  "captureNetwork": true,
+  "performanceMetrics": true
+}

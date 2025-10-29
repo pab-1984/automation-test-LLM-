@@ -386,6 +386,222 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  // GET /api/tests/natural - Listar tests naturales
+  if (pathname === '/api/tests/natural' && method === 'GET') {
+    try {
+      const naturalDir = './tests/natural';
+
+      if (!fs.existsSync(naturalDir)) {
+        fs.mkdirSync(naturalDir, { recursive: true });
+      }
+
+      const files = fs.readdirSync(naturalDir)
+        .filter(f => f.endsWith('.txt'))
+        .map(f => {
+          const filePath = path.join(naturalDir, f);
+          const stats = fs.statSync(filePath);
+          const content = fs.readFileSync(filePath, 'utf8');
+
+          // Parsear metadata del archivo
+          const nameMatch = content.match(/^TEST:\s*(.+)$/m);
+          const urlMatch = content.match(/^URL:\s*(.+)$/m);
+          const descMatch = content.match(/^Descripción:\s*(.+)$/m);
+
+          return {
+            filename: f,
+            name: nameMatch ? nameMatch[1].trim() : f.replace('.txt', ''),
+            url: urlMatch ? urlMatch[1].trim() : '',
+            description: descMatch ? descMatch[1].trim() : '',
+            created: stats.mtime,
+            size: stats.size
+          };
+        });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ tests: files }));
+    } catch (error) {
+      console.error('Error listando tests naturales:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // GET /api/tests/natural/:filename - Obtener test natural específico
+  if (pathname.startsWith('/api/tests/natural/') && method === 'GET') {
+    try {
+      const filename = pathname.replace('/api/tests/natural/', '');
+      const filePath = path.join('./tests/natural', filename);
+
+      if (!fs.existsSync(filePath)) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Test no encontrado' }));
+        return;
+      }
+
+      const content = fs.readFileSync(filePath, 'utf8');
+
+      // Parsear contenido y opciones
+      const nameMatch = content.match(/^TEST:\s*(.+)$/m);
+      const urlMatch = content.match(/^URL:\s*(.+)$/m);
+      const descMatch = content.match(/^Descripción:\s*(.+)$/m);
+      const optionsMatch = content.match(/# Opciones de ejecución \(JSON\)\n(\{[\s\S]+?\})/);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        filename,
+        name: nameMatch ? nameMatch[1].trim() : '',
+        url: urlMatch ? urlMatch[1].trim() : '',
+        description: descMatch ? descMatch[1].trim() : '',
+        content: content,
+        options: optionsMatch ? JSON.parse(optionsMatch[1]) : {}
+      }));
+    } catch (error) {
+      console.error('Error obteniendo test natural:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // POST /api/tests/natural/create - Crear test natural
+  if (pathname === '/api/tests/natural/create' && method === 'POST') {
+    try {
+      const body = await getRequestBody(req);
+      const { name, url, description, instructions, options } = body;
+
+      if (!name || !url || !instructions) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Faltan campos requeridos: name, url, instructions' }));
+        return;
+      }
+
+      // Crear contenido del archivo
+      const testOptions = options || {
+        screenshotPerStep: false,
+        captureLogs: true,
+        captureNetwork: false,
+        performanceMetrics: false
+      };
+
+      const content = `TEST: ${name}
+URL: ${url}
+Descripción: ${description || 'Sin descripción'}
+
+Opciones:
+- Screenshot por paso: ${testOptions.screenshotPerStep ? 'Sí' : 'No'}
+- Capturar logs: ${testOptions.captureLogs ? 'Sí' : 'No'}
+- Capturar network: ${testOptions.captureNetwork ? 'Sí' : 'No'}
+- Performance: ${testOptions.performanceMetrics ? 'Sí' : 'No'}
+
+Pasos:
+==================================================
+
+${instructions}
+
+==================================================
+
+# Opciones de ejecución (JSON)
+${JSON.stringify(testOptions, null, 2)}
+`;
+
+      // Guardar archivo
+      const filename = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.txt';
+      const naturalDir = './tests/natural';
+
+      if (!fs.existsSync(naturalDir)) {
+        fs.mkdirSync(naturalDir, { recursive: true });
+      }
+
+      const filePath = path.join(naturalDir, filename);
+      fs.writeFileSync(filePath, content, 'utf8');
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        filename,
+        path: filePath,
+        message: 'Test natural creado exitosamente'
+      }));
+    } catch (error) {
+      console.error('Error creando test natural:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // POST /api/tests/natural/run - Ejecutar test natural
+  if (pathname === '/api/tests/natural/run' && method === 'POST') {
+    try {
+      const body = await getRequestBody(req);
+      const { filename, options } = body;
+
+      if (!filename) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Campo requerido: filename' }));
+        return;
+      }
+
+      const filePath = path.join('./tests/natural', filename);
+
+      if (!fs.existsSync(filePath)) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Test no encontrado' }));
+        return;
+      }
+
+      // Leer contenido del test
+      const content = fs.readFileSync(filePath, 'utf8');
+
+      // Parsear opciones del archivo si existen
+      let testOptions = {
+        maxIterations: 30,
+        screenshotPerStep: false,
+        captureLogs: true,
+        captureNetwork: false,
+        performanceMetrics: false
+      };
+
+      const optionsMatch = content.match(/# Opciones de ejecución \(JSON\)\n(\{[\s\S]+?\})/);
+      if (optionsMatch) {
+        testOptions = { ...testOptions, ...JSON.parse(optionsMatch[1]) };
+      }
+
+      // Override con opciones del request si se proporcionan
+      if (options) {
+        testOptions = { ...testOptions, ...options };
+      }
+
+      // Generar ID único para este test run
+      const testId = `natural-${Date.now()}`;
+
+      activeTestRuns.set(testId, {
+        status: 'running',
+        logs: [],
+        startTime: Date.now(),
+        testType: 'natural',
+        filename
+      });
+
+      // Ejecutar en background
+      executeNaturalTestAsync(testId, filePath, content, testOptions);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        testId,
+        message: 'Test natural iniciado',
+        pollUrl: `/api/tests/status/${testId}`
+      }));
+    } catch (error) {
+      console.error('Error ejecutando test natural:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
   // 404 para API
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Endpoint no encontrado' }));
@@ -422,6 +638,75 @@ async function executeTestAsync(testId, testPath, mode) {
     testRun.error = error.message;
     testRun.logs.push(`Error: ${error.message}`);
     console.error(`Error ejecutando test ${testId}:`, error);
+  }
+}
+
+// Ejecutar test natural en background
+async function executeNaturalTestAsync(testId, filePath, content, options) {
+  try {
+    const testRun = activeTestRuns.get(testId);
+    testRun.logs.push(`🚀 Iniciando test natural: ${filePath}`);
+    testRun.logs.push(`📋 Opciones: ${JSON.stringify(options)}`);
+
+    // Inicializar runner
+    const runner = new UniversalTestRunnerCore();
+    await runner.initialize();
+
+    testRun.logs.push('✅ Runner inicializado');
+
+    // Extraer instrucciones del contenido
+    const instructionsMatch = content.match(/Pasos:\n={50}\n\n([\s\S]+?)\n\n={50}/);
+    const instructions = instructionsMatch ? instructionsMatch[1].trim() : content;
+
+    testRun.logs.push('▶️  Ejecutando test en lenguaje natural...');
+
+    // Hook para capturar logs en tiempo real
+    const originalLog = console.log;
+    console.log = function(...args) {
+      const message = args.join(' ');
+      testRun.logs.push(message);
+      originalLog.apply(console, args);
+    };
+
+    // Ejecutar test natural
+    const result = await runner.executeNaturalLanguageTest(instructions, options);
+
+    // Restaurar console.log
+    console.log = originalLog;
+
+    // Guardar resultados
+    testRun.status = result.success ? 'success' : 'failed';
+    testRun.results = result;
+    testRun.endTime = Date.now();
+    testRun.duration = testRun.endTime - testRun.startTime;
+    testRun.logs.push('');
+    testRun.logs.push('═'.repeat(60));
+    testRun.logs.push(result.success ? '✅ Test EXITOSO' : '❌ Test FALLIDO');
+    testRun.logs.push(`⏱️  Duración: ${result.duration}s | Iteraciones: ${result.iterations}`);
+    testRun.logs.push('═'.repeat(60));
+
+    // Agregar datos adicionales al testRun
+    if (result.consoleLogs) {
+      testRun.consoleLogs = result.consoleLogs;
+    }
+    if (result.networkRequests) {
+      testRun.networkRequests = result.networkRequests;
+    }
+    if (result.performanceData) {
+      testRun.performanceData = result.performanceData;
+    }
+
+    // Limpiar
+    await runner.cleanup();
+
+  } catch (error) {
+    const testRun = activeTestRuns.get(testId);
+    testRun.status = 'error';
+    testRun.error = error.message;
+    testRun.logs.push('');
+    testRun.logs.push(`❌ Error: ${error.message}`);
+    testRun.logs.push(error.stack || '');
+    console.error(`Error ejecutando test natural ${testId}:`, error);
   }
 }
 
@@ -888,6 +1173,7 @@ function getMainHTML() {
       <button class="tab-button" onclick="showTab('create')">➕ Crear Test</button>
       <button class="tab-button" onclick="showTab('run')">▶️ Ejecutar Test</button>
       <button class="tab-button" onclick="showTab('results')">📈 Resultados</button>
+      <button class="tab-button" onclick="showTab('natural')">💬 Tests Naturales</button>
     </div>
 
     <!-- Dashboard Tab -->
@@ -1038,6 +1324,99 @@ Verifica que aparezca un mensaje de bienvenida." required></textarea>
         </div>
       </div>
     </div>
+
+    <!-- Natural Tests Tab -->
+    <div id="natural" class="tab-content">
+      <div class="grid">
+        <!-- Crear Test Natural -->
+        <div class="card">
+          <h2>✨ Crear Test en Lenguaje Natural</h2>
+          <p style="color: #7f8c8d; margin-bottom: 20px;">
+            Sin YAML, sin selectores CSS - solo instrucciones humanas
+          </p>
+
+          <div class="form-group">
+            <label for="natural-name">Nombre del test:</label>
+            <input type="text" id="natural-name" placeholder="ej: Búsqueda en MercadoLibre">
+          </div>
+
+          <div class="form-group">
+            <label for="natural-url">URL inicial:</label>
+            <input type="text" id="natural-url" placeholder="ej: https://mercadolibre.com.uy">
+          </div>
+
+          <div class="form-group">
+            <label for="natural-description">Descripción:</label>
+            <input type="text" id="natural-description" placeholder="ej: Verifica búsqueda de productos">
+          </div>
+
+          <div class="form-group">
+            <label for="natural-instructions">Instrucciones (paso a paso):</label>
+            <textarea id="natural-instructions" rows="8" placeholder="Ejemplo:
+
+Navega a la URL inicial
+
+Busca el cuadro de búsqueda principal
+Escribe 'laptops gaming'
+
+Haz click en el botón de búsqueda
+
+Verifica que aparezcan resultados
+
+Toma un screenshot"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Opciones avanzadas:</label>
+            <div style="margin-top: 10px;">
+              <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                <input type="checkbox" id="natural-screenshot" style="margin-right: 8px;">
+                <span>📸 Screenshot después de cada paso</span>
+              </label>
+              <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                <input type="checkbox" id="natural-logs" checked style="margin-right: 8px;">
+                <span>📝 Capturar logs de consola</span>
+              </label>
+              <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                <input type="checkbox" id="natural-network" style="margin-right: 8px;">
+                <span>🌐 Capturar requests de red</span>
+              </label>
+              <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                <input type="checkbox" id="natural-performance" style="margin-right: 8px;">
+                <span>📊 Métricas de rendimiento</span>
+              </label>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="createNaturalTest()" style="flex: 1;">💾 Guardar Test</button>
+            <button onclick="createAndRunNaturalTest()" class="primary" style="flex: 1;">▶️ Guardar y Ejecutar</button>
+          </div>
+        </div>
+
+        <!-- Tests Disponibles y Ejecución -->
+        <div class="card">
+          <h2>📄 Tests Naturales Disponibles</h2>
+          <button onclick="loadNaturalTests()" class="secondary">🔄 Actualizar</button>
+
+          <div id="natural-tests-list" style="margin-top: 20px;">
+            <div class="status">
+              <div class="loading"></div>
+              <span>Cargando tests...</span>
+            </div>
+          </div>
+
+          <div id="natural-execution-area" style="margin-top: 30px; display: none;">
+            <h3 style="color: #2c3e50; margin-bottom: 15px;">▶️ Ejecución en Vivo</h3>
+            <div id="natural-execution-status" class="status" style="margin-bottom: 15px;">
+              <span>Preparado</span>
+            </div>
+            <div id="natural-execution-logs" style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.9em; line-height: 1.5;">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1066,6 +1445,8 @@ Verifica que aparezca un mensaje de bienvenida." required></textarea>
         loadTestSelector();
       } else if (tabName === 'results') {
         loadResults();
+      } else if (tabName === 'natural') {
+        loadNaturalTests();
       }
     }
 
@@ -1553,6 +1934,251 @@ Verifica que aparezca un mensaje de bienvenida." required></textarea>
         alert('Error al cargar el reporte: ' + error.message);
       }
     }
+
+    // ========================================
+    // FUNCIONES PARA TESTS NATURALES
+    // ========================================
+
+    // Cargar lista de tests naturales
+    async function loadNaturalTests() {
+      const listDiv = document.getElementById('natural-tests-list');
+      listDiv.innerHTML = '<div class="status"><div class="loading"></div><span>Cargando tests...</span></div>';
+
+      try {
+        const response = await fetch('/api/tests/natural');
+        const data = await response.json();
+
+        if (!data.tests || data.tests.length === 0) {
+          listDiv.innerHTML = '<p style="color: #95a5a6; text-align: center; padding: 20px;">No hay tests naturales creados todavía</p>';
+          return;
+        }
+
+        let html = '<div class="scrollable-list">';
+        data.tests.forEach(test => {
+          const date = new Date(test.created).toLocaleString('es-UY');
+          html += '<div class="list-item">';
+          html += '<div>';
+          html += '<div style="font-weight: bold; margin-bottom: 5px;">📄 ' + test.name + '</div>';
+          html += '<div style="font-size: 0.9em; color: #7f8c8d;">' + (test.description || 'Sin descripción') + '</div>';
+          html += '<div style="font-size: 0.85em; color: #95a5a6; margin-top: 5px;">';
+          html += '🌐 ' + test.url + ' | 📅 ' + date;
+          html += '</div>';
+          html += '</div>';
+          html += '<button onclick="runNaturalTest(&quot;' + test.filename + '&quot;)" class="primary" style="margin-left: auto;">▶️ Ejecutar</button>';
+          html += '</div>';
+        });
+        html += '</div>';
+        listDiv.innerHTML = html;
+
+      } catch (error) {
+        listDiv.innerHTML = '<p style="color: #e74c3c;">Error al cargar tests: ' + error.message + '</p>';
+      }
+    }
+
+    // Crear test natural
+    async function createNaturalTest() {
+      const name = document.getElementById('natural-name').value.trim();
+      const url = document.getElementById('natural-url').value.trim();
+      const description = document.getElementById('natural-description').value.trim();
+      const instructions = document.getElementById('natural-instructions').value.trim();
+
+      if (!name || !url || !instructions) {
+        alert('Por favor completa los campos obligatorios: nombre, URL e instrucciones');
+        return;
+      }
+
+      const options = {
+        screenshotPerStep: document.getElementById('natural-screenshot').checked,
+        captureLogs: document.getElementById('natural-logs').checked,
+        captureNetwork: document.getElementById('natural-network').checked,
+        performanceMetrics: document.getElementById('natural-performance').checked
+      };
+
+      try {
+        const response = await fetch('/api/tests/natural/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, url, description, instructions, options })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert('✅ Test "' + name + '" creado exitosamente');
+          // Limpiar formulario
+          document.getElementById('natural-name').value = '';
+          document.getElementById('natural-url').value = '';
+          document.getElementById('natural-description').value = '';
+          document.getElementById('natural-instructions').value = '';
+          document.getElementById('natural-screenshot').checked = false;
+          document.getElementById('natural-logs').checked = true;
+          document.getElementById('natural-network').checked = false;
+          document.getElementById('natural-performance').checked = false;
+
+          // Recargar lista
+          loadNaturalTests();
+        } else {
+          alert('❌ Error: ' + (data.error || 'No se pudo crear el test'));
+        }
+      } catch (error) {
+        alert('❌ Error al crear test: ' + error.message);
+      }
+    }
+
+    // Crear y ejecutar test natural
+    async function createAndRunNaturalTest() {
+      const name = document.getElementById('natural-name').value.trim();
+      const url = document.getElementById('natural-url').value.trim();
+      const description = document.getElementById('natural-description').value.trim();
+      const instructions = document.getElementById('natural-instructions').value.trim();
+
+      if (!name || !url || !instructions) {
+        alert('Por favor completa los campos obligatorios: nombre, URL e instrucciones');
+        return;
+      }
+
+      const options = {
+        screenshotPerStep: document.getElementById('natural-screenshot').checked,
+        captureLogs: document.getElementById('natural-logs').checked,
+        captureNetwork: document.getElementById('natural-network').checked,
+        performanceMetrics: document.getElementById('natural-performance').checked
+      };
+
+      try {
+        // Primero crear
+        const createResponse = await fetch('/api/tests/natural/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, url, description, instructions, options })
+        });
+
+        const createData = await createResponse.json();
+
+        if (!createData.success) {
+          alert('❌ Error al crear test: ' + (createData.error || 'Error desconocido'));
+          return;
+        }
+
+        // Luego ejecutar
+        await runNaturalTest(createData.filename);
+
+        // Recargar lista
+        loadNaturalTests();
+
+      } catch (error) {
+        alert('❌ Error: ' + error.message);
+      }
+    }
+
+    // Ejecutar test natural
+    async function runNaturalTest(filename) {
+      const executionArea = document.getElementById('natural-execution-area');
+      const statusDiv = document.getElementById('natural-execution-status');
+      const logsDiv = document.getElementById('natural-execution-logs');
+
+      executionArea.style.display = 'block';
+      statusDiv.innerHTML = '<div class="loading"></div><span>Iniciando test...</span>';
+      logsDiv.innerHTML = '<div style="color: #4caf50;">🚀 Iniciando ejecución del test...</div>';
+
+      try {
+        const response = await fetch('/api/tests/natural/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          logsDiv.innerHTML += '<div style="color: #e74c3c;">❌ Error: ' + data.error + '</div>';
+          statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Error</span>';
+          return;
+        }
+
+        // Comenzar polling
+        logsDiv.innerHTML += '<div style="color: #2196f3;">📡 Test ID: ' + data.testId + '</div>';
+        logsDiv.innerHTML += '<div style="color: #2196f3;">⏳ Ejecutando...</div>';
+        logsDiv.innerHTML += '<div style="color: #666;">' + '─'.repeat(60) + '</div>';
+
+        pollNaturalTestStatus(data.testId);
+
+      } catch (error) {
+        logsDiv.innerHTML += '<div style="color: #e74c3c;">❌ Error: ' + error.message + '</div>';
+        statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Error</span>';
+      }
+    }
+
+    // Polling de estado del test natural
+    async function pollNaturalTestStatus(testId) {
+      const statusDiv = document.getElementById('natural-execution-status');
+      const logsDiv = document.getElementById('natural-execution-logs');
+      let lastLogCount = 0;
+
+      const pollInterval = setInterval(async () => {
+        try {
+          const response = await fetch('/api/tests/status/' + testId);
+          const data = await response.json();
+
+          // Actualizar status
+          if (data.status === 'running') {
+            statusDiv.innerHTML = '<div class="loading"></div><span>⏳ Ejecutando...</span>';
+          } else if (data.status === 'success') {
+            statusDiv.innerHTML = '<span style="color: #4caf50;">✅ Completado Exitosamente</span>';
+            clearInterval(pollInterval);
+          } else if (data.status === 'failed') {
+            statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Test Fallido</span>';
+            clearInterval(pollInterval);
+          } else if (data.status === 'error') {
+            statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Error en Ejecución</span>';
+            clearInterval(pollInterval);
+          }
+
+          // Actualizar logs (solo los nuevos)
+          if (data.logs && data.logs.length > lastLogCount) {
+            const newLogs = data.logs.slice(lastLogCount);
+            newLogs.forEach(log => {
+              const escapedLog = log.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              logsDiv.innerHTML += '<div>' + escapedLog + '</div>';
+            });
+            lastLogCount = data.logs.length;
+
+            // Auto-scroll al final
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+          }
+
+          // Si terminó, mostrar resumen
+          if (data.status !== 'running' && data.results) {
+            logsDiv.innerHTML += '<div style="color: #666; margin-top: 20px;">' + '═'.repeat(60) + '</div>';
+            logsDiv.innerHTML += '<div style="color: #4caf50; font-weight: bold; margin-top: 10px;">📊 RESUMEN FINAL</div>';
+            logsDiv.innerHTML += '<div style="color: #666; margin-top: 10px;">' + '═'.repeat(60) + '</div>';
+
+            if (data.duration) {
+              logsDiv.innerHTML += '<div style="color: #2196f3;">⏱️  Duración: ' + (data.duration / 1000).toFixed(2) + 's</div>';
+            }
+
+            // Mostrar datos adicionales si existen
+            if (data.consoleLogs) {
+              logsDiv.innerHTML += '<div style="color: #ff9800; margin-top: 10px;">📝 Logs de consola capturados</div>';
+            }
+            if (data.networkRequests) {
+              logsDiv.innerHTML += '<div style="color: #ff9800;">🌐 Network requests capturados</div>';
+            }
+            if (data.performanceData) {
+              logsDiv.innerHTML += '<div style="color: #ff9800;">📊 Performance metrics capturados</div>';
+            }
+          }
+
+        } catch (error) {
+          console.error('Error en polling:', error);
+          logsDiv.innerHTML += '<div style="color: #e74c3c;">❌ Error actualizando estado: ' + error.message + '</div>';
+          clearInterval(pollInterval);
+        }
+      }, 2000); // Poll cada 2 segundos
+    }
+
+    // ========================================
+    // FIN FUNCIONES TESTS NATURALES
+    // ========================================
 
     // Cargar datos iniciales
     document.addEventListener('DOMContentLoaded', () => {
