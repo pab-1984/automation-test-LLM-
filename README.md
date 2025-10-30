@@ -183,11 +183,34 @@ automation-test-LLM/
 │   │   └── element-finder.js  # Búsqueda híbrida (local + LLM)
 │   └── test-generator.js      # Generación de tests con IA
 │
+├── server/                     # 🌐 Backend (Arquitectura modular)
+│   ├── controllers/           # Lógica de negocio
+│   │   ├── systemController.js
+│   │   ├── testController.js
+│   │   ├── naturalController.js
+│   │   └── resultsController.js
+│   ├── routes/                # Endpoints API REST
+│   │   ├── index.js
+│   │   ├── api.js
+│   │   ├── tests.js
+│   │   ├── natural.js
+│   │   └── results.js
+│   ├── middleware/            # Middleware Express
+│   │   └── errorHandler.js
+│   └── app.js                 # Servidor Express principal
+│
+├── public/                    # 🎨 Frontend (Assets estáticos)
+│   ├── index.html            # Interfaz principal
+│   ├── css/
+│   │   └── styles.css        # Estilos modulares
+│   └── js/
+│       └── main.js           # Lógica de UI
+│
 ├── scripts/
 │   ├── cli.js                 # CLI interactiva
 │   ├── create-test.js         # Wizard de creación
 │   ├── test-natural.js        # ⭐ Tests lenguaje natural
-│   ├── web-server.js          # 🌐 Interfaz web + API
+│   ├── web-server.js          # 🌐 Wrapper del servidor web
 │   └── test.js                # Ejecutor de YAML
 │
 ├── tests/
@@ -502,4 +525,4 @@ Si este proyecto te ayudó, dale una ⭐️!
 
 ---
 
-**Última actualización**: 2025-10-29 | **Versión**: 1.0.0
+**Última actualización**: 2025-10-30 | **Versión**: 1.0.0

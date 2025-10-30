@@ -35,11 +35,34 @@ automation-test-LLM/
 │   │   └── element-finder.js    # Búsqueda híbrida (local + LLM)
 │   └── test-generator.js        # Generación de tests con IA
 │
+├── server/                      # 🌐 Backend (Arquitectura modular)
+│   ├── controllers/             # Controladores (lógica de negocio)
+│   │   ├── systemController.js  # Estado del sistema y LLM
+│   │   ├── testController.js    # Gestión de tests YAML
+│   │   ├── naturalController.js # Tests en lenguaje natural
+│   │   └── resultsController.js # Reportes y resultados
+│   ├── routes/                  # Rutas API REST
+│   │   ├── index.js             # Router principal
+│   │   ├── api.js               # Rutas /api/status, /api/llm
+│   │   ├── tests.js             # Rutas /api/tests/*
+│   │   ├── natural.js           # Rutas /api/tests/natural/*
+│   │   └── results.js           # Rutas /api/results/*
+│   ├── middleware/              # Middleware Express
+│   │   └── errorHandler.js      # Manejo centralizado de errores
+│   └── app.js                   # Servidor Express principal
+│
+├── public/                      # 🎨 Frontend (Assets estáticos)
+│   ├── index.html               # Interfaz web principal
+│   ├── css/
+│   │   └── styles.css           # Estilos modulares (439 líneas)
+│   └── js/
+│       └── main.js              # Lógica de UI (775 líneas)
+│
 ├── scripts/
 │   ├── cli.js                   # CLI interactiva
 │   ├── create-test.js           # Wizard de creación de tests
 │   ├── test-natural.js          # ⭐ Tests en lenguaje natural
-│   ├── web-server.js            # 🌐 Interfaz web + API REST
+│   ├── web-server.js            # 🌐 Wrapper del servidor web
 │   ├── test.js                  # Ejecutor de YAML
 │   └── setup.js                 # Configuración inicial
 │
@@ -90,6 +113,85 @@ automation-test-LLM/
 ✅ Testing móvil (Android/iOS) en desarrollo
 ✅ Compilación inteligente (35x más rápido)
 ✅ Interfaz web completa con IA integrada
+✅ Arquitectura modular backend/frontend (MVC)
+
+---
+
+## 🌐 Arquitectura Web Modular
+
+### Separación Backend/Frontend
+
+La interfaz web está construida con arquitectura modular que separa completamente el backend (server/) del frontend (public/):
+
+```
+┌─────────────────────────────────────────┐
+│         FRONTEND (public/)              │
+│  ┌────────────┐  ┌──────────┐          │
+│  │ index.html │  │ main.js  │          │
+│  │            │  │          │          │
+│  │ UI/Forms   │──│  Logic   │          │
+│  └────────────┘  └─────┬────┘          │
+│                        │                │
+│                   HTTP │ Requests       │
+└────────────────────────┼────────────────┘
+                         │
+┌────────────────────────┼────────────────┐
+│         BACKEND (server/)               │
+│                        v                │
+│  ┌──────────────────────────────┐      │
+│  │    Express App (app.js)      │      │
+│  │  ┌────────────┐              │      │
+│  │  │ Middleware │              │      │
+│  │  └─────┬──────┘              │      │
+│  │        v                     │      │
+│  │  ┌────────────┐              │      │
+│  │  │   Routes   │              │      │
+│  │  │ /api/*     │              │      │
+│  │  └─────┬──────┘              │      │
+│  │        v                     │      │
+│  │  ┌──────────────┐            │      │
+│  │  │ Controllers  │            │      │
+│  │  │ - System     │            │      │
+│  │  │ - Tests      │            │      │
+│  │  │ - Natural    │            │      │
+│  │  │ - Results    │            │      │
+│  │  └──────────────┘            │      │
+│  └──────────────────────────────┘      │
+└─────────────────────────────────────────┘
+```
+
+### Patrón MVC Implementado
+
+**Model:**
+- Tests YAML (tests/suites/)
+- Tests Naturales (tests/natural/)
+- Configuración LLM (config/)
+- Reportes (tests/results/)
+
+**View:**
+- HTML: `public/index.html` (interfaz principal)
+- CSS: `public/css/styles.css` (estilos)
+- JavaScript: `public/js/main.js` (interactividad)
+
+**Controller:**
+- `server/controllers/systemController.js` - Estado del sistema
+- `server/controllers/testController.js` - Gestión de tests YAML
+- `server/controllers/naturalController.js` - Tests naturales
+- `server/controllers/resultsController.js` - Reportes
+
+**Routes (API REST):**
+- `server/routes/api.js` - /api/status, /api/llm/switch
+- `server/routes/tests.js` - /api/tests/*
+- `server/routes/natural.js` - /api/tests/natural/*
+- `server/routes/results.js` - /api/results/*
+
+### Beneficios de la Arquitectura Modular
+
+1. **Mantenibilidad**: Cada componente tiene responsabilidad única
+2. **Escalabilidad**: Fácil agregar nuevos endpoints o funciones
+3. **Testabilidad**: Controllers aislados para unit testing
+4. **Reutilización**: Lógica de negocio independiente del framework
+5. **Separación de Concerns**: Frontend y backend completamente desacoplados
 
 ---
 
@@ -476,4 +578,4 @@ npm run status                    # Estado del sistema
 ---
 
 **Última actualización:** 2025-10-30
-**Versión:** 1.0.0 (Mobile Integration Fase 1)
+**Versión:** 1.0.0 (Web Architecture Refactored + Mobile Integration Fase 1)
