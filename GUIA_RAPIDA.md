@@ -2,19 +2,56 @@
 
 ## ¿Qué es esto?
 
-Un sistema que te permite **crear tests automatizados escribiendo en lenguaje natural**, sin necesidad de saber programación, selectores CSS ni nada técnico.
+Un sistema que te permite **crear y ejecutar tests automatizados escribiendo en lenguaje natural**, sin necesidad de saber programación, selectores CSS ni nada técnico.
 
 ---
 
-## 📝 En 3 Pasos
+## ⭐ Método Más Rápido (Recomendado)
 
-### Paso 1: Ejecuta el comando
+### Tests en Lenguaje Natural - SIN YAML
 
+La forma **más simple y directa** de crear tests. No genera archivos, ejecuta inmediatamente.
+
+#### En Una Línea:
+```bash
+npm run test-natural "Navega a google.com y busca 'testing'"
+```
+
+#### Desde Archivo de Texto:
+```bash
+# 1. Crea archivo tests/natural/mi-test.txt
+# 2. Escribe tus instrucciones en lenguaje natural
+# 3. Ejecuta:
+npm run test-natural tests/natural/mi-test.txt
+```
+
+#### Desde la Interfaz Web:
+```bash
+npm run web
+# Abre http://localhost:3001
+# → Tab "💬 Tests Naturales"
+```
+
+**Ventajas:**
+- ✅ **Más rápido**: Un solo comando
+- ✅ **Sin archivos**: No genera YAML
+- ✅ **Directo**: Se ejecuta inmediatamente
+- ✅ **Flexible**: Desde línea de comandos, archivo o web
+
+---
+
+## 📝 Método con Wizard (Genera YAML)
+
+Si prefieres generar archivos YAML reutilizables:
+
+### En 3 Pasos
+
+#### Paso 1: Ejecuta el comando
 ```bash
 npm run create-test
 ```
 
-### Paso 2: Responde las preguntas
+#### Paso 2: Responde las preguntas
 
 El sistema te preguntará:
 
@@ -22,7 +59,7 @@ El sistema te preguntará:
 2. **URL de tu aplicación:** Ej: "http://localhost:3000"
 3. **Qué quieres probar** (se abre tu editor de texto)
 
-### Paso 3: Escribe en lenguaje natural
+#### Paso 3: Escribe en lenguaje natural
 
 ```
 Abre la aplicación.
@@ -33,23 +70,41 @@ Haz click en el botón "Enviar" o "Submit".
 Verifica que aparezca un mensaje de bienvenida.
 ```
 
-**¡Eso es todo!** El sistema hace el resto.
+**El sistema:**
+- Genera un archivo YAML compilado
+- Lo ejecuta (opcional)
+- Lo guarda en `tests/suites/` para reutilizar
 
 ---
 
 ## 💡 Ejemplos de Instrucciones
 
-### Ejemplo 1: Test de E-commerce
+### Ejemplo 1: Test Simple (Lenguaje Natural)
 
-```
-Abre la tienda.
-Busca el botón que dice "Add to Cart" y haz click.
-Verifica que el carrito muestre 1 producto.
-Haz click en el botón "Cart" o "Carrito".
-Verifica que el producto aparezca en la lista.
+```bash
+npm run test-natural "Ve a wikipedia.org, busca 'Model Context Protocol' y verifica resultados"
 ```
 
-### Ejemplo 2: Test de Formulario
+### Ejemplo 2: Test de E-commerce (Archivo)
+
+```
+# tests/natural/test-ecommerce.txt
+
+Abre https://mi-tienda.com
+Busca el botón que dice "Add to Cart" del primer producto
+Haz click en ese botón
+Verifica que el carrito muestre 1 producto
+Haz click en el botón "Cart" o "Carrito"
+Verifica que el producto aparezca en la lista
+```
+
+```bash
+npm run test-natural tests/natural/test-ecommerce.txt
+```
+
+### Ejemplo 3: Test de Formulario (Wizard)
+
+Ejecuta `npm run create-test` y escribe:
 
 ```
 Ve a la página de contacto.
@@ -60,7 +115,7 @@ Haz click en el botón "Enviar".
 Verifica que aparezca un mensaje de confirmación.
 ```
 
-### Ejemplo 3: Test de Dashboard
+### Ejemplo 4: Test de Dashboard
 
 ```
 Inicia sesión con usuario "admin@test.com" y contraseña "admin123".
@@ -78,22 +133,24 @@ Verifica que se abra el panel de configuración.
 2. **Usa Inteligencia Artificial** para entenderlas
 3. **Abre tu aplicación** y la analiza
 4. **Encuentra automáticamente** los botones, campos y elementos
-5. **Crea un test optimizado** que se ejecuta 35x más rápido
+5. **Ejecuta el test** y genera reporte
 
 ---
 
-## 🔥 Primera Vez vs Siguientes Veces
+## 🔥 Comparación: Test Natural vs Wizard
 
-### Primera Vez (con IA)
-- ⏱️ **Duración:** 2-3 minutos
-- 🤖 **Usa:** Inteligencia Artificial
-- 📸 **Captura:** Snapshots de tu aplicación
-- 🔍 **Aprende:** Dónde están los elementos
+| Característica | Test Natural | Wizard (create-test) |
+|---------------|--------------|----------------------|
+| **Velocidad de setup** | ⚡ Instantáneo | 🐢 3-5 preguntas |
+| **Genera archivo** | ❌ No (solo ejecuta) | ✅ Sí (YAML reutilizable) |
+| **Ejecución** | Inmediata | Opcional al crear |
+| **Reutilización** | Guardar en .txt | Automático en .yml |
+| **Mejor para** | Tests rápidos, ad-hoc | Tests permanentes, CI/CD |
+| **Opciones avanzadas** | ✅ Sí (wizard interactivo) | ✅ Sí |
 
-### Siguientes Veces (sin IA)
-- ⚡ **Duración:** 4-5 segundos
-- 🎯 **Usa:** Test compilado
-- ✅ **Resultado:** **35x más rápido!**
+**Recomendación:**
+- ⭐ **Test Natural**: Para experimentar, tests únicos, debugging
+- 📄 **Wizard**: Para test suite completa, integración CI/CD
 
 ---
 
@@ -133,26 +190,31 @@ Verifica.
 - "Abre la aplicación"
 - "Ve a la página de contacto"
 - "Navega a /login"
+- "Abre https://google.com"
 
 ### Click
 - "Haz click en el botón 'Login'"
 - "Presiona el botón que dice 'Enviar'"
 - "Selecciona la opción 'Premium'"
+- "Click en el enlace 'Ver más'"
 
 ### Llenar Campos
 - "Ingresa 'test@example.com' en el campo de email"
 - "Escribe 'password123' en la contraseña"
 - "Llena el campo 'Nombre' con 'Juan'"
+- "Completa el formulario con..."
 
 ### Verificar
 - "Verifica que aparezca un mensaje de éxito"
 - "Comprueba que el carrito muestre 1 producto"
 - "Asegúrate de que el usuario esté logueado"
+- "Verifica que la URL sea /dashboard"
 
 ### Esperar
 - "Espera a que cargue la página"
 - "Espera 3 segundos"
 - "Espera a que aparezca el modal"
+- "Espera a que desaparezca el loader"
 
 ---
 
@@ -172,8 +234,8 @@ npm install
 # 2. Configurar (solo primera vez)
 npm run setup
 
-# 3. Crear tu primer test
-npm run create-test
+# 3. Ejecutar tu primer test
+npm run test-natural "Navega a google.com"
 ```
 
 ---
@@ -184,26 +246,40 @@ npm run create-test
 
 **No.** Solo escribe en lenguaje natural lo que quieres probar.
 
+### ¿Cuál es más rápido: test-natural o create-test?
+
+**test-natural** es más rápido para ejecutar inmediatamente. **create-test** es mejor si quieres guardar el test para ejecutarlo múltiples veces.
+
 ### ¿Funciona con cualquier aplicación web?
 
 **Sí.** React, Vue, Angular, HTML puro, etc. Todas funcionan.
 
-### ¿Puedo editar el test después?
+### ¿Puedo guardar un test natural para reutilizarlo?
 
-**Sí.** El test se guarda en `tests/suites/nombre-test.yml` y puedes editarlo.
+**Sí.** Guárdalo en un archivo .txt:
+```bash
+# Crear archivo
+echo "Navega a google.com y busca 'testing'" > tests/natural/mi-test.txt
+
+# Ejecutar cuando quieras
+npm run test-natural tests/natural/mi-test.txt
+```
 
 ### ¿Qué pasa si mi aplicación cambia?
 
-Ejecuta el test con `--recompile`:
+Si usaste `create-test` y generaste YAML, ejecuta con `--recompile`:
 ```bash
 npm test tests/suites/mi-test.yml --recompile
 ```
 
-El sistema reanaliza tu aplicación y actualiza el test.
+Si usas `test-natural`, simplemente vuelve a ejecutar el comando.
 
 ### ¿Puedo ejecutar el test en CI/CD?
 
-**Sí.** Después de la primera ejecución, el test compilado se ejecuta súper rápido y es perfecto para CI/CD.
+**Sí.** Para CI/CD es mejor usar `create-test` porque genera YAML compilado que se ejecuta 35x más rápido:
+
+1. Primera vez (local): `npm run create-test` → genera YAML
+2. En CI/CD: `npm test tests/suites/mi-test.yml` → ejecución rápida
 
 ---
 
@@ -211,7 +287,9 @@ El sistema reanaliza tu aplicación y actualiza el test.
 
 ```
 tu-proyecto/
-├── tests/suites/           # ← Tests que creas
+├── tests/natural/          # ← Tests en lenguaje natural (.txt)
+│   └── mi-test.txt
+├── tests/suites/           # ← Tests YAML (desde create-test)
 │   └── mi-test.yml
 ├── tests/compiled/         # ← Tests compilados (auto)
 │   └── mi-test-compiled.yml
@@ -223,7 +301,46 @@ tu-proyecto/
 
 ---
 
-## 🎬 Ejemplo Completo
+## 🎬 Ejemplo Completo: Test Natural
+
+### Opción A: Desde Línea de Comandos
+
+```bash
+npm run test-natural "Ve a mercadolibre.com.uy y busca 'notebooks'"
+```
+
+### Opción B: Desde Archivo
+
+```bash
+# 1. Crear archivo
+cat > tests/natural/busqueda-mercadolibre.txt << EOF
+Navega a https://mercadolibre.com.uy
+Busca el cuadro de búsqueda principal
+Escribe "notebooks"
+Presiona el botón de buscar
+Verifica que aparezcan resultados
+EOF
+
+# 2. Ejecutar
+npm run test-natural tests/natural/busqueda-mercadolibre.txt
+```
+
+### Opción C: Con Opciones Avanzadas (Wizard)
+
+```bash
+npm run test-natural
+
+# Wizard interactivo:
+? Instrucción de prueba: Ve a wikipedia.org y busca 'testing'
+? ¿Quieres capturar screenshot de cada paso? Sí
+? ¿Quieres capturar logs de consola? Sí
+? ¿Quieres capturar network requests? No
+? ¿Quieres métricas de performance? No
+```
+
+---
+
+## 🎬 Ejemplo Completo: Wizard (create-test)
 
 ### 1. Ejecutar comando
 ```bash
@@ -275,6 +392,8 @@ Verifica que el producto aparezca en el carrito.
 
 ## 🚀 Siguiente Ejecución (35x Más Rápida)
 
+Solo para tests creados con `create-test`:
+
 ```bash
 npm test tests/suites/test-de-carrito.yml
 ```
@@ -307,24 +426,59 @@ npm test tests/suites/test-de-carrito.yml
    - ✅ "Test de Login con Credenciales Válidas"
    - ❌ "Test 1"
 
-5. **Captura pantallas importantes:**
-   - Al inicio
-   - Después de acciones críticas
-   - Al final
+5. **Elige el método correcto:**
+   - ⚡ **test-natural**: Tests rápidos, experimentación
+   - 📄 **create-test**: Tests permanentes, CI/CD
+
+6. **Para CI/CD:**
+   - Primera vez local: `create-test` (genera YAML)
+   - En pipeline: `npm test` (35x más rápido)
+
+---
+
+## 🌐 Desde la Interfaz Web
+
+### La forma más visual:
+
+```bash
+npm run web
+# Abre http://localhost:3001
+```
+
+**4 Tabs Disponibles:**
+
+1. **📊 Dashboard**: Estado del sistema y métricas
+2. **💬 Tests Naturales**: Ejecutar tests en lenguaje natural sin archivos
+3. **➕ Crear Test**: Wizard visual que genera YAML
+4. **▶️ Ejecutar**: Ejecutar tests existentes con logs en tiempo real
+
+**Ejemplo en Tab "Tests Naturales":**
+1. Escribe: "Navega a google.com y busca 'automation'"
+2. Selecciona opciones (screenshots, logs, etc.)
+3. Click "▶️ Ejecutar Test"
+4. Ve el progreso en tiempo real
+5. Descarga reporte al terminar
 
 ---
 
 ## 🎉 ¡Eso es Todo!
 
-Ahora puedes crear tests automatizados **sin conocimientos técnicos**.
+Ahora tienes **3 formas** de crear tests sin conocimientos técnicos:
 
 ### Comandos Útiles
 
 ```bash
-# Crear nuevo test
+# Método 1: Test Natural (Más Rápido) ⭐
+npm run test-natural "Tu instrucción aquí"
+npm run test-natural tests/natural/mi-test.txt
+
+# Método 2: Wizard (Genera YAML)
 npm run create-test
 
-# Ejecutar test existente
+# Método 3: Interfaz Web
+npm run web
+
+# Ejecutar test YAML existente (35x más rápido)
 npm test tests/suites/mi-test.yml
 
 # Forzar recompilación
@@ -339,6 +493,20 @@ ls tests/screenshots/
 
 ---
 
-**¿Necesitas ayuda?** Abre un issue en GitHub o revisa el [README.md](README.md) para más detalles técnicos.
+## 📊 Resumen: ¿Cuál Usar?
+
+| Situación | Comando Recomendado |
+|-----------|---------------------|
+| Quiero probar algo rápido | `npm run test-natural "instrucción"` |
+| Experimento o debugging | `npm run test-natural` |
+| Test para suite permanente | `npm run create-test` |
+| Integración CI/CD | `npm run create-test` → `npm test` |
+| Prefiero interfaz visual | `npm run web` |
+| Ya tengo archivo .txt | `npm run test-natural archivo.txt` |
+| Ya tengo archivo .yml | `npm test archivo.yml` |
+
+---
+
+**¿Necesitas ayuda?** Revisa el [README.md](README.md) para documentación completa o [ESTRUCTURA.md](ESTRUCTURA.md) para detalles técnicos.
 
 **¡Happy Testing! 🚀**
