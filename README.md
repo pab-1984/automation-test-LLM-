@@ -1,395 +1,505 @@
-# 🧪 Testing Automatizado con LLM + Chrome DevTools MCP
+# 🧪 LLM Testing Automation
 
-Sistema de testing automatizado que permite ejecutar pruebas web en lenguaje natural.
+> Sistema de testing automatizado universal que combina LLMs con MCP (Model Context Protocol) para crear, ejecutar y mantener tests web y móviles en lenguaje natural.
 
-
-# 🏗️ Estructura Universal de Testing Automatizado
-
-Esta arquitectura te permite **cambiar de LLM sin modificar tus tests**.
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/pab-1984/automation-test-LLM)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
 
-## 📁 Estructura de Carpetas
+## ✨ Características Principales
 
-```
-testing-automation/
-├── config/
-│   ├── llm.config.json          # Configuración del LLM activo
-│   ├── providers/
-│   │   ├── gemini.json          # Config específica de Gemini
-│   │   ├── ollama.json          # Config específica de Ollama
-│   │   ├── openai.json          # Config específica de OpenAI
-│   │   └── anthropic.json       # Config específica de Claude
-│   └── testing.config.json      # Config general de testing
-│
-├── prompts/
-│   ├── system.md                # Prompt universal del agente
-│   ├── test-executor.md         # Instrucciones de ejecución
-│   └── report-generator.md      # Instrucciones de reportes
-│
-├── tests/
-│   ├── suites/                  # Tus tests en YAML
-│   ├── results/                 # Reportes generados
-│   └── screenshots/             # Capturas de pantalla
-│
-├── runners/
-│   ├── universal-runner.js      # Runner principal
-│   ├── core/
-│   │   ├── runner-core.js       # Núcleo del runner
-│   │   ├── test-executor.js     # Ejecución de tests
-│   │   └── report-generator.js  # Generación de reportes
-│   ├── adapters/
-│   │   ├── gemini.adapter.js    # Adaptador para Gemini
-│   │   ├── ollama.adapter.js    # Adaptador para Ollama
-│   │   └── openai.adapter.js    # Adaptador para OpenAI
-│   ├── actions/
-│   │   ├── browser-actions.js   # Acciones del navegador
-│   │   ├── element-finder.js    # Localización de elementos
-│   │   └── variable-replacer.js # Reemplazo de variables
-│   └── llm/
-│       └── llm-processor.js     # Procesamiento y compilación LLM
-│
-├── scripts/
-│   ├── setup.js                 # Script de configuración
-│   ├── switch-llm.js            # Cambiar entre LLMs
-│   └── test.js                  # Comando simplificado
-│
-├── package.json
-└── README.md
-```
+- 🤖 **Agnóstico de LLM**: Soporta Gemini, Ollama, OpenAI, Claude - cambia sin modificar tests
+- 💬 **Tests en Lenguaje Natural**: Escribe tests sin YAML, sin CSS selectors, solo español
+- 🌐 **Interfaz Web Completa**: Dashboard con IA integrada, ejecución en tiempo real y reportes visuales
+- 🔌 **Protocolo MCP**: Integración con Chrome DevTools y mobile-mcp para web y móvil
+- 📱 **Testing Móvil** (en desarrollo): Soporte para Android e iOS con mobile-mcp
+- 🎯 **Multi-Interface**: CLI interactiva, CLI natural, API REST, Interfaz Web
+- 📊 **Reportes Ricos**: Logs de consola, network requests, performance metrics, screenshots
+- 🔄 **Compilación Inteligente**: Sistema de caché para tests 35x más rápidos
 
 ---
 
-## 🎯 Filosofía de Diseño
-
-### Separación de Concerns:
-1. **Tests** (`tests/suites/*.yml`) - Independientes del LLM
-2. **Prompts** (`prompts/*.md`) - Instrucciones genéricas
-3. **Config** (`config/`) - Específico por proveedor
-4. **Adapters** (`runners/adapters/`) - Traducen entre LLM y runner
-
-### Ventajas:
-✅ Cambiar de LLM sin tocar tests  
-✅ Comparar diferentes LLMs con los mismos tests  
-✅ Migración gradual entre proveedores  
-✅ Tests portables entre proyectos  
-
----
-
-## 🔧 Archivos de Configuración
-
-### `config/llm.config.json` (Principal)
-```json
-{
-  "activeProvider": "ollama",
-  "fallbackProvider": "gemini",
-  "timeout": 30000,
-  "retries": 3
-}
-```
-
-### `config/providers/ollama.json`
-```json
-{
-  "provider": "ollama",
-  "baseUrl": "http://localhost:11434",
-  "model": "llama3.2:3b",
-  "temperature": 0.1,
-  "maxTokens": 4096,
-  "streaming": false
-}
-```
-
-### `config/providers/gemini.json`
-```json
-{
-  "provider": "gemini",
-  "apiKey": "env:GEMINI_API_KEY",
-  "model": "gemini-2.0-flash-exp",
-  "temperature": 0.1,
-  "maxTokens": 4096
-}
-```
-
-### `config/testing.config.json`
-```json
-{
-  "browser": "chromium",
-  "headless": false,
-  "viewport": { "width": 1920, "height": 1080 },
-  "timeout": 30000,
-  "screenshotOnError": true,
-  "videoOnFailure": false,
-  "retryFailedTests": 1,
-  "parallel": false
-}
-```
-
----
-
-## 📝 Prompts Universales
-
-### `prompts/system.md`
-```markdown
-# Testing Automation Agent
-
-Eres un agente de testing automatizado. Tu trabajo es ejecutar pruebas web usando herramientas de browser automation.
-
-## Comportamiento
-- Ejecuta pruebas secuencialmente
-- Reporta errores con evidencia
-- Continúa después de fallos
-- Genera reportes estructurados
-
-## Herramientas Disponibles
-- navigate(url): Navegar a una URL
-- click(selector): Click en elemento
-- fill(selector, value): Llenar campo
-- screenshot(name): Capturar pantalla
-- verify(selector): Verificar elemento existe
-- wait(selector): Esperar elemento
-
-## Output
-Responde SIEMPRE en JSON:
-{
-  "action": "nombre_accion",
-  "params": {},
-  "reasoning": "explicación breve"
-}
-```
-
----
-
-## 🔌 Sistema de Adapters
-
-Cada LLM tiene su propio adapter que implementa la misma interfaz:
-
-```javascript
-class LLMAdapter {
-  async initialize() { }
-  async sendMessage(prompt, context) { }
-  async executeTest(testStep) { }
-  async generateReport(results) { }
-}
-```
-
-Esto permite que el runner principal sea **agnóstico del LLM**.
-
----
-
-## 🚀 Comandos Simplificados
+## 🚀 Quick Start
 
 ```bash
-# Configurar el proyecto (primera vez)
+# 1. Instalar dependencias
+npm install
+
+# 2. Configurar LLM (primera vez)
 npm run setup
 
-# Cambiar de LLM
-npm run switch-llm ollama
-npm run switch-llm gemini
+# 3. Ejecutar tests
 
-# Ejecutar tests (usa el LLM activo)
-npm test tests/suites/login.yml
+# Opción A: Tests en lenguaje natural (⭐ Recomendado)
+npm run test-natural "Navega a google.com y busca 'automation'"
 
-# Comparar LLMs (ejecuta con ambos)
-npm run compare tests/suites/login.yml
-
-# Ver configuración actual
-npm run config
-```
-
----
-
-## 🖥️ Interfaces Disponibles
-
-El sistema ofrece **3 interfaces independientes** según tu necesidad:
-
-### 1️⃣ CLI Interactiva (Para usuarios técnicos)
-
-**Comando**: `npm run cli-test`
-
-**Características**:
-- ✅ Menú interactivo con opciones
-- ✅ Ejecutar tests existentes
-- ✅ Configurar LLM activo
-- ✅ Ver estado del sistema
-- ✅ Crear tests básicos manualmente
-- ✅ Ver reportes y screenshots
-
-**Cuándo usarla**:
-- Cuando quieres control total del proceso
-- Para ejecutar y gestionar tests existentes
-- Para configurar el sistema
-- Cuando tienes conocimientos técnicos
-
-**Ejemplo**:
-```bash
-npm run cli-test
-
-# Menú interactivo:
-# 🚀 Ejecutar tests
-# ⚙️  Configurar LLM
-# 📊 Ver estado del sistema
-# 📋 Crear nuevo test
-# 🔍 Escanear proyecto
-```
-
----
-
-### 2️⃣ CLI Lenguaje Natural (Para usuarios no técnicos) ⭐
-
-**Comando**: `npm run create-test`
-
-**Características**:
-- ✅ Convierte lenguaje natural a tests YAML
-- ✅ NO requiere conocimientos técnicos
-- ✅ NO necesitas especificar selectores CSS
-- ✅ Usa IA para entender tus instrucciones
-- ✅ Genera tests optimizados
-- ✅ Integrado con compilación (35x más rápido)
-
-**Cuándo usarla**:
-- Cuando no sabes programar
-- Para crear tests rápidamente
-- Cuando no conoces selectores CSS
-- Para prototipar tests nuevos
-
-**Ejemplo**:
-```bash
+# Opción B: Crear test con wizard
 npm run create-test
 
-# Guiado paso a paso:
-# 📝 Nombre del test: Test de Login
-# 🌐 URL: http://localhost:3000
-# 📖 Describe qué quieres probar:
-#    "Abre la aplicación.
-#     Haz click en el botón 'Login'.
-#     Ingresa 'test@example.com' en el email.
-#     Ingresa 'password123' en la contraseña.
-#     Verifica que aparezca el mensaje de bienvenida."
-```
+# Opción C: Interfaz web
+npm run web
+# Abre http://localhost:3001
 
-**Ver documentación completa**: [GUIA_RAPIDA.md](GUIA_RAPIDA.md)
+# Opción D: CLI interactiva
+npm run cli-test
+
+# Opción E: Ejecutar YAML directamente
+npm test tests/suites/mi-test.yml
+```
 
 ---
 
-### 3️⃣ Interfaz Web (Para acceso desde navegador) ✨ **MEJORADA**
+## 🎯 4 Formas de Crear y Ejecutar Tests
 
-**Comando**: `npm run web`
+### 1️⃣ Tests en Lenguaje Natural (Sin YAML) ⭐ **NUEVO**
 
-**URL**: `http://localhost:3001`
+**La forma más simple**: Describe qué quieres probar en español, el LLM lo ejecuta.
+
+```bash
+# Ejecutar directo
+npm run test-natural "Ve a wikipedia.org y busca 'Model Context Protocol'"
+
+# Desde archivo de texto
+npm run test-natural tests/natural/mi-test.txt
+
+# Desde CLI interactiva
+npm run cli-test
+# → 💬 Tests en Lenguaje Natural
+```
 
 **Características**:
-- ✅ **Crear tests desde lenguaje natural** (integrado con IA)
-- ✅ **Ejecutar tests** con visualización en tiempo real
-- ✅ **Ver logs de ejecución** con streaming
-- ✅ **Visualizar resultados y reportes** generados
-- ✅ Dashboard con métricas en tiempo real
-- ✅ Diseño moderno con gradientes y animaciones
-- ✅ 4 tabs: Dashboard, Crear, Ejecutar, Resultados
+- ✅ SIN YAML, SIN selectores CSS
+- ✅ El LLM identifica elementos por contexto usando MCP
+- ✅ Opciones avanzadas: screenshots automáticos, logs de consola, network requests, performance
+- ✅ Wizard interactivo paso a paso
+
+**Ver documentación completa**: [TESTS_LENGUAJE_NATURAL.md](TESTS_LENGUAJE_NATURAL.md)
+
+---
+
+### 2️⃣ Wizard de Creación (Genera YAML con IA)
+
+**Semi-asistido**: El LLM te ayuda a generar YAML optimizado.
+
+```bash
+npm run create-test
+```
+
+**Flujo**:
+1. Describes qué quieres probar en lenguaje natural
+2. El LLM genera YAML compilado (35x más rápido)
+3. Opcionalmente ejecuta y refina con feedback
+
+**Ver documentación**: [GUIA_RAPIDA.md](GUIA_RAPIDA.md)
+
+---
+
+### 3️⃣ Interfaz Web con IA 🌐
+
+**Visual y completa**: Dashboard con todo integrado.
+
+```bash
+npm run web
+# Abre http://localhost:3001
+```
+
+**4 Tabs**:
+- 📊 **Dashboard**: Estado del sistema, tests activos, métricas
+- 💬 **Tests Naturales**: Crear tests sin YAML, ejecutar con opciones avanzadas
+- ➕ **Crear Test**: Wizard web que genera YAML con IA
+- ▶️ **Ejecutar**: Seleccionar y ejecutar tests con logs en tiempo real
+- 📈 **Resultados**: Ver reportes ordenados por fecha
+
+**Características**:
+- ✅ Crear tests desde lenguaje natural directo en el navegador
+- ✅ Ejecución con visualización de logs en streaming
+- ✅ Reportes visuales con screenshots
+- ✅ API REST completa
 - ✅ Auto-refresh cada 30 segundos
 
-**Cuándo usarla**:
-- Para crear tests sin CLI (desde el navegador)
-- Para ejecutar y monitorear tests visualmente
-- Para ver reportes de forma amigable
-- Para usuarios que prefieren interfaces gráficas
-- Para dashboards y visualización de equipo
+---
 
-**API REST completa**:
+### 4️⃣ YAML Manual (Control Total)
+
+**Para usuarios técnicos**: Escribe YAML directamente.
+
+```yaml
+# tests/suites/login.yml
+suite: "Test de Login"
+baseUrl: "https://mi-app.com"
+timeout: 30000
+
+tests:
+  - name: "Login exitoso"
+    steps:
+      - action: navigate
+        url: "/login"
+
+      - action: fill
+        selector: "input[name='email']"
+        value: "test@example.com"
+
+      - action: click
+        selector: "button[type='submit']"
+
+      - action: verify
+        selector: ".welcome-message"
+```
+
+**Ejecutar**:
 ```bash
-# Estado y configuración
-GET  /api/status                    # Estado del sistema
-GET  /api/tests                     # Lista de tests
+npm test tests/suites/login.yml
+```
 
-# Crear tests
-POST /api/tests/create              # Crear test desde lenguaje natural
-     Body: { name, baseUrl, instructions }
+---
 
-# Ejecutar tests
-POST /api/tests/run                 # Ejecutar test en background
-     Body: { testPath, mode }
-GET  /api/tests/status/:testId      # Estado de ejecución (polling)
+## 🏗️ Arquitectura
+
+### Componentes Principales
+
+```
+automation-test-LLM/
+├── config/                      # Configuración por LLM
+│   ├── llm.config.json         # LLM activo
+│   └── providers/              # Gemini, Ollama, OpenAI, Claude
+│
+├── prompts/                    # Prompts del sistema
+│   ├── system.md              # Prompt universal
+│   └── system-simple.md       # Prompt optimizado
+│
+├── runners/
+│   ├── core/
+│   │   ├── runner-core.js     # ⭐ Núcleo principal (LLM + MCP)
+│   │   └── mcp-client.js      # Cliente MCP para Chrome DevTools
+│   ├── adapters/              # Adapters por LLM
+│   │   ├── gemini.adapter.js
+│   │   ├── ollama.adapter.js
+│   │   ├── openai.adapter.js
+│   │   └── anthropic.adapter.js
+│   ├── actions/
+│   │   └── browser-actions.js # Acciones web via MCP
+│   ├── utils/
+│   │   └── element-finder.js  # Búsqueda híbrida (local + LLM)
+│   └── test-generator.js      # Generación de tests con IA
+│
+├── scripts/
+│   ├── cli.js                 # CLI interactiva
+│   ├── create-test.js         # Wizard de creación
+│   ├── test-natural.js        # ⭐ Tests lenguaje natural
+│   ├── web-server.js          # 🌐 Interfaz web + API
+│   └── test.js                # Ejecutor de YAML
+│
+├── tests/
+│   ├── suites/                # Tests YAML
+│   ├── natural/               # ⭐ Tests en lenguaje natural
+│   ├── results/               # Reportes generados
+│   └── screenshots/           # Capturas
+│
+└── test-mobile-mcp.js         # 📱 Prueba mobile-mcp (Fase 1)
+```
+
+### Flujo de Ejecución
+
+```
+┌─────────────┐
+│ Test Input  │  (YAML, Natural Language, o Web Form)
+└──────┬──────┘
+       │
+       v
+┌─────────────────┐
+│ Universal Runner│
+│  runner-core.js │
+└──────┬──────────┘
+       │
+       ├──> LLM Adapter (Gemini/Ollama/OpenAI/Claude)
+       │         │
+       │         v
+       │    ┌──────────────┐
+       │    │ Interpreta   │
+       │    │ Instrucciones│
+       │    └──────────────┘
+       │
+       └──> MCP Client
+                │
+                v
+         ┌──────────────────┐
+         │ chrome-devtools  │  (Web)
+         │ mobile-mcp       │  (Mobile - en desarrollo)
+         └──────────────────┘
+                │
+                v
+         ┌──────────────────┐
+         │ Browser/Device   │
+         └──────────────────┘
+```
+
+---
+
+## 📱 Integración Mobile (En Desarrollo)
+
+**Estado**: ✅ Fase 1 completada | ⏳ Fase 2 en progreso
+
+### Fase 1: Setup (Completada)
+- ✅ mobile-mcp instalado y funcionando
+- ✅ Emulador Android configurado
+- ✅ 19 herramientas MCP documentadas
+- ✅ Test de conectividad exitoso
+
+### Roadmap Mobile
+```
+Fase 1: Setup y Configuración        ████████████ 100% ✅
+Fase 2: Infraestructura Core          ░░░░░░░░░░░░   0% ⏳ Siguiente
+Fase 3: Acciones Mobile                ░░░░░░░░░░░░   0%
+Fase 4: Búsqueda Inteligente           ░░░░░░░░░░░░   0%
+Fase 5: Test Generator Mobile          ░░░░░░░░░░░░   0%
+Fase 6: Testing y Refinamiento         ░░░░░░░░░░░░   0%
+Fase 7: Interfaz Web                   ░░░░░░░░░░░░   0%
+```
+
+**Documentación**:
+- [Plan completo](. local-docs/planning/PLAN_INTEGRACION_MOBILE_MCP.md)
+- [Hallazgos Fase 1](.local-docs/planning/FASE1_HALLAZGOS_MOBILE_MCP.md)
+- [Checkpoint de continuidad](CHECKPOINT_MOBILE_INTEGRATION.md)
+
+---
+
+## ⚙️ Configuración
+
+### LLMs Soportados
+
+| LLM | Costo | Privacidad | Velocidad | Setup |
+|-----|-------|------------|-----------|--------|
+| **Gemini** | Gratis* | ⚠️ Cloud | 🚀 Rápido | Fácil |
+| **Ollama** | Gratis | ✅ Local | 🐢 Medio | Medio |
+| **OpenAI** | 💰 Pago | ⚠️ Cloud | 🚀 Rápido | Fácil |
+| **Claude** | 💰 Pago | ⚠️ Cloud | 🚀 Muy Rápido | Fácil |
+
+\* Gemini tiene cuota gratuita limitada
+
+### Cambiar de LLM
+
+```bash
+# Ver LLM actual
+npm run config
+
+# Cambiar LLM
+npm run switch-llm
+# Opciones: gemini, ollama, openai, claude
+
+# Cambiar directo
+npm run switch-llm gemini
+```
+
+### Variables de Entorno
+
+```bash
+# .env (crear en root)
+GEMINI_API_KEY=tu_key_aqui
+OPENAI_API_KEY=tu_key_aqui
+ANTHROPIC_API_KEY=tu_key_aqui
+```
+
+**Obtener API Keys**:
+- Gemini: https://makersuite.google.com/app/apikey
+- OpenAI: https://platform.openai.com/api-keys
+- Claude: https://console.anthropic.com/
+
+---
+
+## 📝 Comandos Disponibles
+
+### Ejecución de Tests
+
+```bash
+npm test [test-path]              # Ejecutar test YAML
+npm run test-natural [instrucción] # Test en lenguaje natural
+npm run test-direct [test-path]   # Ejecutar sin LLM (directo)
+npm run test-llm [test-path]      # Ejecutar con LLM
+npm run test-auto [test-path]     # Auto-detectar modo
+```
+
+### Creación de Tests
+
+```bash
+npm run create-test               # Wizard con IA (genera YAML)
+npm run cli-test                  # CLI interactiva (menú completo)
+npm run web                       # Interfaz web (puerto 3001)
+```
+
+### Configuración
+
+```bash
+npm run setup                     # Setup inicial
+npm run config                    # Ver configuración actual
+npm run switch-llm [provider]     # Cambiar LLM
+npm run status                    # Estado del sistema
+```
+
+### Comparación
+
+```bash
+npm run compare [test-path]       # Ejecutar con múltiples LLMs
+```
+
+---
+
+## 📊 API REST (Interfaz Web)
+
+### Endpoints Disponibles
+
+```bash
+# Sistema
+GET  /api/status                 # Estado del sistema
+
+# Tests YAML
+GET  /api/tests                  # Lista de tests YAML
+POST /api/tests/create           # Crear test desde lenguaje natural
+POST /api/tests/run              # Ejecutar test
+GET  /api/tests/status/:testId   # Estado de ejecución (polling)
+
+# Tests Naturales
+GET  /api/tests/natural          # Lista tests naturales
+POST /api/tests/natural/create   # Crear test natural
+POST /api/tests/natural/run      # Ejecutar test natural
 
 # Resultados
-GET  /api/results                   # Lista de reportes
-GET  /api/results/:filename         # Ver reporte específico
+GET  /api/results                # Lista de reportes
+GET  /api/results/:filename      # Ver reporte específico
 ```
 
-**Interfaz con 4 tabs**:
-1. **📊 Dashboard**: Estado del sistema, tests disponibles, tests activos
-2. **➕ Crear Test**: Formulario para lenguaje natural → genera YAML con IA
-3. **▶️ Ejecutar Test**: Seleccionar test, configurar modo, ver logs en tiempo real
-4. **📈 Resultados**: Ver reportes generados, ordenados por fecha
-
 ---
 
-## 📌 ¿Cuál Interface Usar?
+## 🎓 Ejemplos
 
-| Necesitas... | Usa... |
-|--------------|---------|
-| Crear test SIN conocimientos técnicos | `npm run create-test` ⭐ o `npm run web` 🌐 |
-| Ejecutar tests existentes | `npm run cli-test`, `npm test`, o `npm run web` 🌐 |
-| Configurar LLM | `npm run cli-test` o `npm run switch-llm` |
-| Ver estado del sistema | `npm run web` 🌐 o `npm run cli-test` |
-| Crear test técnico manualmente | Editar `.yml` directamente |
-| Monitorear tests en tiempo real | `npm run web` 🌐 |
-| Interfaz gráfica completa | `npm run web` 🌐 ✨ |
-| Ver reportes de forma visual | `npm run web` 🌐 |
+### Ejemplo 1: Test Natural Simple
 
----
-
-## 🎨 Ejemplo de Uso
-
-### 1. Primera configuración:
 ```bash
-npm run setup
-# ? ¿Qué LLM quieres usar? 
-#   > Ollama (local, gratis)
-#     Gemini (API, cuota limitada)
-#     OpenAI (API, de pago)
+npm run test-natural "Navega a wikipedia.org, busca 'testing' y verifica resultados"
 ```
 
-### 2. Ejecutar tests:
-```bash
-npm test tests/suites/ecommerce-suite.yml
+### Ejemplo 2: Test Natural con Opciones
+
+```javascript
+// tests/natural/mi-test.txt
+TEST: Búsqueda en Wikipedia
+
+Navega a https://wikipedia.org
+Busca el cuadro de búsqueda principal
+Escribe "Model Context Protocol"
+Haz click en buscar
+Verifica que aparezcan resultados
+
+# Opciones
+{
+  "screenshotPerStep": true,
+  "captureLogs": true,
+  "performanceMetrics": true
+}
 ```
 
-### 3. Cambiar de LLM:
 ```bash
-npm run switch-llm gemini
-npm test tests/suites/ecommerce-suite.yml
+npm run test-natural tests/natural/mi-test.txt
 ```
+
+### Ejemplo 3: Crear Test con IA (Web)
+
+1. Abre `http://localhost:3001`
+2. Tab "💬 Tests Naturales"
+3. Completa el formulario:
+   - Nombre: "Test de búsqueda"
+   - URL: "https://google.com"
+   - Instrucciones: "Busca 'automation testing' y verifica resultados"
+4. Click "▶️ Guardar y Ejecutar"
 
 ---
 
+## 🔧 Tecnologías
 
-## 📊 Comparación de Proveedores
-
-| Característica | Gemini | Ollama | OpenAI | Claude |
-|----------------|--------|--------|---------|---------|
-| Costo | Gratis* | Gratis | $$ | $$ |
-| Setup | Fácil | Medio | Fácil | Fácil |
-| Velocidad | Rápido | Medio | Rápido | Rápido |
-| Calidad | Alta | Media | Alta | Muy Alta |
-| Privacidad | ⚠️ Cloud | ✅ Local | ⚠️ Cloud | ⚠️ Cloud |
-| Cuotas | ⚠️ Sí | ✅ No | ⚠️ Sí | ⚠️ Sí |
+- **Node.js** - Runtime
+- **MCP SDK** - Model Context Protocol para automation
+- **chrome-devtools-mcp** - Control de Chrome via MCP
+- **mobile-mcp** - Control de dispositivos móviles via MCP
+- **LLM APIs** - Gemini, OpenAI, Claude, Ollama
+- **js-yaml** - Parsing de tests YAML
+- **inquirer** - CLIs interactivas
 
 ---
 
-## 🎯 Roadmap
+## 📚 Documentación Adicional
 
-Esta arquitectura permite agregar fácilmente:
-- ✅ Nuevos LLMs (solo crear adapter)
-- ✅ Nuevas herramientas de browser
-- ✅ Integración con CI/CD
-- ✅ Testing paralelo
-- ✅ Reportes avanzados
-- ✅ Comparación A/B de LLMs
+- [GUIA_RAPIDA.md](GUIA_RAPIDA.md) - Guía rápida de uso con wizard
+- [TESTS_LENGUAJE_NATURAL.md](TESTS_LENGUAJE_NATURAL.md) - Tests sin YAML
+- [ESTRUCTURA.md](ESTRUCTURA.md) - Arquitectura detallada
+- [CHECKPOINT_MOBILE_INTEGRATION.md](CHECKPOINT_MOBILE_INTEGRATION.md) - Estado integración mobile
 
+---
 
-### Crear Nuevas Pruebas
+## 🗺️ Roadmap
 
-Edita los archivos `.yml` en `tests/suites/` o pide a tu LLM que lo haga:
+### ✅ Completado
 
+- [x] Sistema agnóstico de LLM (Gemini, Ollama, OpenAI, Claude)
+- [x] Tests en lenguaje natural sin YAML
+- [x] Interfaz web completa con IA integrada
+- [x] Wizard de creación de tests con IA
+- [x] Compilación inteligente (35x más rápido)
+- [x] Búsqueda híbrida de elementos (local + LLM)
+- [x] Reportes ricos (logs, network, performance)
+- [x] API REST completa
+- [x] Integración MCP con Chrome DevTools
+- [x] Setup mobile-mcp (Fase 1)
 
+### 🚧 En Progreso
 
+- [ ] Integración completa testing móvil (Android/iOS)
+  - [x] Fase 1: Setup y configuración
+  - [ ] Fase 2: Infraestructura core
+  - [ ] Fase 3-7: Implementación completa
+
+### 🔮 Futuro
+
+- [ ] Tests paralelos
+- [ ] Integración CI/CD (GitHub Actions, GitLab CI)
+- [ ] Dashboard de métricas avanzadas
+- [ ] Recorder web interactivo
+- [ ] Soporte multi-idioma
+- [ ] Testing de APIs REST
+- [ ] Visual regression testing
+- [ ] Tests de accesibilidad (a11y)
+
+---
+
+## 🤝 Contribuir
+
+Contribuciones son bienvenidas! Por favor:
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+---
+
+## 📄 Licencia
+
+MIT License - ver [LICENSE](LICENSE) para más detalles.
+
+---
+
+## 👤 Autor
+
+**Pablo Flores**
+
+- GitHub: [@pab-1984](https://github.com/pab-1984)
+
+---
+
+## 🌟 Show your support
+
+Si este proyecto te ayudó, dale una ⭐️!
+
+---
+
+**Última actualización**: 2025-10-29 | **Versión**: 1.0.0
