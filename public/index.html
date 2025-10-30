@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Testing Automation Framework</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧪 Testing Automation Framework</h1>
+      <p>Sistema de testing automatizado con Inteligencia Artificial</p>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-button active" onclick="showTab('dashboard')">📊 Dashboard</button>
+      <button class="tab-button" onclick="showTab('create')">➕ Crear Test</button>
+      <button class="tab-button" onclick="showTab('run')">▶️ Ejecutar Test</button>
+      <button class="tab-button" onclick="showTab('results')">📈 Resultados</button>
+      <button class="tab-button" onclick="showTab('natural')">💬 Tests Naturales</button>
+    </div>
+
+    <!-- Dashboard Tab -->
+    <div id="dashboard" class="tab-content active">
+      <div class="grid">
+        <div class="card" style="grid-column: 1 / -1;">
+          <h2>🤖 Modelo LLM Activo</h2>
+          <div id="llm-selector" style="margin-top: 20px;">
+            <div class="status">
+              <div class="loading"></div>
+              <span>Cargando...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>📊 Tests Ejecutados</h2>
+          <div id="test-statistics">
+            <div class="status">
+              <div class="loading"></div>
+              <span>Cargando...</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>💻 Sistema</h2>
+          <div id="system-info">
+            <div class="status">
+              <div class="loading"></div>
+              <span>Cargando...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🔄 Tests en Ejecución</h2>
+        <div id="active-tests">
+          <p style="color: #7f8c8d;">No hay tests en ejecución en este momento</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Test Tab -->
+    <div id="create" class="tab-content">
+      <div class="card">
+        <h2>➕ Crear Test desde Lenguaje Natural</h2>
+        <p style="color: #7f8c8d; margin-bottom: 20px;">
+          Describe en lenguaje natural lo que quieres probar. La IA generará el test automáticamente.
+        </p>
+
+        <div id="create-alert"></div>
+
+        <form id="create-test-form" onsubmit="createTest(event)">
+          <div class="form-group">
+            <label for="test-name">Nombre del Test *</label>
+            <input type="text" id="test-name" placeholder="ej: Test de Login" required>
+          </div>
+
+          <div class="form-group">
+            <label for="base-url">URL de la Aplicación *</label>
+            <input type="text" id="base-url" placeholder="https://www.ejemplo.com o localhost:3000" required>
+            <small style="color: #7f8c8d; font-size: 0.9em;">
+              💡 Puedes escribir con o sin https:// - se agregará automáticamente
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="instructions">Instrucciones en Lenguaje Natural *</label>
+            <textarea id="instructions" placeholder="Ejemplo:
+Abre la aplicación.
+Haz click en el botón 'Login'.
+Ingresa 'test@example.com' en el campo de email.
+Ingresa 'password123' en el campo de contraseña.
+Haz click en 'Enviar'.
+Verifica que aparezca un mensaje de bienvenida." required></textarea>
+          </div>
+
+          <button type="submit" id="create-btn">
+            🤖 Generar Test con IA
+          </button>
+          <button type="button" class="secondary" onclick="document.getElementById('create-test-form').reset()">
+            🔄 Limpiar
+          </button>
+        </form>
+
+        <div id="generated-test"></div>
+      </div>
+    </div>
+
+    <!-- Run Test Tab -->
+    <div id="run" class="tab-content">
+      <div class="grid">
+        <div class="card">
+          <h2>📋 Seleccionar Test</h2>
+          <input type="text" class="search-box" id="test-search" placeholder="🔍 Buscar test..." onkeyup="filterTests()">
+          <div class="scrollable-list" id="test-selector">
+            <div class="status">
+              <div class="loading"></div>
+              <span>Cargando tests...</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>⚙️ Configuración</h2>
+          <div class="form-group">
+            <label for="execution-mode">Modo de Ejecución</label>
+            <select id="execution-mode">
+              <option value="auto">🔄 Automático (Híbrido)</option>
+              <option value="llm">🤖 LLM (Inteligente)</option>
+              <option value="direct">⚡ Directo (Rápido)</option>
+            </select>
+          </div>
+
+          <button onclick="runSelectedTest()" id="run-btn">
+            ▶️ Ejecutar Test
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📊 Estado de Ejecución</h2>
+        <div id="execution-status">
+          <p style="color: #7f8c8d;">Selecciona y ejecuta un test para ver el progreso</p>
+        </div>
+      </div>
+
+      <div class="card" id="execution-logs-card" style="display: none;">
+        <h2>📝 Logs de Ejecución</h2>
+        <div class="log-console" id="execution-logs"></div>
+      </div>
+    </div>
+
+    <!-- Results Tab -->
+    <div id="results" class="tab-content">
+      <div class="card">
+        <h2>📈 Reportes Generados</h2>
+        <button onclick="loadResults()" class="secondary">🔄 Actualizar</button>
+        <div id="results-list" style="margin-top: 20px;">
+          <div class="status">
+            <div class="loading"></div>
+            <span>Cargando resultados...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Natural Tests Tab -->
+    <div id="natural" class="tab-content">
+      <div class="grid">
+        <!-- Crear Test Natural -->
+        <div class="card">
+          <h2>✨ Crear Test en Lenguaje Natural</h2>
+          <p style="color: #7f8c8d; margin-bottom: 20px;">
+            Sin YAML, sin selectores CSS - solo instrucciones humanas
+          </p>
+
+          <div class="form-group">
+            <label for="natural-name">Nombre del test:</label>
+            <input type="text" id="natural-name" placeholder="ej: Búsqueda en MercadoLibre">
+          </div>
+
+          <div class="form-group">
+            <label for="natural-url">URL inicial:</label>
+            <input type="text" id="natural-url" placeholder="ej: https://mercadolibre.com.uy">
+          </div>
+
+          <div class="form-group">
+            <label for="natural-description">Descripción:</label>
+            <input type="text" id="natural-description" placeholder="ej: Verifica búsqueda de productos">
+          </div>
+
+          <div class="form-group">
+            <label for="natural-instructions">Instrucciones (paso a paso):</label>
+            <textarea id="natural-instructions" rows="8" placeholder="Ejemplo:
+
+Navega a la URL inicial
+
+Busca el cuadro de búsqueda principal
+Escribe 'laptops gaming'
+
+Haz click en el botón de búsqueda
+
+Verifica que aparezcan resultados
+
+Toma un screenshot"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Opciones avanzadas:</label>
+            <div style="margin-top: 10px;">
+              <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                <input type="checkbox" id="natural-screenshot" style="margin-right: 8px;">
+                <span>📸 Screenshot después de cada paso</span>
+              </label>
+              <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                <input type="checkbox" id="natural-logs" checked style="margin-right: 8px;">
+                <span>📝 Capturar logs de consola</span>
+              </label>
+              <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                <input type="checkbox" id="natural-network" style="margin-right: 8px;">
+                <span>🌐 Capturar requests de red</span>
+              </label>
+              <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                <input type="checkbox" id="natural-performance" style="margin-right: 8px;">
+                <span>📊 Métricas de rendimiento</span>
+              </label>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="createNaturalTest()" style="flex: 1;">💾 Guardar Test</button>
+            <button onclick="createAndRunNaturalTest()" class="primary" style="flex: 1;">▶️ Guardar y Ejecutar</button>
+          </div>
+        </div>
+
+        <!-- Tests Disponibles y Ejecución -->
+        <div class="card">
+          <h2>📄 Tests Naturales Disponibles</h2>
+          <button onclick="loadNaturalTests()" class="secondary">🔄 Actualizar</button>
+
+          <div id="natural-tests-list" style="margin-top: 20px;">
+            <div class="status">
+              <div class="loading"></div>
+              <span>Cargando tests...</span>
+            </div>
+          </div>
+
+          <div id="natural-execution-area" style="margin-top: 30px; display: none;">
+            <h3 style="color: #2c3e50; margin-bottom: 15px;">▶️ Ejecución en Vivo</h3>
+            <div id="natural-execution-status" class="status" style="margin-bottom: 15px;">
+              <span>Preparado</span>
+            </div>
+            <div id="natural-execution-logs" style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.9em; line-height: 1.5;">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/main.js"></script>
+</body>
+</html>
