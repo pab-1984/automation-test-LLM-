@@ -36,6 +36,7 @@
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {
+    "@mobilenext/mobile-mcp": "^0.0.33",
     "chrome-devtools-mcp": "^0.4.0"
   },
   "optionalDependencies": {
