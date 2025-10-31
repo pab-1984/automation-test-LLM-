@@ -42,7 +42,6 @@ function showTab(tabName) {
 async function loadSystemStatus() {
   await loadLLMSelector();
   await loadTestStatistics();
-  await loadSystemInfo();
 }
 
 async function loadLLMSelector() {
@@ -50,39 +49,38 @@ async function loadLLMSelector() {
     const response = await fetch('/api/status');
     const status = await response.json();
 
-    const selectorDiv = document.getElementById('llm-selector');
+    const dropdown = document.getElementById('llm-dropdown');
     const providers = status.config.providers;
     const activeProvider = status.config.activeProvider;
 
-    const providerCards = Object.keys(providers).map(key => {
+    const emoji = {
+      'ollama': '🦙',
+      'gemini': '🔮',
+      'openai': '🤖',
+      'anthropic': '🧠'
+    };
+
+    const options = Object.keys(providers).map(key => {
       const provider = providers[key];
       const isActive = key === activeProvider;
-      const emoji = {
-        'ollama': '🦙',
-        'gemini': '🔮',
-        'openai': '🤖',
-        'anthropic': '🧠'
-      }[key] || '⚙️';
+      const icon = emoji[key] || '⚙️';
+      const displayName = key.charAt(0).toUpperCase() + key.slice(1);
 
-      return `
-        <div class="llm-option ${isActive ? 'active' : ''}" onclick="switchLLM('${key}')" style="cursor: ${provider.enabled ? 'pointer' : 'not-allowed'}; opacity: ${provider.enabled ? '1' : '0.5'};">
-          <div style="font-size: 2em; margin-bottom: 10px;">${emoji}</div>
-          <div style="font-weight: bold; text-transform: capitalize;">${key}</div>
-          <div style="font-size: 0.9em; margin-top: 5px;">${provider.model}</div>
-          ${isActive ? '<div style="margin-top: 10px; color: #4caf50;">✓ Activo</div>' : ''}
-          ${!provider.enabled ? '<div style="margin-top: 10px; color: #e74c3c;">⚠️ Deshabilitado</div>' : ''}
-        </div>
-      `;
+      return `<option value="${key}" ${isActive ? 'selected' : ''} ${!provider.enabled ? 'disabled' : ''}>
+        ${icon} ${displayName} - ${provider.model}
+      </option>`;
     }).join('');
 
-    selectorDiv.innerHTML = `
-      <div class="llm-selector-container">
-        ${providerCards}
-      </div>
-    `;
+    dropdown.innerHTML = options;
   } catch (error) {
-    document.getElementById('llm-selector').innerHTML =
-      '<p class="alert alert-error">Error al cargar LLM selector</p>';
+    document.getElementById('llm-dropdown').innerHTML =
+      '<option value="">Error al cargar modelos</option>';
+  }
+}
+
+function handleLLMChange(provider) {
+  if (provider) {
+    switchLLM(provider);
   }
 }
 
@@ -101,22 +99,37 @@ async function switchLLM(provider) {
       await loadLLMSelector();
 
       // Mostrar notificación
-      const notification = document.createElement('div');
-      notification.className = 'alert alert-success';
-      notification.style.position = 'fixed';
-      notification.style.top = '20px';
-      notification.style.right = '20px';
-      notification.style.zIndex = '1000';
-      notification.innerHTML = `✅ LLM cambiado a: ${provider}`;
-      document.body.appendChild(notification);
-
-      setTimeout(() => notification.remove(), 3000);
+      showNotification(`Modelo cambiado a: ${provider}`, 'success');
     } else {
-      alert('Error al cambiar LLM: ' + result.error);
+      showNotification('Error al cambiar modelo: ' + result.error, 'error');
     }
   } catch (error) {
-    alert('Error: ' + error.message);
+    showNotification('Error: ' + error.message, 'error');
   }
+}
+
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.textContent = message;
+  notification.style.cssText = `
+    position: fixed;
+    top: 80px;
+    right: 30px;
+    padding: 15px 20px;
+    background: ${type === 'success' ? '#4caf50' : type === 'error' ? '#e74c3c' : '#2196f3'};
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+  `;
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
 }
 
 async function loadTestStatistics() {
@@ -153,32 +166,6 @@ async function loadTestStatistics() {
   }
 }
 
-async function loadSystemInfo() {
-  try {
-    const response = await fetch('/api/status');
-    const status = await response.json();
-
-    const infoDiv = document.getElementById('system-info');
-
-    infoDiv.innerHTML = `
-      <div class="status">
-        <div class="status-indicator status-active"></div>
-        <strong>Memoria:</strong> ${Math.round(status.memory.heapUsed / 1024 / 1024)} MB / ${Math.round(status.memory.heapTotal / 1024 / 1024)} MB
-      </div>
-      <div class="status">
-        <div class="status-indicator status-active"></div>
-        <strong>Uptime:</strong> ${Math.floor(status.uptime / 60)} minutos
-      </div>
-      <div class="status">
-        <div class="status-indicator ${status.activeTests > 0 ? 'status-running' : 'status-inactive'}"></div>
-        <strong>Tests Activos:</strong> ${status.activeTests}
-      </div>
-    `;
-  } catch (error) {
-    document.getElementById('system-info').innerHTML =
-      '<p class="alert alert-error">Error al cargar información del sistema</p>';
-  }
-}
 
 // ========================================
 // CREAR TEST - FUNCIONES
@@ -755,11 +742,794 @@ async function pollNaturalTestStatus(testId) {
 }
 
 // ========================================
+// SIDEBAR - FUNCIONES
+// ========================================
+
+let currentProjectId = null;
+let currentSuiteId = null;
+
+async function loadProjects() {
+  try {
+    const response = await fetch('/api/projects');
+    const data = await response.json();
+
+    if (!data.success) {
+      console.error('Error cargando proyectos:', data.error);
+      return;
+    }
+
+    const explorer = document.getElementById('project-explorer');
+    explorer.innerHTML = '';
+
+    // Cargar cada proyecto con sus suites
+    for (const project of data.projects) {
+      const projectElement = await createProjectTreeItem(project);
+      explorer.appendChild(projectElement);
+    }
+
+    // Expandir y seleccionar el primer proyecto
+    if (data.projects.length > 0) {
+      const firstProjectHeader = explorer.querySelector('.tree-item-header');
+      if (firstProjectHeader) {
+        toggleTreeItem(firstProjectHeader);
+      }
+    }
+  } catch (error) {
+    console.error('Error cargando proyectos:', error);
+  }
+}
+
+async function createProjectTreeItem(project) {
+  // Obtener suites del proyecto
+  const suitesResponse = await fetch(`/api/suites/project/${project.id}`);
+  const suitesData = await suitesResponse.json();
+  const suites = suitesData.success ? suitesData.suites : [];
+
+  const projectDiv = document.createElement('div');
+  projectDiv.className = 'tree-item';
+  projectDiv.dataset.projectId = project.id;
+
+  projectDiv.innerHTML = `
+    <div class="tree-item-header" onclick="toggleTreeItem(this)">
+      <span class="tree-expand">▶</span>
+      <span class="tree-icon">📁</span>
+      <span class="tree-label">${project.name}</span>
+      <div class="tree-actions">
+        <button class="tree-action-btn" onclick="addSuiteToProject(${project.id}); event.stopPropagation();" title="Nueva Suite">+</button>
+        <button class="tree-action-btn" onclick="deleteProjectConfirm(${project.id}, '${project.name}'); event.stopPropagation();" title="Eliminar Proyecto" style="color: #e74c3c;">🗑️</button>
+      </div>
+    </div>
+    <div class="tree-children">
+      ${suites.length === 0 ? '<div style="padding: 6px 10px; color: #7f8c8d; font-size: 0.85em;">Sin suites</div>' : ''}
+    </div>
+  `;
+
+  // Agregar suites
+  const childrenDiv = projectDiv.querySelector('.tree-children');
+  for (const suite of suites) {
+    const suiteElement = await createSuiteTreeItem(suite, project.id);
+    childrenDiv.appendChild(suiteElement);
+  }
+
+  return projectDiv;
+}
+
+async function createSuiteTreeItem(suite, projectId) {
+  // Obtener tests de la suite
+  const testsResponse = await fetch(`/api/test-items/suite/${suite.id}`);
+  const testsData = await testsResponse.json();
+  const tests = testsData.success ? testsData.tests : [];
+
+  const suiteDiv = document.createElement('div');
+  suiteDiv.className = 'tree-item';
+  suiteDiv.dataset.suiteId = suite.id;
+  suiteDiv.dataset.projectId = projectId;
+
+  suiteDiv.innerHTML = `
+    <div class="tree-item-header" onclick="selectSuiteFromTree(${suite.id}, this, event)">
+      <span class="tree-expand" onclick="toggleTreeItem(this.parentElement); event.stopPropagation();">▶</span>
+      <span class="tree-icon">📋</span>
+      <span class="tree-label">${suite.name}</span>
+      <span class="test-count-badge">${tests.length}</span>
+      <div class="tree-actions">
+        <button class="tree-action-btn" onclick="addTestToSuiteFromTree(${suite.id}); event.stopPropagation();" title="Agregar Test">+</button>
+        <button class="tree-action-btn" onclick="deleteSuiteConfirm(${suite.id}, '${suite.name}'); event.stopPropagation();" title="Eliminar Suite" style="color: #e74c3c;">🗑️</button>
+      </div>
+    </div>
+    <div class="tree-children">
+      ${tests.length === 0 ? '<div style="padding: 6px 10px; color: #7f8c8d; font-size: 0.85em;">Sin tests</div>' : ''}
+    </div>
+  `;
+
+  // Agregar tests
+  const childrenDiv = suiteDiv.querySelector('.tree-children');
+  for (const test of tests) {
+    const testElement = createTestTreeItem(test);
+    childrenDiv.appendChild(testElement);
+  }
+
+  return suiteDiv;
+}
+
+function createTestTreeItem(test) {
+  const testDiv = document.createElement('div');
+  testDiv.className = 'tree-item';
+  testDiv.dataset.testId = test.id;
+
+  const icon = test.type === 'natural' ? '💬' : '📄';
+
+  testDiv.innerHTML = `
+    <div class="tree-item-header" onclick="selectTestFromTree(${test.id}, this, event)">
+      <span class="tree-expand" style="visibility: hidden;"></span>
+      <span class="tree-icon">${icon}</span>
+      <span class="tree-label">${test.name}</span>
+      <div class="tree-actions">
+        <button class="tree-action-btn" onclick="executeTestItem(${test.id}); event.stopPropagation();" title="Ejecutar">▶️</button>
+        <button class="tree-action-btn" onclick="deleteTestConfirm(${test.id}, '${test.name}'); event.stopPropagation();" title="Eliminar Test de Suite" style="color: #e74c3c;">🗑️</button>
+      </div>
+    </div>
+  `;
+
+  return testDiv;
+}
+
+function toggleTreeItem(header) {
+  const treeItem = header.closest ? header.closest('.tree-item') : header.parentElement.closest('.tree-item');
+  const expand = treeItem.querySelector('.tree-expand');
+  const children = treeItem.querySelector('.tree-children');
+
+  if (children) {
+    const isExpanded = children.classList.contains('expanded');
+
+    if (isExpanded) {
+      children.classList.remove('expanded');
+      expand.classList.remove('expanded');
+    } else {
+      children.classList.add('expanded');
+      expand.classList.add('expanded');
+    }
+  }
+}
+
+async function selectSuiteFromTree(suiteId, header, event) {
+  if (event) event.stopPropagation();
+
+  // Remover selección anterior
+  document.querySelectorAll('.tree-item-header.active').forEach(h => h.classList.remove('active'));
+
+  // Marcar como activo
+  header.classList.add('active');
+
+  currentSuiteId = suiteId;
+
+  // Obtener info de la suite
+  const treeItem = header.closest('.tree-item');
+  const projectId = treeItem.dataset.projectId;
+  currentProjectId = projectId;
+
+  const suiteName = header.querySelector('.tree-label').textContent;
+  document.getElementById('current-suite-name').textContent = suiteName;
+  document.getElementById('add-test-btn-compact').disabled = false;
+
+  // Expandir si está colapsado
+  toggleTreeItem(header);
+
+  // Cargar tests
+  await loadTestsBySuite(suiteId);
+
+  showNotification('Suite seleccionada', 'info');
+}
+
+function selectTestFromTree(testId, header, event) {
+  if (event) event.stopPropagation();
+
+  // Remover selección anterior
+  document.querySelectorAll('.tree-item-header.active').forEach(h => h.classList.remove('active'));
+
+  // Marcar como activo
+  header.classList.add('active');
+
+  viewTestDetails(testId);
+}
+
+async function addSuiteToProject(projectId) {
+  currentProjectId = projectId;
+  await addTestSuite();
+  // Recargar explorador
+  await loadProjects();
+}
+
+async function addTestToSuiteFromTree(suiteId) {
+  currentSuiteId = suiteId;
+  showAddTestModal();
+}
+
+
+async function loadTestsBySuite(suiteId) {
+  try {
+    const response = await fetch(`/api/test-items/suite/${suiteId}`);
+    const data = await response.json();
+
+    if (!data.success) {
+      console.error('Error cargando tests:', data.error);
+      return;
+    }
+
+    // Actualizar vista del dashboard con los tests
+    updateDashboardTests(data.tests);
+  } catch (error) {
+    console.error('Error cargando tests de suite:', error);
+  }
+}
+
+function updateDashboardTests(tests) {
+  const listDiv = document.getElementById('suite-tests-list');
+  const runAllBtn = document.getElementById('run-all-tests-btn');
+  const suiteInfoSpan = document.getElementById('current-suite-info');
+
+  if (tests.length === 0) {
+    listDiv.innerHTML = '<p style="color: #7f8c8d; padding: 10px;">No hay tests en esta suite. Usa el botón "Agregar Test" para comenzar.</p>';
+    runAllBtn.disabled = true;
+    suiteInfoSpan.textContent = 'Sin tests';
+  } else {
+    let html = '<ul class="test-list" style="margin: 0;">';
+    tests.forEach(test => {
+      const successRate = test.execution_count > 0
+        ? Math.round((test.success_count / test.execution_count) * 100)
+        : 0;
+      html += `
+        <li class="test-item" onclick="viewTestDetails(${test.id})" style="margin-bottom: 8px;">
+          <div>
+            <span style="font-weight: bold; font-size: 0.95em;">${test.type === 'natural' ? '💬' : '📄'} ${test.name}</span><br>
+            <span style="color: #7f8c8d; font-size: 0.85em;">
+              ${test.execution_count} ejecuciones | ${successRate}% éxito
+            </span>
+          </div>
+          <button onclick="executeTestItem(${test.id}); event.stopPropagation();" class="btn-compact">
+            ▶️
+          </button>
+        </li>
+      `;
+    });
+    html += '</ul>';
+
+    listDiv.innerHTML = html;
+    runAllBtn.disabled = false;
+    suiteInfoSpan.textContent = `${tests.length} test${tests.length !== 1 ? 's' : ''}`;
+  }
+
+  // Guardar tests actuales para ejecutar todos
+  window.currentSuiteTests = tests;
+}
+
+async function addProject() {
+  const projectName = prompt('Nombre del nuevo proyecto:');
+  if (!projectName) return;
+
+  const description = prompt('Descripción (opcional):') || '';
+
+  try {
+    const response = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: projectName, description })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification(`Proyecto "${projectName}" creado`, 'success');
+      await loadProjects();
+    } else {
+      showNotification('Error: ' + data.error, 'error');
+    }
+  } catch (error) {
+    showNotification('Error creando proyecto: ' + error.message, 'error');
+  }
+}
+
+async function addTestSuite() {
+  if (!currentProjectId) {
+    showNotification('Selecciona un proyecto primero', 'error');
+    return;
+  }
+
+  const suiteName = prompt('Nombre de la nueva suite:');
+  if (!suiteName) return;
+
+  const description = prompt('Descripción (opcional):') || '';
+
+  try {
+    const response = await fetch('/api/suites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId: currentProjectId,
+        name: suiteName,
+        description
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification(`Suite "${suiteName}" creada`, 'success');
+      await loadSuitesByProject(currentProjectId);
+    } else {
+      showNotification('Error: ' + data.error, 'error');
+    }
+  } catch (error) {
+    showNotification('Error creando suite: ' + error.message, 'error');
+  }
+}
+
+async function executeTestItem(testId) {
+  try {
+    // Mostrar consola de ejecución
+    showExecutionConsole();
+
+    const response = await fetch(`/api/test-items/${testId}/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'auto' })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification('Test iniciado', 'success');
+
+      // Iniciar polling para logs en tiempo real
+      pollTestExecutionLogs(data.executionId || data.testId);
+    } else {
+      showNotification('Error: ' + data.error, 'error');
+      appendExecutionLog('❌ Error: ' + data.error, 'error');
+    }
+  } catch (error) {
+    showNotification('Error ejecutando test: ' + error.message, 'error');
+    appendExecutionLog('❌ Error ejecutando test: ' + error.message, 'error');
+  }
+}
+
+function showExecutionConsole() {
+  const consoleCard = document.getElementById('execution-console-card');
+  const logsDiv = document.getElementById('execution-logs-dashboard');
+  const statusDiv = document.getElementById('execution-status-dashboard');
+
+  consoleCard.style.display = 'block';
+  logsDiv.innerHTML = '<div style="color: #4caf50;">🚀 Iniciando ejecución del test...</div>';
+  statusDiv.innerHTML = '<div class="loading"></div><span>⏳ Ejecutando...</span>';
+
+  // Scroll al final de la página
+  setTimeout(() => {
+    consoleCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+function appendExecutionLog(message, type = 'info') {
+  const logsDiv = document.getElementById('execution-logs-dashboard');
+  const escapedLog = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  let color = '#d4d4d4';
+  if (type === 'error') color = '#e74c3c';
+  if (type === 'success') color = '#4caf50';
+  if (type === 'info') color = '#2196f3';
+
+  logsDiv.innerHTML += `<div style="color: ${color};">${escapedLog}</div>`;
+  logsDiv.scrollTop = logsDiv.scrollHeight;
+}
+
+function clearExecutionConsole() {
+  const logsDiv = document.getElementById('execution-logs-dashboard');
+  const statusDiv = document.getElementById('execution-status-dashboard');
+
+  logsDiv.innerHTML = '';
+  statusDiv.innerHTML = '<span>Consola limpiada</span>';
+}
+
+let currentPollInterval = null;
+
+async function pollTestExecutionLogs(testId) {
+  // Limpiar polling anterior si existe
+  if (currentPollInterval) {
+    clearInterval(currentPollInterval);
+  }
+
+  const statusDiv = document.getElementById('execution-status-dashboard');
+  const logsDiv = document.getElementById('execution-logs-dashboard');
+  let lastLogCount = 0;
+
+  currentPollInterval = setInterval(async () => {
+    try {
+      const response = await fetch(`/api/tests/status/${testId}`);
+      const data = await response.json();
+
+      // Actualizar status
+      if (data.status === 'running') {
+        statusDiv.innerHTML = '<div class="loading"></div><span>⏳ Ejecutando...</span>';
+      } else if (data.status === 'success') {
+        statusDiv.innerHTML = '<span style="color: #4caf50;">✅ Completado Exitosamente</span>';
+        clearInterval(currentPollInterval);
+        await loadTestStatistics();
+      } else if (data.status === 'failed') {
+        statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Test Fallido</span>';
+        clearInterval(currentPollInterval);
+        await loadTestStatistics();
+      } else if (data.status === 'error') {
+        statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Error en Ejecución</span>';
+        clearInterval(currentPollInterval);
+      }
+
+      // Actualizar logs (solo los nuevos)
+      if (data.logs && data.logs.length > lastLogCount) {
+        const newLogs = data.logs.slice(lastLogCount);
+        newLogs.forEach(log => {
+          const escapedLog = log.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+          // Determinar color basado en el contenido
+          let color = '#d4d4d4';
+          if (log.includes('✅') || log.includes('exitoso') || log.includes('SUCCESS')) color = '#4caf50';
+          else if (log.includes('❌') || log.includes('Error') || log.includes('FAILED')) color = '#e74c3c';
+          else if (log.includes('🚀') || log.includes('▶️') || log.includes('⏱️')) color = '#2196f3';
+          else if (log.includes('⚠️') || log.includes('Warning')) color = '#ff9800';
+
+          logsDiv.innerHTML += `<div style="color: ${color};">${escapedLog}</div>`;
+        });
+        lastLogCount = data.logs.length;
+
+        // Auto-scroll al final
+        logsDiv.scrollTop = logsDiv.scrollHeight;
+      }
+
+      // Si terminó, mostrar resumen
+      if (data.status !== 'running' && data.results) {
+        logsDiv.innerHTML += '<div style="color: #666; margin-top: 20px;">' + '═'.repeat(60) + '</div>';
+        logsDiv.innerHTML += '<div style="color: #4caf50; font-weight: bold; margin-top: 10px;">📊 RESUMEN FINAL</div>';
+        logsDiv.innerHTML += '<div style="color: #666; margin-top: 10px;">' + '═'.repeat(60) + '</div>';
+
+        if (data.duration) {
+          logsDiv.innerHTML += '<div style="color: #2196f3;">⏱️  Duración: ' + (data.duration / 1000).toFixed(2) + 's</div>';
+        }
+
+        if (data.results.passed !== undefined) {
+          logsDiv.innerHTML += '<div style="color: #4caf50;">✅ Tests exitosos: ' + data.results.passed + '</div>';
+        }
+        if (data.results.failed !== undefined) {
+          logsDiv.innerHTML += '<div style="color: #e74c3c;">❌ Tests fallidos: ' + data.results.failed + '</div>';
+        }
+
+        // Mostrar datos adicionales si existen
+        if (data.consoleLogs) {
+          logsDiv.innerHTML += '<div style="color: #ff9800; margin-top: 10px;">📝 Logs de consola capturados</div>';
+        }
+        if (data.networkRequests) {
+          logsDiv.innerHTML += '<div style="color: #ff9800;">🌐 Network requests capturados</div>';
+        }
+        if (data.performanceData) {
+          logsDiv.innerHTML += '<div style="color: #ff9800;">📊 Performance metrics capturados</div>';
+        }
+
+        // Recargar tests de la suite
+        if (currentSuiteId) {
+          await loadTestsBySuite(currentSuiteId);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error en polling:', error);
+      logsDiv.innerHTML += '<div style="color: #e74c3c;">❌ Error actualizando estado: ' + error.message + '</div>';
+      clearInterval(currentPollInterval);
+    }
+  }, 2000); // Poll cada 2 segundos
+}
+
+function viewTestDetails(testId) {
+  showNotification('Detalles del test (próximamente)', 'info');
+  // TODO: Mostrar modal con detalles y historial de ejecuciones
+}
+
+async function executeAllTestsInSuite() {
+  if (!window.currentSuiteTests || window.currentSuiteTests.length === 0) {
+    showNotification('No hay tests para ejecutar', 'error');
+    return;
+  }
+
+  const runAllBtn = document.getElementById('run-all-tests-btn');
+  const originalText = runAllBtn.innerHTML;
+  runAllBtn.disabled = true;
+  runAllBtn.innerHTML = '⏳ Ejecutando...';
+
+  showNotification(`Iniciando ejecución de ${window.currentSuiteTests.length} tests`, 'info');
+
+  let successCount = 0;
+  let failedCount = 0;
+
+  for (const test of window.currentSuiteTests) {
+    try {
+      const response = await fetch(`/api/test-items/${test.id}/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'auto' })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        successCount++;
+      } else {
+        failedCount++;
+      }
+    } catch (error) {
+      console.error('Error ejecutando test:', error);
+      failedCount++;
+    }
+  }
+
+  runAllBtn.disabled = false;
+  runAllBtn.innerHTML = originalText;
+
+  showNotification(
+    `Ejecución completa: ${successCount} iniciados, ${failedCount} errores`,
+    successCount > 0 ? 'success' : 'error'
+  );
+
+  // Recargar estadísticas
+  await loadTestStatistics();
+}
+
+// ========================================
+// MODAL DE AGREGAR TESTS
+// ========================================
+
+let selectedTestToAdd = null;
+
+async function showAddTestModal() {
+  if (!currentSuiteId) {
+    showNotification('Selecciona una suite primero', 'error');
+    return;
+  }
+
+  const modal = document.getElementById('add-test-modal');
+  modal.style.display = 'flex';
+
+  // Cargar tests naturales por defecto
+  await updateTestSourceList('natural');
+}
+
+function closeAddTestModal() {
+  const modal = document.getElementById('add-test-modal');
+  modal.style.display = 'none';
+  selectedTestToAdd = null;
+  document.getElementById('add-test-btn').disabled = true;
+  document.getElementById('selected-test-preview').innerHTML = '<p style="color: #7f8c8d;">Selecciona un test de la lista</p>';
+}
+
+async function updateTestSourceList(type) {
+  const listDiv = document.getElementById('available-tests-list');
+  listDiv.innerHTML = '<p style="color: #7f8c8d;">Cargando tests...</p>';
+
+  try {
+    let response;
+    let tests = [];
+
+    if (type === 'natural') {
+      response = await fetch('/api/tests/natural');
+      const data = await response.json();
+
+      // El endpoint devuelve { tests: [...] } o { error: '...' }
+      if (data.error) {
+        listDiv.innerHTML = '<p style="color: #e74c3c;">Error: ' + data.error + '</p>';
+        return;
+      }
+
+      tests = data.tests || [];
+    } else {
+      // Tests YAML
+      response = await fetch('/api/tests');
+      const data = await response.json();
+
+      // El endpoint devuelve directamente el array de tests
+      tests = Array.isArray(data) ? data : [];
+    }
+
+    if (!tests || tests.length === 0) {
+      listDiv.innerHTML = '<p style="color: #7f8c8d;">No hay tests disponibles de este tipo</p>';
+      return;
+    }
+
+    let html = '';
+    tests.forEach(test => {
+      const testData = type === 'natural'
+        ? { name: test.name, filename: test.filename, description: test.description, url: test.url, type: 'natural' }
+        : { name: test.name, path: test.path, type: 'yaml' };
+
+      html += `
+        <div class="test-item" onclick='selectTestForSuite(${JSON.stringify(testData).replace(/'/g, "&#39;")})' style="cursor: pointer;">
+          <div>
+            <strong>${type === 'natural' ? '💬' : '📄'} ${testData.name}</strong><br>
+            ${testData.description ? `<span style="color: #7f8c8d; font-size: 0.9em;">${testData.description}</span>` : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    listDiv.innerHTML = html;
+  } catch (error) {
+    console.error('Error cargando tests:', error);
+    listDiv.innerHTML = '<p style="color: #e74c3c;">Error: ' + error.message + '</p>';
+  }
+}
+
+function selectTestForSuite(testData) {
+  selectedTestToAdd = testData;
+
+  const previewDiv = document.getElementById('selected-test-preview');
+  previewDiv.innerHTML = `
+    <div>
+      <strong style="font-size: 1.1em;">${testData.type === 'natural' ? '💬' : '📄'} ${testData.name}</strong>
+      ${testData.description ? `<p style="color: #7f8c8d; margin-top: 8px;">${testData.description}</p>` : ''}
+      ${testData.url ? `<p style="color: #667eea; margin-top: 5px; font-size: 0.9em;">🌐 ${testData.url}</p>` : ''}
+      <p style="color: #95a5a6; margin-top: 8px; font-size: 0.85em;">
+        Tipo: ${testData.type.toUpperCase()} | Archivo: ${testData.filename || testData.path}
+      </p>
+    </div>
+  `;
+
+  document.getElementById('add-test-btn').disabled = false;
+
+  // Marcar como seleccionado
+  document.querySelectorAll('#available-tests-list .test-item').forEach(item => {
+    item.classList.remove('selected');
+  });
+  event.currentTarget.classList.add('selected');
+}
+
+async function addTestToCurrentSuite() {
+  if (!selectedTestToAdd || !currentSuiteId) {
+    showNotification('Error: No hay test o suite seleccionada', 'error');
+    return;
+  }
+
+  try {
+    // Construir el path completo según el tipo
+    let filePath;
+    if (selectedTestToAdd.type === 'natural') {
+      filePath = `tests/natural/${selectedTestToAdd.filename}`;
+    } else {
+      filePath = selectedTestToAdd.path;
+    }
+
+    const response = await fetch('/api/test-items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        suiteId: currentSuiteId,
+        name: selectedTestToAdd.name,
+        type: selectedTestToAdd.type,
+        filePath: filePath,
+        description: selectedTestToAdd.description || '',
+        url: selectedTestToAdd.url || ''
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification('Test agregado a la suite correctamente', 'success');
+      closeAddTestModal();
+      // Recargar tests de la suite
+      await loadTestsBySuite(currentSuiteId);
+      // Recargar explorador completo
+      await loadProjects();
+    } else {
+      showNotification('Error: ' + data.error, 'error');
+    }
+  } catch (error) {
+    console.error('Error agregando test a suite:', error);
+    showNotification('Error: ' + error.message, 'error');
+  }
+}
+
+// ========================================
+// FUNCIONES DE ELIMINACIÓN
+// ========================================
+
+async function deleteProjectConfirm(projectId, projectName) {
+  if (!confirm(`¿Estás seguro de eliminar el proyecto "${projectName}"?\n\nSe eliminarán también sus test suites, pero los archivos de tests NO se eliminarán.`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/projects/${projectId}`, {
+      method: 'DELETE'
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification(`Proyecto "${projectName}" eliminado`, 'success');
+      await loadProjects();
+
+      // Limpiar vista si era el proyecto/suite actual
+      if (currentProjectId === projectId) {
+        currentProjectId = null;
+        currentSuiteId = null;
+        document.getElementById('current-suite-name').textContent = 'Suite Actual';
+        document.getElementById('suite-tests-list').innerHTML = '<p style="color: #7f8c8d;">Selecciona una suite</p>';
+      }
+    } else {
+      showNotification('Error: ' + data.error, 'error');
+    }
+  } catch (error) {
+    showNotification('Error eliminando proyecto: ' + error.message, 'error');
+  }
+}
+
+async function deleteSuiteConfirm(suiteId, suiteName) {
+  if (!confirm(`¿Estás seguro de eliminar la suite "${suiteName}"?\n\nLos tests de la suite quedarán sin suite asignada, pero NO se eliminarán los archivos.`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/suites/${suiteId}`, {
+      method: 'DELETE'
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification(`Suite "${suiteName}" eliminada`, 'success');
+      await loadProjects();
+
+      // Limpiar vista si era la suite actual
+      if (currentSuiteId === suiteId) {
+        currentSuiteId = null;
+        document.getElementById('current-suite-name').textContent = 'Suite Actual';
+        document.getElementById('suite-tests-list').innerHTML = '<p style="color: #7f8c8d;">Selecciona una suite</p>';
+      }
+    } else {
+      showNotification('Error: ' + data.error, 'error');
+    }
+  } catch (error) {
+    showNotification('Error eliminando suite: ' + error.message, 'error');
+  }
+}
+
+async function deleteTestConfirm(testId, testName) {
+  if (!confirm(`¿Estás seguro de eliminar "${testName}" de la suite?\n\nNOTA: Solo se elimina la referencia en la base de datos.\nEl archivo del test NO se eliminará.`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/test-items/${testId}`, {
+      method: 'DELETE'
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification(`Test "${testName}" eliminado de la suite`, 'success');
+
+      // Recargar explorador y vista actual
+      await loadProjects();
+      if (currentSuiteId) {
+        await loadTestsBySuite(currentSuiteId);
+      }
+    } else {
+      showNotification('Error: ' + data.error, 'error');
+    }
+  } catch (error) {
+    showNotification('Error eliminando test: ' + error.message, 'error');
+  }
+}
+
+// ========================================
 // INICIALIZACIÓN
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSystemStatus();
+  loadProjects(); // Cargar proyectos y suites
 
   // Auto-refresh del dashboard cada 30 segundos
   setInterval(() => {
@@ -768,3 +1538,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 30000);
 });
+
+// Agregar estilos de animación para notificaciones
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideIn {
+    from {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideOut {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+  }
+`;
+document.head.appendChild(style);

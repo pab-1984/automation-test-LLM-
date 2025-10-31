@@ -50,9 +50,17 @@ class UniversalTestRunnerCore extends TestExecutor {
 
     console.log('Conectando al servidor MCP de Chrome DevTools...');
     
-    const chromePath = this.config.testing.chrome?.paths?.windows || 
-                      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-    
+    let chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'; // Default path
+    try {
+      const testingConfig = JSON.parse(fs.readFileSync('./config/testing.config.json', 'utf8'));
+      if (testingConfig.chrome?.paths?.windows) {
+        chromePath = testingConfig.chrome.paths.windows;
+        console.log(`Ruta de Chrome cargada desde config: ${chromePath}`);
+      }
+    } catch (e) {
+      console.log('No se encontró testing.config.json, usando ruta de Chrome por defecto.');
+    }
+
     this.mcpTransport = new StdioClientTransport({
       command: 'npx',
       args: ['chrome-devtools-mcp', '--isolated'],

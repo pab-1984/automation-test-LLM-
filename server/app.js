@@ -4,6 +4,11 @@ const express = require('express');
 const path = require('path');
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
+const { getDatabase } = require('../database/db');
+
+// Inicializar base de datos
+console.log('🔄 Inicializando base de datos...');
+getDatabase();
 
 // Puerto del servidor
 const PORT = process.env.PORT || 3001;

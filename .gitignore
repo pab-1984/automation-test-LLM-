@@ -52,3 +52,6 @@ ecommerce-test-app/
 
 # Test natural examples (keep the directory structure, ignore specific tests if needed)
 # tests/natural/*.txt  # Uncomment to ignore all natural test files
+
+# Commercialization Strategy Document
+COMERCIALIZACION.md

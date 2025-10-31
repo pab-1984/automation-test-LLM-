@@ -12,11 +12,9 @@ Pasos:
 ==================================================
 
 1. Navega a http://mercadolibre.com.uy
-
-ingresar a MercadoLibre
-en la barra de búsqueda buscar alquileres en Montevideo
-hacer click en buscar o en el botón de la lupa
-ordenar los resultados de menor precio a mayor precio
+2. En la barra de búsqueda buscar alquileres en Montevideo
+3. Hacer click en buscar o en el botón de la lupa
+4. Ordenar los resultados de menor precio a mayor precio
 
 
 ==================================================

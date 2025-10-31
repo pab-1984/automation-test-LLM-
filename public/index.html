@@ -7,63 +7,105 @@
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>🧪 Testing Automation Framework</h1>
-      <p>Sistema de testing automatizado con Inteligencia Artificial</p>
-    </header>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Testing AI</h2>
+      </div>
 
-    <div class="tabs">
-      <button class="tab-button active" onclick="showTab('dashboard')">📊 Dashboard</button>
-      <button class="tab-button" onclick="showTab('create')">➕ Crear Test</button>
-      <button class="tab-button" onclick="showTab('run')">▶️ Ejecutar Test</button>
-      <button class="tab-button" onclick="showTab('results')">📈 Resultados</button>
-      <button class="tab-button" onclick="showTab('natural')">💬 Tests Naturales</button>
-    </div>
+      <nav class="sidebar-nav">
+        <div class="explorer-header">
+          <h3>EXPLORADOR</h3>
+          <button class="explorer-action-btn" onclick="addProject()" title="Nuevo Proyecto">
+            <span>+</span>
+          </button>
+        </div>
+        <div id="project-explorer" class="project-explorer">
+          <!-- El explorador se carga dinámicamente -->
+        </div>
+      </nav>
+    </aside>
 
-    <!-- Dashboard Tab -->
-    <div id="dashboard" class="tab-content active">
-      <div class="grid">
-        <div class="card" style="grid-column: 1 / -1;">
-          <h2>🤖 Modelo LLM Activo</h2>
-          <div id="llm-selector" style="margin-top: 20px;">
-            <div class="status">
-              <div class="loading"></div>
-              <span>Cargando...</span>
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header compacto -->
+      <header class="top-header">
+        <div class="header-left">
+          <h1>Testing Automation Framework</h1>
+        </div>
+        <div class="header-right">
+          <div class="llm-selector-compact">
+            <label for="llm-dropdown">Modelo:</label>
+            <select id="llm-dropdown" onchange="handleLLMChange(this.value)">
+              <option value="">Cargando...</option>
+            </select>
+          </div>
+        </div>
+      </header>
+
+      <!-- Tabs como barra de navegación -->
+      <nav class="tabs-nav">
+        <button class="tab-button active" onclick="showTab('dashboard')">Dashboard</button>
+        <button class="tab-button" onclick="showTab('natural')">Crear Test</button>
+        <button class="tab-button" onclick="showTab('run')">Ejecutar Test</button>
+        <button class="tab-button" onclick="showTab('results')">Resultados</button>
+      </nav>
+
+      <!-- Dashboard Tab -->
+      <div id="dashboard" class="tab-content active">
+        <!-- Suite Actual - Compacta -->
+        <div class="suite-header-compact">
+          <div class="suite-info-compact">
+            <h3 id="current-suite-name">Suite Actual</h3>
+            <span id="current-suite-info" style="color: #7f8c8d; font-size: 0.9em;">Selecciona una suite</span>
+          </div>
+          <button onclick="showAddTestModal()" class="btn-compact" id="add-test-btn-compact" disabled>
+            + Agregar Test
+          </button>
+        </div>
+
+        <!-- Estadísticas y Tests en la misma fila (50% - 50%) -->
+        <div class="dashboard-grid">
+          <!-- Estadísticas -->
+          <div class="card">
+            <h2>Estadísticas</h2>
+            <div id="test-statistics">
+              <div class="status">
+                <div class="loading"></div>
+                <span>Cargando...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tests de la Suite -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <h2 style="margin: 0;">Tests de la Suite</h2>
+              <button onclick="executeAllTestsInSuite()" class="btn-compact" id="run-all-tests-btn" disabled>
+                ▶️ Ejecutar Todos
+              </button>
+            </div>
+            <div id="suite-tests-list" class="tests-scrollable">
+              <p style="color: #7f8c8d;">Selecciona una suite para ver sus tests</p>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="grid">
-        <div class="card">
-          <h2>📊 Tests Ejecutados</h2>
-          <div id="test-statistics">
-            <div class="status">
-              <div class="loading"></div>
-              <span>Cargando...</span>
-            </div>
+        <!-- Consola de Ejecución -->
+        <div class="card" id="execution-console-card" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="margin: 0;">Consola de Ejecución</h2>
+            <button onclick="clearExecutionConsole()" class="btn-compact">Limpiar</button>
           </div>
-        </div>
-
-        <div class="card">
-          <h2>💻 Sistema</h2>
-          <div id="system-info">
-            <div class="status">
-              <div class="loading"></div>
-              <span>Cargando...</span>
-            </div>
+          <div id="execution-status-dashboard" class="status" style="margin-bottom: 10px;">
+            <span>Preparando ejecución...</span>
+          </div>
+          <div id="execution-logs-dashboard" class="log-console" style="max-height: 300px; overflow-y: auto;">
+            <!-- Logs aparecerán aquí -->
           </div>
         </div>
       </div>
-
-      <div class="card">
-        <h2>🔄 Tests en Ejecución</h2>
-        <div id="active-tests">
-          <p style="color: #7f8c8d;">No hay tests en ejecución en este momento</p>
-        </div>
-      </div>
-    </div>
 
     <!-- Create Test Tab -->
     <div id="create" class="tab-content">
@@ -260,6 +302,52 @@ Toma un screenshot"></textarea>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+    </div>
+  </div>
+
+  <!-- Modal para agregar tests a suite -->
+  <div id="add-test-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Agregar Test a la Suite</h2>
+        <button class="modal-close" onclick="closeAddTestModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Selecciona los tests disponibles:</label>
+          <div class="radio-group">
+            <label style="display: block; margin-bottom: 10px;">
+              <input type="radio" name="test-source" value="natural" checked onchange="updateTestSourceList('natural')">
+              Tests en Lenguaje Natural
+            </label>
+            <label style="display: block; margin-bottom: 10px;">
+              <input type="radio" name="test-source" value="yaml" onchange="updateTestSourceList('yaml')">
+              Tests YAML
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tests Disponibles:</label>
+          <div id="available-tests-list" class="scrollable-list" style="max-height: 300px;">
+            <p style="color: #7f8c8d;">Cargando...</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Test Seleccionado:</label>
+          <div id="selected-test-preview" style="padding: 15px; background: #f8f9fa; border-radius: 8px; min-height: 60px;">
+            <p style="color: #7f8c8d;">Selecciona un test de la lista</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="secondary" onclick="closeAddTestModal()">Cancelar</button>
+        <button class="primary" onclick="addTestToCurrentSuite()" id="add-test-btn" disabled>Agregar a Suite</button>
       </div>
     </div>
   </div>
