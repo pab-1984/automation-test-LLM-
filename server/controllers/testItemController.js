@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const { UniversalTestRunnerCore } = require('../../runners/universal-runner.js');
 
-const testItemController = {
+class TestItemController {
   // GET /api/test-items - Obtener todos los tests
   getAllTests(req, res) {
     try {
@@ -18,7 +18,7 @@ const testItemController = {
       console.error('Error obteniendo tests:', error);
       res.status(500).json({ success: false, error: error.message });
     }
-  },
+  }
 
   // GET /api/test-items/suite/:suiteId - Obtener tests de una suite
   getTestsBySuite(req, res) {
@@ -30,7 +30,7 @@ const testItemController = {
       console.error('Error obteniendo tests de la suite:', error);
       res.status(500).json({ success: false, error: error.message });
     }
-  },
+  }
 
   // GET /api/test-items/:id - Obtener un test específico
   getTestById(req, res) {
@@ -49,7 +49,7 @@ const testItemController = {
       console.error('Error obteniendo test:', error);
       res.status(500).json({ success: false, error: error.message });
     }
-  },
+  }
 
   // POST /api/test-items - Agregar un test existente a una suite
   addTestToSuite(req, res) {
@@ -78,7 +78,7 @@ const testItemController = {
       console.error('Error agregando test a suite:', error);
       res.status(500).json({ success: false, error: error.message });
     }
-  },
+  }
 
   // PUT /api/test-items/:id - Actualizar un test
   updateTest(req, res) {
@@ -101,7 +101,7 @@ const testItemController = {
       console.error('Error actualizando test:', error);
       res.status(500).json({ success: false, error: error.message });
     }
-  },
+  }
 
   // DELETE /api/test-items/:id - Eliminar un test de la suite
   deleteTest(req, res) {
@@ -118,7 +118,7 @@ const testItemController = {
       console.error('Error eliminando test:', error);
       res.status(500).json({ success: false, error: error.message });
     }
-  },
+  }
 
   // POST /api/test-items/:id/execute - Ejecutar un test
   executeTest(req, res) {
@@ -160,7 +160,7 @@ const testItemController = {
       console.error('Error ejecutando test:', error);
       res.status(500).json({ success: false, error: error.message });
     }
-  },
+  }
 
   /**
    * Ejecutar test en background y actualizar BD con resultados
@@ -278,7 +278,7 @@ const testItemController = {
         );
       }
     }
-  },
+  }
 
   /**
    * Guardar evidencias de la ejecución
@@ -349,6 +349,6 @@ const testItemController = {
       }
     }
   }
-};
+}
 
-module.exports = testItemController;
+module.exports = new TestItemController();

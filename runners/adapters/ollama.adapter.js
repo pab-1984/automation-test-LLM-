@@ -22,14 +22,16 @@ class OllamaAdapter {
       const data = await response.json();
       const modelExists = data.models && data.models.some(m => m.name === this.model);
       if (!modelExists) {
-        console.log(`\n⚠️  Modelo ${this.model} no encontrado.`);
+        console.log(`
+⚠️  Modelo ${this.model} no encontrado.`);
         console.log('Modelos disponibles:');
         if (data.models && data.models.length > 0) {
           data.models.forEach(m => console.log(`   - ${m.name}`));
         } else {
           console.log('   (ninguno)');
         }
-        console.log(`\nPara instalar el modelo, ejecuta:`);
+        console.log(`
+Para instalar el modelo, ejecuta:`);
         console.log(`   ollama pull ${this.model}\n`);
         throw new Error(`Modelo ${this.model} no está instalado`);
       }
@@ -167,6 +169,55 @@ class OllamaAdapter {
       params: params,
       reasoning: 'Fallback - ejecutando acción directa sin interpretación del LLM'
     };
+  }
+
+  async chatWithTools({ systemPrompt, messages, tools }) {
+    // Construir un prompt que simula el tool calling
+    let fullPrompt = `${systemPrompt}\n\n## Historial de Conversación:\n`;
+    messages.forEach(msg => {
+      fullPrompt += `**${msg.role}:** ${msg.content}\n`;
+    });
+
+    fullPrompt += `\n## Herramientas Disponibles:\n`;
+    tools.forEach(tool => {
+      fullPrompt += `- **${tool.name}**: ${tool.description}\n`;
+      fullPrompt += `  - Parámetros: ${JSON.stringify(tool.parameters)}\n`;
+    });
+
+    fullPrompt += `\n## Tu Tarea:\nBasado en el historial y las herramientas, decide qué hacer a continuación. Responde en formato JSON con una de las siguientes estructuras:
+
+1.  Para llamar a una herramienta:
+    {
+      "tool_calls": [
+        {
+          "name": "nombre_de_la_herramienta",
+          "arguments": { "param1": "valor1", ... }
+        }
+      ]
+    }
+
+2.  Para responder al usuario (si has terminado):
+    {
+      "text": "Tu respuesta final aquí."
+    }
+
+Responde SOLO con el JSON.`;
+
+    const responseJson = await this.generateJson(fullPrompt);
+
+    if (responseJson && responseJson.tool_calls) {
+      const toolCalls = responseJson.tool_calls.map((tc, index) => ({
+        id: `call_${Date.now()}_${index}`,
+        name: tc.name,
+        arguments: tc.arguments
+      }));
+      return { toolCalls, text: '' };
+    } else if (responseJson && responseJson.text) {
+      return { text: responseJson.text, toolCalls: null };
+    } else {
+      // Fallback si la respuesta no tiene el formato esperado
+      return { text: 'No se pudo determinar la siguiente acción.', toolCalls: null };
+    }
   }
 
   async cleanup() {

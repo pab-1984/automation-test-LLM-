@@ -54,32 +54,22 @@
 
       <!-- Dashboard Tab -->
       <div id="dashboard" class="tab-content active">
-        <!-- Suite Actual - Compacta -->
-        <div class="suite-header-compact">
-          <div class="suite-info-compact">
-            <h3 id="current-suite-name">Suite Actual</h3>
-            <span id="current-suite-info" style="color: #7f8c8d; font-size: 0.9em;">Selecciona una suite</span>
-          </div>
-          <button onclick="showAddTestModal()" class="btn-compact" id="add-test-btn-compact" disabled>
-            + Agregar Test
-          </button>
-        </div>
-
-        <!-- Estadísticas y Tests en la misma fila (50% - 50%) -->
+        <!-- Grid principal del dashboard -->
         <div class="dashboard-grid">
-          <!-- Estadísticas -->
+          <!-- Columna Izquierda: Suite de Tests -->
           <div class="card">
-            <h2>Estadísticas</h2>
-            <div id="test-statistics">
-              <div class="status">
-                <div class="loading"></div>
-                <span>Cargando...</span>
+            <!-- Encabezado de la Suite -->
+            <div class="suite-header-compact" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <div class="suite-info-compact">
+                <h3 id="current-suite-name" style="margin: 0;">Suite Actual</h3>
+                <span id="current-suite-info" style="color: #7f8c8d; font-size: 0.9em;">Selecciona una suite</span>
               </div>
+              <button onclick="showAddTestModal()" class="btn-compact" id="add-test-btn-compact" disabled>
+                + Agregar Test
+              </button>
             </div>
-          </div>
 
-          <!-- Tests de la Suite -->
-          <div class="card">
+            <!-- Lista de Tests -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
               <h2 style="margin: 0;">Tests de la Suite</h2>
               <button onclick="executeAllTestsInSuite()" class="btn-compact" id="run-all-tests-btn" disabled>
@@ -88,6 +78,17 @@
             </div>
             <div id="suite-tests-list" class="tests-scrollable">
               <p style="color: #7f8c8d;">Selecciona una suite para ver sus tests</p>
+            </div>
+          </div>
+
+          <!-- Columna Derecha: Estadísticas -->
+          <div class="card">
+            <h2>Estadísticas</h2>
+            <div id="test-statistics">
+              <div class="status">
+                <div class="loading"></div>
+                <span>Cargando...</span>
+              </div>
             </div>
           </div>
         </div>

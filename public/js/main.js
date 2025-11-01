@@ -6,7 +6,7 @@ let selectedTest = null;
 let currentTestId = null;
 let statusInterval = null;
 
-// ========================================
+// ======================================== 
 // NAVEGACIÓN DE TABS
 // ========================================
 
@@ -35,7 +35,7 @@ function showTab(tabName) {
   }
 }
 
-// ========================================
+// ======================================== 
 // DASHBOARD - FUNCIONES
 // ========================================
 
@@ -166,8 +166,44 @@ async function loadTestStatistics() {
   }
 }
 
+function showExecutionConsole() {
+  const consoleCard = document.getElementById('execution-console-card');
+  const logsDiv = document.getElementById('execution-logs-dashboard');
+  const statusDiv = document.getElementById('execution-status-dashboard');
 
-// ========================================
+  consoleCard.style.display = 'block';
+  logsDiv.innerHTML = '<div style="color: #4caf50;">🚀 Iniciando ejecución del test...</div>';
+  statusDiv.innerHTML = '<div class="loading"></div><span>⏳ Ejecutando...</span>';
+
+  // Scroll al final de la página
+  setTimeout(() => {
+    consoleCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+function appendExecutionLog(message, type = 'info') {
+  const logsDiv = document.getElementById('execution-logs-dashboard');
+  const escapedLog = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  let color = '#d4d4d4';
+  if (type === 'error') color = '#e74c3c';
+  if (type === 'success') color = '#4caf50';
+  if (type === 'info') color = '#2196f3';
+
+  logsDiv.innerHTML += `<div style="color: ${color};">${escapedLog}</div>`;
+  logsDiv.scrollTop = logsDiv.scrollHeight;
+}
+
+function clearExecutionConsole() {
+  const logsDiv = document.getElementById('execution-logs-dashboard');
+  const statusDiv = document.getElementById('execution-status-dashboard');
+
+  logsDiv.innerHTML = '';
+  statusDiv.innerHTML = '<span>Consola limpiada</span>';
+}
+
+
+// ======================================== 
 // CREAR TEST - FUNCIONES
 // ========================================
 
@@ -251,7 +287,7 @@ async function createTest(event) {
   }
 }
 
-// ========================================
+// ======================================== 
 // EJECUTAR TEST - FUNCIONES
 // ========================================
 
@@ -438,7 +474,7 @@ function startStatusPolling(testId) {
   }, 2000); // Poll cada 2 segundos
 }
 
-// ========================================
+// ======================================== 
 // RESULTADOS - FUNCIONES
 // ========================================
 
@@ -505,243 +541,7 @@ async function viewReport(filename) {
   }
 }
 
-// ========================================
-// TESTS NATURALES - FUNCIONES
-// ========================================
-
-async function loadNaturalTests() {
-  const listDiv = document.getElementById('natural-tests-list');
-  listDiv.innerHTML = '<div class="status"><div class="loading"></div><span>Cargando tests...</span></div>';
-
-  try {
-    const response = await fetch('/api/tests/natural');
-    const data = await response.json();
-
-    if (!data.tests || data.tests.length === 0) {
-      listDiv.innerHTML = '<p style="color: #95a5a6; text-align: center; padding: 20px;">No hay tests naturales creados todavía</p>';
-      return;
-    }
-
-    let html = '<div class="scrollable-list">';
-    data.tests.forEach(test => {
-      const date = new Date(test.created).toLocaleString('es-UY');
-      html += '<div class="list-item">';
-      html += '<div>';
-      html += '<div style="font-weight: bold; margin-bottom: 5px;">📄 ' + test.name + '</div>';
-      html += '<div style="font-size: 0.9em; color: #7f8c8d;">' + (test.description || 'Sin descripción') + '</div>';
-      html += '<div style="font-size: 0.85em; color: #95a5a6; margin-top: 5px;">';
-      html += '🌐 ' + test.url + ' | 📅 ' + date;
-      html += '</div>';
-      html += '</div>';
-      html += '<button onclick="runNaturalTest(\'' + test.filename + '\')" class="primary" style="margin-left: auto;">▶️ Ejecutar</button>';
-      html += '</div>';
-    });
-    html += '</div>';
-    listDiv.innerHTML = html;
-
-  } catch (error) {
-    listDiv.innerHTML = '<p style="color: #e74c3c;">Error al cargar tests: ' + error.message + '</p>';
-  }
-}
-
-async function createNaturalTest() {
-  const name = document.getElementById('natural-name').value.trim();
-  const url = document.getElementById('natural-url').value.trim();
-  const description = document.getElementById('natural-description').value.trim();
-  const instructions = document.getElementById('natural-instructions').value.trim();
-
-  if (!name || !url || !instructions) {
-    alert('Por favor completa los campos obligatorios: nombre, URL e instrucciones');
-    return;
-  }
-
-  const options = {
-    screenshotPerStep: document.getElementById('natural-screenshot').checked,
-    captureLogs: document.getElementById('natural-logs').checked,
-    captureNetwork: document.getElementById('natural-network').checked,
-    performanceMetrics: document.getElementById('natural-performance').checked
-  };
-
-  try {
-    const response = await fetch('/api/tests/natural/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, url, description, instructions, options })
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      alert('✅ Test "' + name + '" creado exitosamente');
-      // Limpiar formulario
-      document.getElementById('natural-name').value = '';
-      document.getElementById('natural-url').value = '';
-      document.getElementById('natural-description').value = '';
-      document.getElementById('natural-instructions').value = '';
-      document.getElementById('natural-screenshot').checked = false;
-      document.getElementById('natural-logs').checked = true;
-      document.getElementById('natural-network').checked = false;
-      document.getElementById('natural-performance').checked = false;
-
-      // Recargar lista
-      loadNaturalTests();
-    } else {
-      alert('❌ Error: ' + (data.error || 'No se pudo crear el test'));
-    }
-  } catch (error) {
-    alert('❌ Error al crear test: ' + error.message);
-  }
-}
-
-async function createAndRunNaturalTest() {
-  const name = document.getElementById('natural-name').value.trim();
-  const url = document.getElementById('natural-url').value.trim();
-  const description = document.getElementById('natural-description').value.trim();
-  const instructions = document.getElementById('natural-instructions').value.trim();
-
-  if (!name || !url || !instructions) {
-    alert('Por favor completa los campos obligatorios: nombre, URL e instrucciones');
-    return;
-  }
-
-  const options = {
-    screenshotPerStep: document.getElementById('natural-screenshot').checked,
-    captureLogs: document.getElementById('natural-logs').checked,
-    captureNetwork: document.getElementById('natural-network').checked,
-    performanceMetrics: document.getElementById('natural-performance').checked
-  };
-
-  try {
-    // Primero crear
-    const createResponse = await fetch('/api/tests/natural/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, url, description, instructions, options })
-    });
-
-    const createData = await createResponse.json();
-
-    if (!createData.success) {
-      alert('❌ Error al crear test: ' + (createData.error || 'Error desconocido'));
-      return;
-    }
-
-    // Luego ejecutar
-    await runNaturalTest(createData.filename);
-
-    // Recargar lista
-    loadNaturalTests();
-
-  } catch (error) {
-    alert('❌ Error: ' + error.message);
-  }
-}
-
-async function runNaturalTest(filename) {
-  const executionArea = document.getElementById('natural-execution-area');
-  const statusDiv = document.getElementById('natural-execution-status');
-  const logsDiv = document.getElementById('natural-execution-logs');
-
-  executionArea.style.display = 'block';
-  statusDiv.innerHTML = '<div class="loading"></div><span>Iniciando test...</span>';
-  logsDiv.innerHTML = '<div style="color: #4caf50;">🚀 Iniciando ejecución del test...</div>';
-
-  try {
-    const response = await fetch('/api/tests/natural/run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename })
-    });
-
-    const data = await response.json();
-
-    if (!data.success) {
-      logsDiv.innerHTML += '<div style="color: #e74c3c;">❌ Error: ' + data.error + '</div>';
-      statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Error</span>';
-      return;
-    }
-
-    // Comenzar polling
-    logsDiv.innerHTML += '<div style="color: #2196f3;">📡 Test ID: ' + data.testId + '</div>';
-    logsDiv.innerHTML += '<div style="color: #2196f3;">⏳ Ejecutando...</div>';
-    logsDiv.innerHTML += '<div style="color: #666;">' + '─'.repeat(60) + '</div>';
-
-    pollNaturalTestStatus(data.testId);
-
-  } catch (error) {
-    logsDiv.innerHTML += '<div style="color: #e74c3c;">❌ Error: ' + error.message + '</div>';
-    statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Error</span>';
-  }
-}
-
-async function pollNaturalTestStatus(testId) {
-  const statusDiv = document.getElementById('natural-execution-status');
-  const logsDiv = document.getElementById('natural-execution-logs');
-  let lastLogCount = 0;
-
-  const pollInterval = setInterval(async () => {
-    try {
-      const response = await fetch('/api/tests/status/' + testId);
-      const data = await response.json();
-
-      // Actualizar status
-      if (data.status === 'running') {
-        statusDiv.innerHTML = '<div class="loading"></div><span>⏳ Ejecutando...</span>';
-      } else if (data.status === 'success') {
-        statusDiv.innerHTML = '<span style="color: #4caf50;">✅ Completado Exitosamente</span>';
-        clearInterval(pollInterval);
-      } else if (data.status === 'failed') {
-        statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Test Fallido</span>';
-        clearInterval(pollInterval);
-      } else if (data.status === 'error') {
-        statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Error en Ejecución</span>';
-        clearInterval(pollInterval);
-      }
-
-      // Actualizar logs (solo los nuevos)
-      if (data.logs && data.logs.length > lastLogCount) {
-        const newLogs = data.logs.slice(lastLogCount);
-        newLogs.forEach(log => {
-          const escapedLog = log.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          logsDiv.innerHTML += '<div>' + escapedLog + '</div>';
-        });
-        lastLogCount = data.logs.length;
-
-        // Auto-scroll al final
-        logsDiv.scrollTop = logsDiv.scrollHeight;
-      }
-
-      // Si terminó, mostrar resumen
-      if (data.status !== 'running' && data.results) {
-        logsDiv.innerHTML += '<div style="color: #666; margin-top: 20px;">' + '═'.repeat(60) + '</div>';
-        logsDiv.innerHTML += '<div style="color: #4caf50; font-weight: bold; margin-top: 10px;">📊 RESUMEN FINAL</div>';
-        logsDiv.innerHTML += '<div style="color: #666; margin-top: 10px;">' + '═'.repeat(60) + '</div>';
-
-        if (data.duration) {
-          logsDiv.innerHTML += '<div style="color: #2196f3;">⏱️  Duración: ' + (data.duration / 1000).toFixed(2) + 's</div>';
-        }
-
-        // Mostrar datos adicionales si existen
-        if (data.consoleLogs) {
-          logsDiv.innerHTML += '<div style="color: #ff9800; margin-top: 10px;">📝 Logs de consola capturados</div>';
-        }
-        if (data.networkRequests) {
-          logsDiv.innerHTML += '<div style="color: #ff9800;">🌐 Network requests capturados</div>';
-        }
-        if (data.performanceData) {
-          logsDiv.innerHTML += '<div style="color: #ff9800;">📊 Performance metrics capturados</div>';
-        }
-      }
-
-    } catch (error) {
-      console.error('Error en polling:', error);
-      logsDiv.innerHTML += '<div style="color: #e74c3c;">❌ Error actualizando estado: ' + error.message + '</div>';
-      clearInterval(pollInterval);
-    }
-  }, 2000); // Poll cada 2 segundos
-}
-
-// ========================================
+// ======================================== 
 // SIDEBAR - FUNCIONES
 // ========================================
 
@@ -1028,118 +828,210 @@ async function addProject() {
   }
 }
 
-async function addTestSuite() {
-  if (!currentProjectId) {
-    showNotification('Selecciona un proyecto primero', 'error');
+
+// ======================================== 
+// TESTS NATURALES - FUNCIONES
+// ========================================
+
+async function loadNaturalTests() {
+  const listDiv = document.getElementById('natural-tests-list');
+  listDiv.innerHTML = '<div class="status"><div class="loading"></div><span>Cargando tests...</span></div>';
+
+  try {
+    const response = await fetch('/api/tests/natural');
+    const data = await response.json();
+
+    if (!data.tests || data.tests.length === 0) {
+      listDiv.innerHTML = '<p style="color: #95a5a6; text-align: center; padding: 20px;">No hay tests naturales creados todavía</p>';
+      return;
+    }
+
+    let html = '<div class="scrollable-list">';
+    data.tests.forEach(test => {
+      const date = new Date(test.created).toLocaleString('es-UY');
+      html += '<div class="list-item">';
+      html += '<div>';
+      html += '<div style="font-weight: bold; margin-bottom: 5px;">📄 ' + test.name + '</div>';
+      html += '<div style="font-size: 0.9em; color: #7f8c8d;">' + (test.description || 'Sin descripción') + '</div>';
+      html += '<div style="font-size: 0.85em; color: #95a5a6; margin-top: 5px;">';
+      html += '🌐 ' + test.url + ' | 📅 ' + date;
+      html += '</div>';
+      html += '</div>';
+      html += '<button onclick="runNaturalTest(\'' + test.filename + '\')" class="primary" style="margin-left: auto;">▶️ Ejecutar</button>';
+      html += '</div>';
+    });
+    html += '</div>';
+    listDiv.innerHTML = html;
+
+  } catch (error) {
+    listDiv.innerHTML = '<p style="color: #e74c3c;">Error al cargar tests: ' + error.message + '</p>';
+  }
+}
+
+async function createNaturalTest() {
+  const name = document.getElementById('natural-name').value.trim();
+  const url = document.getElementById('natural-url').value.trim();
+  const description = document.getElementById('natural-description').value.trim();
+  const instructions = document.getElementById('natural-instructions').value.trim();
+
+  if (!name || !url || !instructions) {
+    alert('Por favor completa los campos obligatorios: nombre, URL e instrucciones');
     return;
   }
 
-  const suiteName = prompt('Nombre de la nueva suite:');
-  if (!suiteName) return;
-
-  const description = prompt('Descripción (opcional):') || '';
+  const options = {
+    screenshotPerStep: document.getElementById('natural-screenshot').checked,
+    captureLogs: document.getElementById('natural-logs').checked,
+    captureNetwork: document.getElementById('natural-network').checked,
+    performanceMetrics: document.getElementById('natural-performance').checked
+  };
 
   try {
-    const response = await fetch('/api/suites', {
+    const response = await fetch('/api/tests/natural/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        projectId: currentProjectId,
-        name: suiteName,
-        description
-      })
+      body: JSON.stringify({ name, url, description, instructions, options })
     });
 
     const data = await response.json();
 
     if (data.success) {
-      showNotification(`Suite "${suiteName}" creada`, 'success');
-      await loadSuitesByProject(currentProjectId);
+      alert('✅ Test "' + name + '" creado exitosamente');
+      // Limpiar formulario
+      document.getElementById('natural-name').value = '';
+      document.getElementById('natural-url').value = '';
+      document.getElementById('natural-description').value = '';
+      document.getElementById('natural-instructions').value = '';
+      document.getElementById('natural-screenshot').checked = false;
+      document.getElementById('natural-logs').checked = true;
+      document.getElementById('natural-network').checked = false;
+      document.getElementById('natural-performance').checked = false;
+
+      // Recargar lista
+      loadNaturalTests();
     } else {
-      showNotification('Error: ' + data.error, 'error');
+      alert('❌ Error: ' + (data.error || 'No se pudo crear el test'));
     }
   } catch (error) {
-    showNotification('Error creando suite: ' + error.message, 'error');
+    alert('❌ Error al crear test: ' + error.message);
   }
+}
+
+async function createAndRunNaturalTest() {
+  const name = document.getElementById('natural-name').value.trim();
+  const url = document.getElementById('natural-url').value.trim();
+  const description = document.getElementById('natural-description').value.trim();
+  const instructions = document.getElementById('natural-instructions').value.trim();
+
+  if (!name || !url || !instructions) {
+    alert('Por favor completa los campos obligatorios: nombre, URL e instrucciones');
+    return;
+  }
+
+  const options = {
+    screenshotPerStep: document.getElementById('natural-screenshot').checked,
+    captureLogs: document.getElementById('natural-logs').checked,
+    captureNetwork: document.getElementById('natural-network').checked,
+    performanceMetrics: document.getElementById('natural-performance').checked
+  };
+
+  try {
+    // Primero crear
+    const createResponse = await fetch('/api/tests/natural/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, url, description, instructions, options })
+    });
+
+    const createData = await createResponse.json();
+
+    if (!createData.success) {
+      alert('❌ Error al crear test: ' + (createData.error || 'Error desconocido'));
+      return;
+    }
+
+    // Luego ejecutar
+    await runNaturalTest(createData.filename);
+
+    // Recargar lista
+    loadNaturalTests();
+
+  } catch (error) {
+    alert('❌ Error: ' + error.message);
+  }
+}
+
+async function executeTest(testInfo, context = 'natural') {
+  let statusDiv, logsDiv;
+
+  if (context === 'dashboard') {
+    showExecutionConsole();
+    statusDiv = document.getElementById('execution-status-dashboard');
+    logsDiv = document.getElementById('execution-logs-dashboard');
+  } else {
+    const executionArea = document.getElementById('natural-execution-area');
+    executionArea.style.display = 'block';
+    statusDiv = document.getElementById('natural-execution-status');
+    logsDiv = document.getElementById('natural-execution-logs');
+  }
+
+  statusDiv.innerHTML = '<div class="loading"></div><span>Iniciando test...</span>';
+  logsDiv.innerHTML = '<div style="color: #4caf50;">🚀 Iniciando ejecución del test...</div>';
+
+  return new Promise(async (resolve, reject) => {
+    try {
+      let response;
+      if (testInfo.type === 'natural') {
+        response = await fetch('/api/tests/natural/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: testInfo.filename })
+        });
+      } else {
+        response = await fetch(`/api/test-items/${testInfo.id}/execute`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'auto' })
+        });
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        logsDiv.innerHTML += '<div style="color: #e74c3c;">❌ Error: ' + data.error + '</div>';
+        statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Error</span>';
+        reject('error');
+        return;
+      }
+
+      logsDiv.innerHTML += '<div style="color: #2196f3;">📡 Test ID: ' + data.testId + '</div>';
+      logsDiv.innerHTML += '<div style="color: #2196f3;">⏳ Ejecutando...</div>';
+      logsDiv.innerHTML += '<div style="color: #666;">' + '─'.repeat(60) + '</div>';
+
+      pollTestStatus(data.testId, statusDiv, logsDiv, (finalStatus) => {
+        resolve(finalStatus);
+      });
+
+    } catch (error) {
+      logsDiv.innerHTML += '<div style="color: #e74c3c;">❌ Error: ' + error.message + '</div>';
+      statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Error</span>';
+      reject('error');
+    }
+  });
+}
+
+async function runNaturalTest(filename) {
+  await executeTest({ type: 'natural', filename: filename }, 'natural');
 }
 
 async function executeTestItem(testId) {
-  try {
-    // Mostrar consola de ejecución
-    showExecutionConsole();
-
-    const response = await fetch(`/api/test-items/${testId}/execute`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: 'auto' })
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      showNotification('Test iniciado', 'success');
-
-      // Iniciar polling para logs en tiempo real
-      pollTestExecutionLogs(data.executionId || data.testId);
-    } else {
-      showNotification('Error: ' + data.error, 'error');
-      appendExecutionLog('❌ Error: ' + data.error, 'error');
-    }
-  } catch (error) {
-    showNotification('Error ejecutando test: ' + error.message, 'error');
-    appendExecutionLog('❌ Error ejecutando test: ' + error.message, 'error');
-  }
+  await executeTest({ type: 'yaml', id: testId }, 'dashboard');
 }
 
-function showExecutionConsole() {
-  const consoleCard = document.getElementById('execution-console-card');
-  const logsDiv = document.getElementById('execution-logs-dashboard');
-  const statusDiv = document.getElementById('execution-status-dashboard');
-
-  consoleCard.style.display = 'block';
-  logsDiv.innerHTML = '<div style="color: #4caf50;">🚀 Iniciando ejecución del test...</div>';
-  statusDiv.innerHTML = '<div class="loading"></div><span>⏳ Ejecutando...</span>';
-
-  // Scroll al final de la página
-  setTimeout(() => {
-    consoleCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 100);
-}
-
-function appendExecutionLog(message, type = 'info') {
-  const logsDiv = document.getElementById('execution-logs-dashboard');
-  const escapedLog = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-  let color = '#d4d4d4';
-  if (type === 'error') color = '#e74c3c';
-  if (type === 'success') color = '#4caf50';
-  if (type === 'info') color = '#2196f3';
-
-  logsDiv.innerHTML += `<div style="color: ${color};">${escapedLog}</div>`;
-  logsDiv.scrollTop = logsDiv.scrollHeight;
-}
-
-function clearExecutionConsole() {
-  const logsDiv = document.getElementById('execution-logs-dashboard');
-  const statusDiv = document.getElementById('execution-status-dashboard');
-
-  logsDiv.innerHTML = '';
-  statusDiv.innerHTML = '<span>Consola limpiada</span>';
-}
-
-let currentPollInterval = null;
-
-async function pollTestExecutionLogs(testId) {
-  // Limpiar polling anterior si existe
-  if (currentPollInterval) {
-    clearInterval(currentPollInterval);
-  }
-
-  const statusDiv = document.getElementById('execution-status-dashboard');
-  const logsDiv = document.getElementById('execution-logs-dashboard');
+function pollTestStatus(testId, statusDiv, logsDiv, completionCallback) {
   let lastLogCount = 0;
 
-  currentPollInterval = setInterval(async () => {
+  const pollInterval = setInterval(async () => {
     try {
       const response = await fetch(`/api/tests/status/${testId}`);
       const data = await response.json();
@@ -1149,15 +1041,16 @@ async function pollTestExecutionLogs(testId) {
         statusDiv.innerHTML = '<div class="loading"></div><span>⏳ Ejecutando...</span>';
       } else if (data.status === 'success') {
         statusDiv.innerHTML = '<span style="color: #4caf50;">✅ Completado Exitosamente</span>';
-        clearInterval(currentPollInterval);
-        await loadTestStatistics();
+        clearInterval(pollInterval);
+        if (completionCallback) completionCallback('success');
       } else if (data.status === 'failed') {
         statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Test Fallido</span>';
-        clearInterval(currentPollInterval);
-        await loadTestStatistics();
+        clearInterval(pollInterval);
+        if (completionCallback) completionCallback('failed');
       } else if (data.status === 'error') {
         statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Error en Ejecución</span>';
-        clearInterval(currentPollInterval);
+        clearInterval(pollInterval);
+        if (completionCallback) completionCallback('error');
       }
 
       // Actualizar logs (solo los nuevos)
@@ -1165,15 +1058,7 @@ async function pollTestExecutionLogs(testId) {
         const newLogs = data.logs.slice(lastLogCount);
         newLogs.forEach(log => {
           const escapedLog = log.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-          // Determinar color basado en el contenido
-          let color = '#d4d4d4';
-          if (log.includes('✅') || log.includes('exitoso') || log.includes('SUCCESS')) color = '#4caf50';
-          else if (log.includes('❌') || log.includes('Error') || log.includes('FAILED')) color = '#e74c3c';
-          else if (log.includes('🚀') || log.includes('▶️') || log.includes('⏱️')) color = '#2196f3';
-          else if (log.includes('⚠️') || log.includes('Warning')) color = '#ff9800';
-
-          logsDiv.innerHTML += `<div style="color: ${color};">${escapedLog}</div>`;
+          logsDiv.innerHTML += '<div>' + escapedLog + '</div>';
         });
         lastLogCount = data.logs.length;
 
@@ -1191,38 +1076,29 @@ async function pollTestExecutionLogs(testId) {
           logsDiv.innerHTML += '<div style="color: #2196f3;">⏱️  Duración: ' + (data.duration / 1000).toFixed(2) + 's</div>';
         }
 
-        if (data.results.passed !== undefined) {
-          logsDiv.innerHTML += '<div style="color: #4caf50;">✅ Tests exitosos: ' + data.results.passed + '</div>';
-        }
-        if (data.results.failed !== undefined) {
-          logsDiv.innerHTML += '<div style="color: #e74c3c;">❌ Tests fallidos: ' + data.results.failed + '</div>';
-        }
-
-        // Mostrar datos adicionales si existen
-        if (data.consoleLogs) {
-          logsDiv.innerHTML += '<div style="color: #ff9800; margin-top: 10px;">📝 Logs de consola capturados</div>';
-        }
-        if (data.networkRequests) {
-          logsDiv.innerHTML += '<div style="color: #ff9800;">🌐 Network requests capturados</div>';
-        }
-        if (data.performanceData) {
-          logsDiv.innerHTML += '<div style="color: #ff9800;">📊 Performance metrics capturados</div>';
-        }
-
-        // Recargar tests de la suite
-        if (currentSuiteId) {
-          await loadTestsBySuite(currentSuiteId);
-        }
+        // ... (resto del código de resumen)
       }
 
     } catch (error) {
       console.error('Error en polling:', error);
       logsDiv.innerHTML += '<div style="color: #e74c3c;">❌ Error actualizando estado: ' + error.message + '</div>';
-      clearInterval(currentPollInterval);
+      clearInterval(pollInterval);
+      if (completionCallback) completionCallback('error');
     }
   }, 2000); // Poll cada 2 segundos
 }
 
+async function pollNaturalTestStatus(testId) {
+  const statusDiv = document.getElementById('natural-execution-status');
+  const logsDiv = document.getElementById('natural-execution-logs');
+  pollTestStatus(testId, statusDiv, logsDiv);
+}
+
+async function pollTestExecutionLogs(testId, completionCallback) {
+  const statusDiv = document.getElementById('execution-status-dashboard');
+  const logsDiv = document.getElementById('execution-logs-dashboard');
+  pollTestStatus(testId, statusDiv, logsDiv, completionCallback);
+}
 function viewTestDetails(testId) {
   showNotification('Detalles del test (próximamente)', 'info');
   // TODO: Mostrar modal con detalles y historial de ejecuciones
@@ -1240,44 +1116,43 @@ async function executeAllTestsInSuite() {
   runAllBtn.innerHTML = '⏳ Ejecutando...';
 
   showNotification(`Iniciando ejecución de ${window.currentSuiteTests.length} tests`, 'info');
+  showExecutionConsole();
 
   let successCount = 0;
   let failedCount = 0;
 
   for (const test of window.currentSuiteTests) {
+    appendExecutionLog(`--- Iniciando test: ${test.name} ---`, 'info');
     try {
-      const response = await fetch(`/api/test-items/${test.id}/execute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'auto' })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
+      const result = await executeTest({ type: test.type, id: test.id, filename: test.file_path }, 'dashboard');
+      if (result === 'success') {
         successCount++;
+        appendExecutionLog(`--- Test ${test.name} finalizado: ✅ Éxito ---`, 'success');
       } else {
         failedCount++;
+        appendExecutionLog(`--- Test ${test.name} finalizado: ❌ Fallido ---`, 'error');
       }
     } catch (error) {
-      console.error('Error ejecutando test:', error);
       failedCount++;
+      appendExecutionLog(`--- Test ${test.name} finalizado: ❌ Error ---`, 'error');
     }
   }
 
   runAllBtn.disabled = false;
   runAllBtn.innerHTML = originalText;
 
-  showNotification(
-    `Ejecución completa: ${successCount} iniciados, ${failedCount} errores`,
-    successCount > 0 ? 'success' : 'error'
-  );
+  const summaryMessage = `Ejecución de suite completa: ${successCount} exitosos, ${failedCount} fallidos`;
+  appendExecutionLog(summaryMessage, failedCount === 0 ? 'success' : 'error');
+  showNotification(summaryMessage, failedCount === 0 ? 'success' : 'error');
 
-  // Recargar estadísticas
+  // Recargar estadísticas y la lista de tests de la suite
   await loadTestStatistics();
+  if (currentSuiteId) {
+    await loadTestsBySuite(currentSuiteId);
+  }
 }
 
-// ========================================
+// ======================================== 
 // MODAL DE AGREGAR TESTS
 // ========================================
 
@@ -1430,7 +1305,7 @@ async function addTestToCurrentSuite() {
   }
 }
 
-// ========================================
+// ======================================== 
 // FUNCIONES DE ELIMINACIÓN
 // ========================================
 
@@ -1523,7 +1398,7 @@ async function deleteTestConfirm(testId, testName) {
   }
 }
 
-// ========================================
+// ======================================== 
 // INICIALIZACIÓN
 // ========================================
 

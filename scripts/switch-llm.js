@@ -6,7 +6,7 @@ const path = require('path');
 
 const configPath = './config/llm.config.json';
 
-function switchLLM(provider) {
+function switchLLM(provider, modelName) {
   if (!fs.existsSync(configPath)) {
     console.error('❌ Archivo de configuración no encontrado:', configPath);
     process.exit(1);
@@ -35,6 +35,12 @@ function switchLLM(provider) {
   // Cambiar proveedor activo
   const previousProvider = config.activeProvider;
   config.activeProvider = provider;
+
+  // Si se especifica un modelo, cambiarlo
+  if (modelName) {
+    config.providers[provider].model = modelName;
+    console.log(`\n🔄 Modelo para '${provider}' actualizado a: ${modelName}`);
+  }
 
   // Guardar configuración
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
@@ -110,8 +116,8 @@ function showStatus() {
   });
 
   console.log('\n' + '='.repeat(50));
-  console.log(`\n💡 Para cambiar: npm run switch-llm <provider>`);
-  console.log('   Ejemplo: npm run switch-llm ollama\n');
+  console.log(`\n💡 Para cambiar: npm run switch-llm <provider> [model]`);
+  console.log('   Ejemplo: npm run switch-llm ollama llama3:latest\n');
 }
 
 // Main
@@ -121,5 +127,6 @@ if (args.length === 0 || args[0] === 'status') {
   showStatus();
 } else {
   const provider = args[0].toLowerCase();
-  switchLLM(provider);
+  const modelName = args[1]; // Puede ser undefined, y está bien
+  switchLLM(provider, modelName);
 }

@@ -34,7 +34,8 @@
     "@modelcontextprotocol/sdk": "^1.20.0",
     "better-sqlite3": "^12.4.1",
     "inquirer": "^8.2.0",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "ollama": "^0.6.2"
   },
   "devDependencies": {
     "@mobilenext/mobile-mcp": "^0.0.33",

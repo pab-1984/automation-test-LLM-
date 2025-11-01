@@ -1,5 +1,5 @@
 /**
- * Contiene funciones de ayuda reutilizables en toda la aplicación.
+ * funciones de ayuda reutilizables en toda la aplicación.
  */
 
 /**

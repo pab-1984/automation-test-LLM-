@@ -5,7 +5,7 @@
     "ollama": {
       "enabled": true,
       "baseUrl": "http://localhost:11434",
-      "model": "phi3:mini",
+      "model": "gemma:latest",
       "temperature": 0.1,
       "maxTokens": 4096,
       "streaming": false
@@ -18,7 +18,7 @@
       "maxTokens": 4096
     },
     "openai": {
-      "enabled": false,
+      "enabled": true,
       "apiKey": "env:OPENAI_API_KEY",
       "model": "gpt-4o-mini",
       "temperature": 0.1,
