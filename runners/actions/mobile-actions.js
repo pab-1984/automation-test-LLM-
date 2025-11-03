@@ -338,8 +338,9 @@ class MobileActions {
 
   /**
    * Resuelve coordenadas desde selector o coordenadas directas
+   * MEJORADO: Ahora usa cache, fuzzy matching y contexto
    */
-  async resolveCoordinates(params, mcpClient, elementFinder) {
+  async resolveCoordinates(params, mcpClient, elementFinder, options = {}) {
     // Si ya tiene coordenadas x,y, usarlas directamente
     if (params.x !== undefined && params.y !== undefined) {
       return { x: params.x, y: params.y };
@@ -348,6 +349,39 @@ class MobileActions {
     // Si tiene selector, buscar elemento y obtener coordenadas
     if (params.selector) {
       console.log(`   🔍 Buscando elemento: "${params.selector}"`);
+
+      // Opciones de búsqueda mejorada
+      const searchOptions = {
+        useCache: params.useCache !== false, // Por defecto usar cache
+        context: params.context || options.screenName || '', // Contexto para cache
+        fuzzy: params.fuzzy !== false, // Por defecto usar fuzzy matching
+        fuzzyThreshold: params.fuzzyThreshold || 0.8,
+        ...options
+      };
+
+      // Primero intentar desde cache si está habilitado
+      if (searchOptions.useCache) {
+        const cached = elementFinder.getFromCache(params.selector, searchOptions.context);
+        if (cached) {
+          // Verificar que las coordenadas cached aún son válidas
+          const elementsResult = await mcpClient.callTool({
+            name: 'mobile_list_elements_on_screen',
+            arguments: {}
+          });
+
+          const elementsText = elementsResult.content[0]?.text || '';
+          const elements = this.parseElementsList(elementsText);
+
+          // Buscar elementos cercanos a las coordenadas cacheadas
+          const nearby = elementFinder.findNearbyElements(cached.x, cached.y, elements, 30);
+          if (nearby.length > 0) {
+            console.log(`   ✓ Usando coordenadas desde cache`);
+            return { x: cached.x, y: cached.y };
+          } else {
+            console.log(`   ⚠️  Cache inválido, buscando de nuevo...`);
+          }
+        }
+      }
 
       // Obtener lista de elementos
       const elementsResult = await mcpClient.callTool({
@@ -358,8 +392,8 @@ class MobileActions {
       const elementsText = elementsResult.content[0]?.text || '';
       const elements = this.parseElementsList(elementsText);
 
-      // Buscar elemento que coincida con el selector
-      const element = elementFinder.findElementMobile(params.selector, elements);
+      // Buscar elemento que coincida con el selector (ahora con fuzzy matching)
+      const element = elementFinder.findElementMobile(params.selector, elements, searchOptions);
 
       if (!element) {
         throw new Error(`No se encontró elemento con selector: ${params.selector}`);
