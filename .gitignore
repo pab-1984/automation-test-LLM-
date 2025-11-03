@@ -39,6 +39,10 @@ temp/
 # Local documentation and backups (not for git)
 .local-docs/
 .local-backup/
+CHECKPOINT_2025-11-03.md
+COMERCIALIZACION.md
+MIGRATION_REPORTES_DB.md
+DATABASE_SETUP.md
 
 # Playwright
 playwright-report/

@@ -5,12 +5,33 @@ const { UniversalTestRunnerCore } = require('./core/runner-core.js');
 
 if (require.main === module) {
   // Parsear argumentos
-  const suiteFile = process.argv[2] || './tests/suites/ecommerce-suite.yml';
+  const args = process.argv.slice(2);
+  const suiteFile = args.find(arg => !arg.startsWith('--')) || './tests/suites/ecommerce-suite.yml';
+
   const options = {
-    recompile: process.argv.includes('--recompile') || process.argv.includes('-r')
+    recompile: args.includes('--recompile') || args.includes('-r'),
+    platform: 'web',  // Por defecto web
+    deviceId: null
   };
 
-  const runner = new UniversalTestRunnerCore();
+  // Parsear --platform=mobile o --mobile
+  const platformArg = args.find(arg => arg.startsWith('--platform='));
+  if (platformArg) {
+    options.platform = platformArg.split('=')[1];
+  } else if (args.includes('--mobile')) {
+    options.platform = 'mobile';
+  }
+
+  // Parsear --device=emulator-5554
+  const deviceArg = args.find(arg => arg.startsWith('--device='));
+  if (deviceArg) {
+    options.deviceId = deviceArg.split('=')[1];
+  }
+
+  const runner = new UniversalTestRunnerCore('./config/llm.config.json', {
+    platform: options.platform,
+    deviceId: options.deviceId
+  });
 
   runner.initialize()
     .then(() => runner.runSuite(suiteFile, options))

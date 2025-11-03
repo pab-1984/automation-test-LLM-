@@ -1,23 +1,26 @@
 // runners/core/runner-core.js
 const fs = require('fs');
 const yaml = require('js-yaml');
-const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
-const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio.js');
 const { TestExecutor } = require('./test-executor.js');
 const { ReportGenerator } = require('./report-generator.js');
 const { BrowserActions } = require('../actions/browser-actions.js');
+const { MobileActions } = require('../actions/mobile-actions.js');
 const { VariableReplacer } = require('../actions/variable-replacer.js');
 const { LLMProcessor } = require('../llm/llm-processor.js');
 const { ElementFinder } = require('../actions/element-finder.js');
+const { MCPClientFactory } = require('./mcp-client-factory.js');
 
 class UniversalTestRunnerCore extends TestExecutor {
-  constructor(configPath = './config/llm.config.json') {
+  constructor(configPath = './config/llm.config.json', options = {}) {
     super();
     this.config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     this.llmAdapter = null;
     this.mcpClient = null;
+    this.mcpClientWrapper = null;  // Wrapper del factory
     this.mcpTransport = null;
     this.pageIndex = null;
+    this.platform = options.platform || 'web';  // 'web' o 'mobile'
+    this.deviceId = options.deviceId || null;   // Para mobile
     this.results = {
       suite: '',
       passed: 0,
@@ -27,107 +30,76 @@ class UniversalTestRunnerCore extends TestExecutor {
       startTime: null,
       endTime: null
     };
-    
+
     // Inicializar utilidades
     this.elementFinder = new ElementFinder();
     this.variableReplacer = new VariableReplacer();
     this.browserActions = new BrowserActions();
+    this.mobileActions = new MobileActions();
     this.reportGenerator = new ReportGenerator();
     this.llmProcessor = new LLMProcessor();
   }
 
   async initialize() {
-    console.log('Iniciando Universal Test Runner (Modo MCP)...');
-    
+    console.log(`Iniciando Universal Test Runner (Plataforma: ${this.platform.toUpperCase()})...`);
+
     const activeProvider = this.config.activeProvider;
-    console.log(`Proveedor activo: ${activeProvider}`);
-    
+    console.log(`Proveedor LLM activo: ${activeProvider}`);
+
     const AdapterClass = require(`../adapters/${activeProvider}.adapter.js`);
     this.llmAdapter = new AdapterClass(this.config.providers[activeProvider]);
     await this.llmAdapter.initialize();
-    console.log(`LLM ${activeProvider} inicializado
-`);
+    console.log(`✅ LLM ${activeProvider} inicializado\n`);
 
-    console.log('Conectando al servidor MCP de Chrome DevTools...');
-    
-    let chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'; // Default path
-    try {
-      const testingConfig = JSON.parse(fs.readFileSync('./config/testing.config.json', 'utf8'));
-      if (testingConfig.chrome?.paths?.windows) {
-        chromePath = testingConfig.chrome.paths.windows;
-        console.log(`Ruta de Chrome cargada desde config: ${chromePath}`);
+    // Usar factory para crear cliente MCP según plataforma
+    const clientOptions = {};
+
+    if (this.platform === 'web') {
+      // Cargar configuración de Chrome
+      let chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+      try {
+        const testingConfig = JSON.parse(fs.readFileSync('./config/testing.config.json', 'utf8'));
+        if (testingConfig.chrome?.paths?.windows) {
+          chromePath = testingConfig.chrome.paths.windows;
+        }
+      } catch (e) {
+        // Usar ruta por defecto
       }
-    } catch (e) {
-      console.log('No se encontró testing.config.json, usando ruta de Chrome por defecto.');
+      clientOptions.chromePath = chromePath;
+
+    } else if (this.platform === 'mobile') {
+      // Opciones para mobile
+      if (this.deviceId) {
+        clientOptions.deviceId = this.deviceId;
+      }
     }
 
-    this.mcpTransport = new StdioClientTransport({
-      command: 'npx',
-      args: ['chrome-devtools-mcp', '--isolated'],
-      env: {
-        ...process.env,
-        CHROME_PATH: chromePath
-      }
-    });
+    // Crear cliente MCP usando factory
+    this.mcpClientWrapper = await MCPClientFactory.createClient(this.platform, clientOptions);
+    this.mcpClient = this.mcpClientWrapper.client;
+    this.mcpTransport = this.mcpClientWrapper.transport;
+    this.pageIndex = this.mcpClientWrapper.pageIndex;
 
-    this.mcpClient = new Client({
-      name: 'universal-test-runner',
-      version: '1.0.0'
-    }, {
-      capabilities: {}
-    });
-
-    await this.mcpClient.connect(this.mcpTransport);
-    console.log('Conectado al servidor MCP de Chrome DevTools');
-
+    // Mostrar herramientas disponibles
     const toolsResult = await this.mcpClient.listTools();
-    console.log(`Herramientas MCP disponibles (${toolsResult.tools.length}):`);
+    console.log(`\n📦 Herramientas MCP disponibles (${toolsResult.tools.length}):`);
     toolsResult.tools.slice(0, 5).forEach(tool => {
       console.log(`   - ${tool.name}`);
     });
     if (toolsResult.tools.length > 5) {
-      console.log(`   ... y ${toolsResult.tools.length - 5} más
-`);
+      console.log(`   ... y ${toolsResult.tools.length - 5} más`);
     }
 
-    console.log('Creando nueva página en el navegador...');
-    console.log('   Llamando a new_page con url="about:blank"...');
-    
-    try {
-      const newPageResult = await this.mcpClient.callTool({
-        name: 'new_page',
-        arguments: { url: 'about:blank' }
-      });
-      
-      console.log('   Resultado completo de new_page:');
-      console.log(JSON.stringify(newPageResult, null, 2));
-      
-      if (newPageResult.content && newPageResult.content[0]) {
-        const resultText = newPageResult.content[0].text;
-        console.log('   Texto del resultado:', resultText);
-        
-        const match = resultText.match(/^(\d+):[\s\S]*?\[selected\]/m);
-        
-        if (match) {
-          this.pageIndex = parseInt(match[1]);
-          console.log(`Página creada (índice: ${this.pageIndex})`);
-        } else {
-          console.log('No se pudo extraer pageIdx del resultado usando regex.');
-        }
-      } else {
-        console.log('newPageResult no tiene el formato esperado');
+    // Mostrar capacidades
+    const capabilities = Object.keys(this.mcpClientWrapper.capabilities || {})
+      .filter(key => this.mcpClientWrapper.capabilities[key] === true);
+    console.log(`\n✨ Capacidades habilitadas: ${capabilities.join(', ')}`);
+
+    if (this.platform === 'mobile') {
+      console.log(`\n📱 Dispositivo: ${this.mcpClientWrapper.deviceName || 'No seleccionado'}`);
+      if (this.mcpClientWrapper.availableDevices.length > 0) {
+        console.log(`📋 Dispositivos disponibles: ${this.mcpClientWrapper.availableDevices.length}`);
       }
-      
-      console.log('\n   Verificando páginas disponibles...');
-      const pagesListResult = await this.mcpClient.callTool({
-        name: 'list_pages',
-        arguments: {}
-      });
-      console.log('   Páginas actuales:', pagesListResult.content[0]?.text);
-      
-    } catch (error) {
-      console.error('Error al crear página:', error);
-      throw error;
     }
 
     console.log('');
@@ -400,6 +372,11 @@ class UniversalTestRunnerCore extends TestExecutor {
 
     console.log('');
 
+    // Guardar logs en el runner para que puedan ser accedidos por el report generator
+    this.consoleLogs = consoleLogs;
+    this.networkRequests = networkRequests;
+    this.performanceData = performanceData;
+
     return {
       success: !testReport.toLowerCase().includes('error') && !testReport.toLowerCase().includes('falló'),
       report: testReport,
@@ -481,8 +458,9 @@ Your actions:
 
   async cleanup() {
     console.log('\nLimpiando...');
-    
-    if (this.pageIndex !== null && this.mcpClient) {
+
+    // Cerrar página solo en web
+    if (this.platform === 'web' && this.pageIndex !== null && this.mcpClient) {
       try {
         await this.mcpClient.callTool({
           name: 'close_page',
@@ -493,16 +471,17 @@ Your actions:
         console.log(`No se pudo cerrar la página: ${e.message}`);
       }
     }
-    
-    if (this.mcpClient) {
-      await this.mcpClient.close();
-      console.log('Cliente MCP cerrado');
+
+    // Usar factory para cerrar cliente MCP
+    if (this.mcpClientWrapper) {
+      await MCPClientFactory.closeClient(this.mcpClientWrapper);
     }
-    
+
+    // Cleanup del LLM adapter
     if (this.llmAdapter && this.llmAdapter.cleanup) {
       await this.llmAdapter.cleanup();
     }
-    
+
     console.log('Limpieza completada');
   }
 }

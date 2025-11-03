@@ -283,6 +283,106 @@ class DatabaseService {
     return result.lastInsertRowid;
   }
 
+  deleteEvidence(id) {
+    const stmt = this.db.prepare('DELETE FROM evidences WHERE id = ?');
+    return stmt.run(id);
+  }
+
+  getEvidenceById(id) {
+    const stmt = this.db.prepare('SELECT * FROM evidences WHERE id = ?');
+    return stmt.get(id);
+  }
+
+  // Método helper para crear múltiples evidencias en una transacción
+  createEvidencesBatch(executionId, evidences) {
+    const stmt = this.db.prepare(`
+      INSERT INTO evidences (execution_id, type, file_path, metadata)
+      VALUES (?, ?, ?, ?)
+    `);
+
+    const transaction = this.db.transaction((items) => {
+      const ids = [];
+      for (const evidence of items) {
+        const metadataJson = evidence.metadata ? JSON.stringify(evidence.metadata) : null;
+        const result = stmt.run(executionId, evidence.type, evidence.filePath, metadataJson);
+        ids.push(result.lastInsertRowid);
+      }
+      return ids;
+    });
+
+    return transaction(evidences);
+  }
+
+  // Método para guardar reporte completo con logs estructurados
+  saveExecutionReport(executionId, reportData) {
+    const {
+      status,
+      duration,
+      consoleLogs,
+      networkRequests,
+      performanceData,
+      steps,
+      errorMessage
+    } = reportData;
+
+    // Estructurar logs en formato JSON
+    const logsJson = JSON.stringify({
+      console: consoleLogs || [],
+      network: networkRequests || [],
+      performance: performanceData || {},
+      steps: steps || []
+    });
+
+    return this.updateExecution(executionId, status, duration, logsJson, errorMessage);
+  }
+
+  // Obtener reporte completo de una ejecución con evidencias
+  getExecutionReport(executionId) {
+    const execution = this.getExecutionById(executionId);
+    if (!execution) return null;
+
+    const evidences = this.getEvidencesByExecution(executionId);
+
+    // Parsear logs JSON
+    let logs = { console: [], network: [], performance: {}, steps: [] };
+    if (execution.logs) {
+      try {
+        logs = JSON.parse(execution.logs);
+      } catch (e) {
+        console.warn('No se pudo parsear logs de ejecución:', e.message);
+      }
+    }
+
+    return {
+      ...execution,
+      logs,
+      evidences
+    };
+  }
+
+  // Obtener últimas N ejecuciones con evidencias
+  getRecentExecutions(limit = 20) {
+    const stmt = this.db.prepare(`
+      SELECT e.*, t.name as test_name, t.type as test_type,
+        (SELECT COUNT(*) FROM evidences WHERE execution_id = e.id) as evidence_count
+      FROM executions e
+      JOIN tests t ON e.test_id = t.id
+      ORDER BY e.started_at DESC
+      LIMIT ?
+    `);
+    return stmt.all(limit);
+  }
+
+  // Limpiar ejecuciones antiguas (más de X días)
+  cleanupOldExecutions(daysToKeep = 30) {
+    const stmt = this.db.prepare(`
+      DELETE FROM executions
+      WHERE started_at < datetime('now', '-' || ? || ' days')
+    `);
+    const result = stmt.run(daysToKeep);
+    return result.changes;
+  }
+
   // ==========================================
   // ESTADÍSTICAS
   // ==========================================

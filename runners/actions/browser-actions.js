@@ -279,7 +279,35 @@ class BrowserActions {
           });
           console.log(` ✓ Screenshot: ${screenshotPath}`);
           result.output = screenshotPath;
-          result.success = true; // Screenshot siempre es exitoso si no lanza error
+          result.success = true;
+
+          // Registrar evidencia en DB si se proporcionó executionId en config
+          if (config && config.executionId) {
+            try {
+              const { getDatabase } = require('../../database/db');
+              const db = getDatabase();
+              const fs = require('fs');
+
+              // Obtener metadata del archivo
+              let fileSize = 0;
+              try {
+                const stats = fs.statSync(screenshotPath);
+                fileSize = stats.size;
+              } catch (e) {
+                // Ignorar si no se puede obtener stats
+              }
+
+              db.createEvidence(config.executionId, 'screenshot', screenshotPath, {
+                filename: params.filename,
+                fullPage: true,
+                size: fileSize,
+                timestamp: new Date().toISOString()
+              });
+            } catch (err) {
+              // No fallar si no se puede registrar en DB
+              console.log(`   ⚠️  No se pudo registrar evidencia en DB: ${err.message}`);
+            }
+          }
           break;
 
         case 'clearCookies':
@@ -663,7 +691,23 @@ class BrowserActions {
           const analysisPath = `./tests/screenshots/analisis-${Date.now()}.json`;
           require('fs').writeFileSync(analysisPath, JSON.stringify(elements, null, 2));
           console.log(` 💾 Análisis guardado: ${analysisPath}`);
-          
+
+          // Registrar evidencia en DB si se proporcionó executionId en config
+          if (config && config.executionId) {
+            try {
+              const { getDatabase } = require('../../database/db');
+              const db = getDatabase();
+
+              db.createEvidence(config.executionId, 'log', analysisPath, {
+                type: 'page_analysis',
+                elementCount: elements.length,
+                timestamp: new Date().toISOString()
+              });
+            } catch (err) {
+              console.log(`   ⚠️  No se pudo registrar evidencia en DB: ${err.message}`);
+            }
+          }
+
           result.output = elements;
           result.success = true;
           break;

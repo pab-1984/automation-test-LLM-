@@ -1,7 +1,8 @@
 // runners/core/test-executor.js
 const fs = require('fs');
 const yaml = require('js-yaml');
-const { sleep } = require('../utils/helpers.js'); // CORREGIDO: Apunta a runner-core para sleep
+const { sleep } = require('../utils/helpers.js');
+const { getDatabase } = require('../../database/db');
 
 class TestExecutor {
   async runSuite(suiteFile, options = {}) {
@@ -41,6 +42,52 @@ class TestExecutor {
 
     this.executionMode = suite.executionMode || suite.mode || 'direct';
 
+    // Inicializar propiedades para captura de logs
+    this.consoleLogs = [];
+    this.networkRequests = [];
+    this.performanceData = {};
+
+    // Crear ejecución en base de datos
+    this.executionId = null;
+    try {
+      const db = getDatabase();
+
+      // Buscar o crear el test en la base de datos
+      // Usamos la suite por defecto (id=1) y creamos un test temporal
+      const path = require('path');
+      const testName = `${suite.suite} - ${path.basename(suiteFile)}`;
+
+      // Buscar test existente por file_path
+      const existingTests = db.getAllTests();
+      let testRecord = existingTests.find(t => t.file_path === suiteFile);
+
+      // Si no existe, crear uno nuevo en la suite por defecto
+      if (!testRecord) {
+        testRecord = db.createTest(
+          1, // suite_id por defecto
+          testName,
+          'yaml',
+          suiteFile,
+          suite.description || '',
+          suite.baseUrl || ''
+        );
+        console.log(`💾 Test registrado en DB (id: ${testRecord.id})`);
+      }
+
+      // Crear registro de ejecución
+      const execution = db.createExecution(testRecord.id, this.executionMode);
+      this.executionId = execution.id;
+      console.log(`💾 Ejecución creada en DB (execution_id: ${this.executionId})`);
+
+      // Pasar executionId al config para que browser-actions pueda usarlo
+      if (!this.config) this.config = {};
+      this.config.executionId = this.executionId;
+
+    } catch (err) {
+      console.warn('⚠️  No se pudo crear ejecución en DB:', err.message);
+      console.warn('    Continuando sin registro en DB...');
+    }
+
     console.log(`📝 Suite: ${suite.suite}`);
     console.log(`📖 Descripcion: ${suite.description}`);
     console.log(`🌐 Base URL: ${suite.baseUrl}`);
@@ -71,7 +118,7 @@ class TestExecutor {
     }
 
     this.results.endTime = new Date();
-    await this.reportGenerator.generateReport(this);
+    await this.reportGenerator.generateReport(this, this.executionId);
 
     // Si se ejecutó con LLM y no se usó test compilado, compilar ahora
     if (!this.usingCompiledVersion && this.executionMode === 'llm') {
@@ -234,10 +281,30 @@ class TestExecutor {
     const action = step.action;
     const params = { ...step };
     delete params.action;
-    
+
     const replacedParams = this.variableReplacer.replaceVariablesInParams(params, suite);
 
-    return await this.browserActions.executeActionMCP(action, replacedParams, suite, this.mcpClient, this.elementFinder, this.config);
+    // Delegar a las acciones correctas según la plataforma
+    if (this.platform === 'mobile') {
+      return await this.mobileActions.executeActionMCP(
+        action,
+        replacedParams,
+        suite,
+        this.mcpClient,
+        this.elementFinder,
+        this.config
+      );
+    } else {
+      // web (default)
+      return await this.browserActions.executeActionMCP(
+        action,
+        replacedParams,
+        suite,
+        this.mcpClient,
+        this.elementFinder,
+        this.config
+      );
+    }
   }
 
   buildStepPrompt(step, context, systemPrompt) {

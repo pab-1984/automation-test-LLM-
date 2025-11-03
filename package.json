@@ -16,6 +16,9 @@
     "cli-test": "node scripts/cli.js",
     "web": "node scripts/web-server.js",
     "test-natural": "node scripts/test-natural.js",
+    "test-mobile": "node scripts/test-mobile.js",
+    "mobile-devices": "node scripts/test-mobile.js --list",
+    "migrate-reports": "node scripts/migrate-reports-to-db.js",
     "status": "node scripts/switch-llm.js status"
   },
   "keywords": [

@@ -82,6 +82,140 @@ class ElementFinder {
     }
     return '';
   }
+
+  // ==========================================
+  // MÉTODOS PARA MOBILE
+  // ==========================================
+
+  /**
+   * Busca un elemento móvil por selector y retorna sus coordenadas
+   * @param {string} selector - Texto o descripción del elemento
+   * @param {Array} elements - Lista de elementos del snapshot móvil
+   * @returns {object|null} Elemento con coordenadas {x, y, text, type}
+   */
+  findElementMobile(selector, elements) {
+    if (!elements || elements.length === 0) return null;
+
+    // Normalizar selector
+    const normalizedSelector = selector.toLowerCase().trim();
+
+    // 1. Búsqueda exacta por texto
+    for (const element of elements) {
+      if (element.text && element.text.toLowerCase() === normalizedSelector) {
+        if (element.x !== null && element.y !== null) {
+          return element;
+        }
+      }
+    }
+
+    // 2. Búsqueda parcial por texto
+    for (const element of elements) {
+      if (element.text && element.text.toLowerCase().includes(normalizedSelector)) {
+        if (element.x !== null && element.y !== null) {
+          return element;
+        }
+      }
+    }
+
+    // 3. Búsqueda por tipo de elemento
+    for (const element of elements) {
+      if (element.type && element.type.toLowerCase() === normalizedSelector) {
+        if (element.x !== null && element.y !== null) {
+          return element;
+        }
+      }
+    }
+
+    // 4. Búsqueda por atributos
+    for (const element of elements) {
+      if (element.attributes && element.attributes.toLowerCase().includes(normalizedSelector)) {
+        if (element.x !== null && element.y !== null) {
+          return element;
+        }
+      }
+    }
+
+    console.log(`   ⚠️  No se encontró elemento móvil con selector: ${selector}`);
+    console.log(`   💡 Elementos disponibles (primeros 5):`);
+    elements.slice(0, 5).forEach(el => {
+      console.log(`      ${el.type} "${el.text}" at (${el.x}, ${el.y})`);
+    });
+
+    return null;
+  }
+
+  /**
+   * Busca múltiples elementos móviles por selector
+   * @param {string} selector - Texto o descripción del elemento
+   * @param {Array} elements - Lista de elementos del snapshot móvil
+   * @returns {Array} Lista de elementos que coinciden
+   */
+  findAllElementsMobile(selector, elements) {
+    if (!elements || elements.length === 0) return [];
+
+    const normalizedSelector = selector.toLowerCase().trim();
+    const matches = [];
+
+    for (const element of elements) {
+      // Búsqueda por texto
+      if (element.text && element.text.toLowerCase().includes(normalizedSelector)) {
+        if (element.x !== null && element.y !== null) {
+          matches.push(element);
+        }
+      }
+      // Búsqueda por tipo
+      else if (element.type && element.type.toLowerCase() === normalizedSelector) {
+        if (element.x !== null && element.y !== null) {
+          matches.push(element);
+        }
+      }
+      // Búsqueda por atributos
+      else if (element.attributes && element.attributes.toLowerCase().includes(normalizedSelector)) {
+        if (element.x !== null && element.y !== null) {
+          matches.push(element);
+        }
+      }
+    }
+
+    return matches;
+  }
+
+  /**
+   * Calcula el centro de un elemento móvil desde sus bounds
+   * @param {object} bounds - {left, top, width, height}
+   * @returns {object} {x, y}
+   */
+  calculateCenterFromBounds(bounds) {
+    return {
+      x: bounds.left + (bounds.width / 2),
+      y: bounds.top + (bounds.height / 2)
+    };
+  }
+
+  /**
+   * Filtra elementos móviles por tipo
+   * @param {Array} elements - Lista de elementos
+   * @param {string} type - Tipo de elemento (Button, EditText, etc.)
+   * @returns {Array} Elementos del tipo especificado
+   */
+  filterMobileElementsByType(elements, type) {
+    return elements.filter(el =>
+      el.type && el.type.toLowerCase() === type.toLowerCase()
+    );
+  }
+
+  /**
+   * Filtra elementos móviles que contengan un texto específico
+   * @param {Array} elements - Lista de elementos
+   * @param {string} text - Texto a buscar
+   * @returns {Array} Elementos que contienen el texto
+   */
+  filterMobileElementsByText(elements, text) {
+    const normalizedText = text.toLowerCase().trim();
+    return elements.filter(el =>
+      el.text && el.text.toLowerCase().includes(normalizedText)
+    );
+  }
 }
 
 module.exports = { ElementFinder };
