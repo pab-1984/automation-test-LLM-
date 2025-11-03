@@ -1,0 +1,208 @@
+suite: "Gmail Android - Tests de Correo Electrónico"
+description: "Suite de tests para Gmail en Android - Composición, navegación de bandeja de entrada y búsqueda"
+platform: "android"
+packageName: "com.google.android.gm"
+
+tests:
+  - name: "TC001 - Abrir Gmail y verificar bandeja de entrada"
+    description: "Abre Gmail y verifica que la bandeja de entrada está accesible"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.gm"
+        description: "Abrir Gmail"
+
+      - action: wait
+        description: "Esperar que cargue Gmail"
+
+      - action: verify
+        description: "Verificar que aparece 'Recibidos' o 'Inbox'"
+
+      - action: screenshot
+        filename: "gmail-inbox"
+        description: "Captura de la bandeja de entrada"
+
+    expectedResult: "Gmail abre y muestra la bandeja de entrada"
+
+  - name: "TC002 - Componer nuevo correo"
+    description: "Abre el compositor de correos y verifica los campos principales"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.gm"
+        description: "Abrir Gmail"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Botón de redactar (FAB con ícono de lápiz)"
+
+      - action: wait
+        description: "Esperar que abra el compositor"
+
+      - action: verify
+        description: "Verificar que aparece el campo 'Para' o 'To'"
+
+      - action: screenshot
+        filename: "gmail-compose"
+        description: "Captura del compositor de correo"
+
+      - action: tap
+        description: "Campo 'Para'"
+
+      - action: fill
+        value: "test@example.com"
+        description: "Llenar destinatario"
+
+      - action: tap
+        description: "Campo 'Asunto' o 'Subject'"
+
+      - action: fill
+        value: "Test automatizado"
+        description: "Llenar asunto"
+
+      - action: screenshot
+        filename: "gmail-compose-filled"
+        description: "Captura con campos llenados"
+
+      - action: pressBack
+        description: "Salir del compositor"
+
+      - action: tap
+        description: "Botón 'Descartar' o 'Discard'"
+
+    expectedResult: "Se puede acceder y llenar el compositor de correos correctamente"
+
+  - name: "TC003 - Buscar correos"
+    description: "Utiliza la búsqueda de Gmail para encontrar correos"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.gm"
+        description: "Abrir Gmail"
+
+      - action: tap
+        description: "Ícono de búsqueda (lupa)"
+
+      - action: wait
+        description: "Esperar que abra el campo de búsqueda"
+
+      - action: fill
+        value: "important"
+        description: "Buscar palabra 'important'"
+
+      - action: pressButton
+        button: "enter"
+        description: "Ejecutar búsqueda"
+
+      - action: wait
+        description: "Esperar resultados de búsqueda"
+
+      - action: screenshot
+        filename: "gmail-search-results"
+        description: "Captura de resultados de búsqueda"
+
+      - action: pressBack
+        description: "Volver a bandeja de entrada"
+
+    expectedResult: "La búsqueda funciona y muestra resultados"
+
+  - name: "TC004 - Navegar por el menú lateral"
+    description: "Abre el menú lateral y verifica las opciones disponibles"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.gm"
+        description: "Abrir Gmail"
+
+      - action: tap
+        description: "Ícono de menú hamburguesa (tres líneas)"
+
+      - action: wait
+        description: "Esperar que abra el drawer"
+
+      - action: verify
+        description: "Verificar que aparece 'Todos los buzones' o 'All inboxes'"
+
+      - action: verify
+        description: "Verificar que aparece 'Enviados' o 'Sent'"
+
+      - action: screenshot
+        filename: "gmail-drawer"
+        description: "Captura del menú lateral"
+
+      - action: tap
+        description: "Opción 'Enviados' o 'Sent'"
+
+      - action: wait
+        description: "Esperar que cargue enviados"
+
+      - action: verify
+        description: "Verificar que aparece 'Enviados' en el título"
+
+      - action: screenshot
+        filename: "gmail-sent"
+        description: "Captura de correos enviados"
+
+    expectedResult: "El menú lateral permite navegar entre diferentes carpetas"
+
+  - name: "TC005 - Scroll en lista de correos"
+    description: "Realiza scroll en la lista de correos electrónicos"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.gm"
+        description: "Abrir Gmail"
+
+      - action: wait
+        description: "Esperar que cargue la lista"
+
+      - action: screenshot
+        filename: "gmail-list-before-scroll"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1400
+        toX: 500
+        toY: 400
+        duration: 400
+        description: "Scroll hacia abajo en la lista"
+
+      - action: screenshot
+        filename: "gmail-list-after-scroll"
+
+      - action: swipe
+        fromX: 500
+        fromY: 400
+        toX: 500
+        toY: 1400
+        duration: 400
+        description: "Scroll hacia arriba"
+
+      - action: screenshot
+        filename: "gmail-list-scroll-up"
+
+    expectedResult: "El scroll funciona correctamente en la lista de correos"
+
+  - name: "TC006 - Refrescar bandeja de entrada (Pull to refresh)"
+    description: "Realiza pull-to-refresh en la bandeja de entrada"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.gm"
+        description: "Abrir Gmail"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: swipe
+        fromX: 500
+        fromY: 300
+        toX: 500
+        toY: 800
+        duration: 500
+        description: "Pull to refresh (deslizar hacia abajo desde arriba)"
+
+      - action: wait
+        description: "Esperar que termine de refrescar"
+
+      - action: screenshot
+        filename: "gmail-refreshed"
+        description: "Captura después de refrescar"
+
+    expectedResult: "El pull-to-refresh actualiza la bandeja de entrada"

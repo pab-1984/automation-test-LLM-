@@ -20,7 +20,12 @@
     "mobile-devices": "node scripts/test-mobile.js --list",
     "create-mobile-test": "node scripts/create-mobile-test.js",
     "migrate-reports": "node scripts/migrate-reports-to-db.js",
-    "status": "node scripts/switch-llm.js status"
+    "status": "node scripts/switch-llm.js status",
+    "test:mobile:all": "node scripts/run-all-mobile-tests.js all",
+    "test:mobile:android": "node scripts/run-all-mobile-tests.js android",
+    "test:mobile:ios": "node scripts/run-all-mobile-tests.js ios",
+    "test:mobile:common": "node scripts/run-all-mobile-tests.js common",
+    "test:mobile:batch": "node scripts/run-all-mobile-tests.js"
   },
   "keywords": [
     "testing",
@@ -46,7 +51,7 @@
     "@types/express": "^5.0.5",
     "@types/inquirer": "^9.0.9",
     "@types/node": "^24.9.2",
-    "chrome-devtools-mcp": "^0.4.0",
+    "chrome-devtools-mcp": "^0.9.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },

@@ -1,0 +1,235 @@
+suite: "Notes iOS - Tests de Aplicación de Notas"
+description: "Suite de tests para Notes en iOS - Creación, edición y navegación de notas"
+platform: "ios"
+bundleId: "com.apple.mobilenotes"
+
+tests:
+  - name: "TC001 - Abrir Notes y verificar lista"
+    description: "Abre la app Notes y verifica que muestra la lista de notas"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilenotes"
+        description: "Abrir Notes"
+
+      - action: wait
+        description: "Esperar que cargue Notes"
+
+      - action: verify
+        description: "Verificar que aparece 'Notas' o 'Notes' en el título"
+
+      - action: screenshot
+        filename: "notes-home"
+        description: "Captura de la pantalla principal"
+
+    expectedResult: "Notes abre y muestra la lista de notas disponibles"
+
+  - name: "TC002 - Crear nueva nota"
+    description: "Crea una nueva nota con texto"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilenotes"
+        description: "Abrir Notes"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Botón de nueva nota (ícono de lápiz o '+' en esquina)"
+
+      - action: wait
+        description: "Esperar que abra nota nueva"
+
+      - action: screenshot
+        filename: "notes-new-note"
+
+      - action: tap
+        description: "Área de texto de la nota"
+
+      - action: fill
+        value: "Esta es una nota de prueba creada automáticamente"
+        description: "Escribir contenido de la nota"
+
+      - action: screenshot
+        filename: "notes-note-with-text"
+        description: "Captura de nota con texto"
+
+      - action: tap
+        description: "Botón 'Listo' o 'Done' o '<' para volver"
+
+      - action: screenshot
+        filename: "notes-back-to-list"
+
+    expectedResult: "Se puede crear una nueva nota con texto correctamente"
+
+  - name: "TC003 - Editar nota existente"
+    description: "Abre y edita una nota existente"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilenotes"
+        description: "Abrir Notes"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Primera nota en la lista"
+
+      - action: wait
+        description: "Esperar que abra la nota"
+
+      - action: screenshot
+        filename: "notes-opened-note"
+
+      - action: tap
+        description: "Área de texto"
+
+      - action: fill
+        value: "\nTexto añadido en edición"
+        description: "Añadir más texto"
+
+      - action: screenshot
+        filename: "notes-edited-note"
+
+      - action: tap
+        description: "Volver a lista de notas"
+
+    expectedResult: "La nota se edita correctamente"
+
+  - name: "TC004 - Buscar nota"
+    description: "Usa la funcionalidad de búsqueda para encontrar notas"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilenotes"
+        description: "Abrir Notes"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Campo de búsqueda o ícono de lupa"
+
+      - action: wait
+        description: "Esperar que active búsqueda"
+
+      - action: fill
+        value: "prueba"
+        description: "Buscar palabra 'prueba'"
+
+      - action: wait
+        description: "Esperar resultados de búsqueda"
+
+      - action: screenshot
+        filename: "notes-search-results"
+        description: "Captura de resultados de búsqueda"
+
+      - action: tap
+        description: "Cancelar búsqueda"
+
+    expectedResult: "La búsqueda encuentra notas relevantes"
+
+  - name: "TC005 - Scroll en lista de notas"
+    description: "Realiza scroll vertical en la lista de notas"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilenotes"
+        description: "Abrir Notes"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "notes-list-top"
+
+      - action: swipe
+        fromX: 200
+        fromY: 500
+        toX: 200
+        toY: 200
+        duration: 400
+        description: "Scroll hacia abajo"
+
+      - action: screenshot
+        filename: "notes-list-scrolled"
+
+      - action: swipe
+        fromX: 200
+        fromY: 200
+        toX: 200
+        toY: 500
+        duration: 400
+        description: "Scroll hacia arriba"
+
+      - action: screenshot
+        filename: "notes-list-back-top"
+
+    expectedResult: "El scroll funciona correctamente en la lista"
+
+  - name: "TC006 - Cambiar a vista de carpetas"
+    description: "Navega a la vista de carpetas/grupos"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilenotes"
+        description: "Abrir Notes"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Botón '<' o 'Carpetas' para volver a carpetas"
+
+      - action: wait
+        description: "Esperar vista de carpetas"
+
+      - action: verify
+        description: "Verificar que aparece 'Carpetas' o 'Folders'"
+
+      - action: screenshot
+        filename: "notes-folders-view"
+        description: "Captura de vista de carpetas"
+
+      - action: tap
+        description: "Una carpeta (ej: Notas, iCloud)"
+
+      - action: wait
+        description: "Esperar que abra la carpeta"
+
+      - action: screenshot
+        filename: "notes-folder-content"
+
+    expectedResult: "Navega correctamente entre carpetas"
+
+  - name: "TC007 - Eliminar nota (swipe)"
+    description: "Elimina una nota usando swipe"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilenotes"
+        description: "Abrir Notes"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "notes-before-delete"
+
+      - action: swipe
+        fromX: 300
+        fromY: 300
+        toX: 50
+        toY: 300
+        duration: 300
+        description: "Swipe hacia la izquierda en una nota"
+
+      - action: wait
+        description: "Esperar que aparezca botón eliminar"
+
+      - action: screenshot
+        filename: "notes-delete-revealed"
+        description: "Captura mostrando botón de eliminar"
+
+      - action: tap
+        description: "Cancelar (tocar en cualquier otro lugar)"
+
+      - action: screenshot
+        filename: "notes-delete-cancelled"
+
+    expectedResult: "El swipe revela la opción de eliminar"

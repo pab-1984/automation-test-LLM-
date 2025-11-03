@@ -1,0 +1,149 @@
+suite: "Chrome Android - Tests de Navegación Web"
+description: "Suite de tests para Google Chrome en Android - Navegación, búsqueda y tabs"
+platform: "android"
+packageName: "com.android.chrome"
+
+tests:
+  - name: "TC001 - Abrir Chrome y navegar a Wikipedia"
+    description: "Abre Chrome y navega a Wikipedia.org"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir Google Chrome"
+
+      - action: wait
+        description: "Esperar que cargue Chrome"
+
+      - action: tap
+        description: "Barra de direcciones o campo de búsqueda"
+
+      - action: fill
+        value: "wikipedia.org"
+        description: "Escribir wikipedia.org"
+
+      - action: pressButton
+        button: "enter"
+        description: "Presionar Enter para navegar"
+
+      - action: wait
+        description: "Esperar que cargue Wikipedia"
+
+      - action: verify
+        description: "Verificar que aparece el logo de Wikipedia"
+
+      - action: screenshot
+        filename: "chrome-wikipedia"
+        description: "Captura de Wikipedia cargada"
+
+    expectedResult: "Chrome abre y navega exitosamente a Wikipedia.org"
+
+  - name: "TC002 - Búsqueda en Google"
+    description: "Realiza una búsqueda en Google desde Chrome"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir Google Chrome"
+
+      - action: tap
+        description: "Campo de búsqueda en la página de inicio de Google"
+
+      - action: fill
+        value: "testing móvil automatizado"
+        description: "Escribir término de búsqueda"
+
+      - action: pressButton
+        button: "enter"
+        description: "Buscar"
+
+      - action: wait
+        description: "Esperar resultados de búsqueda"
+
+      - action: verify
+        description: "Verificar que aparecen resultados"
+
+      - action: screenshot
+        filename: "chrome-search-results"
+        description: "Captura de resultados de búsqueda"
+
+    expectedResult: "La búsqueda muestra resultados correctamente"
+
+  - name: "TC003 - Navegar usando botón atrás"
+    description: "Navega entre páginas y usa el botón atrás"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir Google Chrome"
+
+      - action: tap
+        description: "Barra de direcciones"
+
+      - action: fill
+        value: "github.com"
+        description: "Ir a GitHub"
+
+      - action: pressButton
+        button: "enter"
+
+      - action: wait
+        description: "Esperar que cargue GitHub"
+
+      - action: screenshot
+        filename: "chrome-github"
+
+      - action: pressBack
+        description: "Presionar botón atrás"
+
+      - action: verify
+        description: "Verificar que volvió a la página anterior"
+
+      - action: screenshot
+        filename: "chrome-back-navigation"
+
+    expectedResult: "El botón atrás navega correctamente a la página anterior"
+
+  - name: "TC004 - Scroll en página web"
+    description: "Demuestra scroll vertical en una página web"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir Google Chrome"
+
+      - action: tap
+        description: "Barra de direcciones"
+
+      - action: fill
+        value: "news.ycombinator.com"
+        description: "Navegar a Hacker News"
+
+      - action: pressButton
+        button: "enter"
+
+      - action: wait
+        description: "Esperar que cargue la página"
+
+      - action: screenshot
+        filename: "chrome-before-scroll"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1200
+        toX: 500
+        toY: 400
+        duration: 300
+        description: "Scroll hacia abajo"
+
+      - action: screenshot
+        filename: "chrome-after-scroll"
+
+      - action: swipe
+        fromX: 500
+        fromY: 400
+        toX: 500
+        toY: 1200
+        duration: 300
+        description: "Scroll hacia arriba"
+
+      - action: screenshot
+        filename: "chrome-scroll-up"
+
+    expectedResult: "El scroll funciona correctamente en ambas direcciones"

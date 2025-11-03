@@ -1,0 +1,123 @@
+suite: "Android Settings - Tests de Configuración"
+description: "Suite de tests para la app de Configuración de Android - Navegación de menús y verificación de información"
+platform: "android"
+packageName: "com.android.settings"
+
+tests:
+  - name: "TC001 - Abrir Configuración y verificar secciones"
+    description: "Abre la app de Configuración y verifica que las secciones principales estén visibles"
+    steps:
+      - action: launchApp
+        packageName: "com.android.settings"
+        description: "Abrir Configuración del sistema"
+
+      - action: wait
+        description: "Esperar que cargue la configuración"
+
+      - action: verify
+        description: "Verificar que aparece 'Red e Internet' o 'Network'"
+
+      - action: verify
+        description: "Verificar que aparece 'Pantalla' o 'Display'"
+
+      - action: screenshot
+        filename: "settings-home"
+        description: "Captura del menú principal de configuración"
+
+    expectedResult: "La app de configuración muestra las secciones principales"
+
+  - name: "TC002 - Ver información del dispositivo"
+    description: "Navega a 'Acerca del teléfono' para ver la versión de Android"
+    steps:
+      - action: launchApp
+        packageName: "com.android.settings"
+        description: "Abrir Configuración"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1400
+        toX: 500
+        toY: 400
+        duration: 500
+        description: "Scroll hacia abajo para ver más opciones"
+
+      - action: screenshot
+        filename: "settings-scrolled"
+
+      - action: tap
+        description: "Acerca del teléfono' o 'About phone'"
+
+      - action: wait
+        description: "Esperar que cargue la información del dispositivo"
+
+      - action: verify
+        description: "Verificar que aparece 'Versión de Android' o 'Android version'"
+
+      - action: screenshot
+        filename: "settings-about-phone"
+        description: "Captura de información del dispositivo"
+
+    expectedResult: "Se muestra la información del dispositivo incluyendo versión de Android"
+
+  - name: "TC003 - Navegar a Pantalla (Display)"
+    description: "Accede a la configuración de pantalla"
+    steps:
+      - action: launchApp
+        packageName: "com.android.settings"
+        description: "Abrir Configuración"
+
+      - action: tap
+        description: "Pantalla' o 'Display'"
+
+      - action: wait
+        description: "Esperar que cargue opciones de pantalla"
+
+      - action: verify
+        description: "Verificar que aparece 'Brillo' o 'Brightness'"
+
+      - action: screenshot
+        filename: "settings-display"
+
+      - action: pressBack
+        description: "Volver al menú principal"
+
+      - action: screenshot
+        filename: "settings-back-home"
+
+    expectedResult: "Navega a configuración de pantalla y vuelve correctamente"
+
+  - name: "TC004 - Explorar Red e Internet"
+    description: "Accede a configuración de red"
+    steps:
+      - action: launchApp
+        packageName: "com.android.settings"
+        description: "Abrir Configuración"
+
+      - action: tap
+        description: "Red e Internet' o 'Network & Internet'"
+
+      - action: wait
+        description: "Esperar que cargue opciones de red"
+
+      - action: verify
+        description: "Verificar que aparece 'Wi-Fi'"
+
+      - action: screenshot
+        filename: "settings-network"
+
+      - action: tap
+        description: "Wi-Fi"
+
+      - action: wait
+        description: "Esperar que cargue Wi-Fi"
+
+      - action: screenshot
+        filename: "settings-wifi"
+
+      - action: pressBack
+        description: "Volver a Red e Internet"
+
+      - action: pressBack
+        description: "Volver al menú principal"
+
+    expectedResult: "Navega por las opciones de red correctamente"

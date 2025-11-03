@@ -1,0 +1,186 @@
+suite: "Calculator Android - Tests de Calculadora"
+description: "Suite de tests para la Calculadora de Android - Operaciones básicas y verificación de resultados"
+platform: "android"
+packageName: "com.google.android.calculator"
+
+tests:
+  - name: "TC001 - Suma simple"
+    description: "Realiza una suma simple: 5 + 3 = 8"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.calculator"
+        description: "Abrir Calculadora"
+
+      - action: wait
+        description: "Esperar que cargue la calculadora"
+
+      - action: tap
+        description: "Botón 5"
+
+      - action: tap
+        description: "Botón +"
+
+      - action: tap
+        description: "Botón 3"
+
+      - action: tap
+        description: "Botón ="
+
+      - action: verify
+        description: "Verificar que el resultado muestra 8"
+
+      - action: screenshot
+        filename: "calculator-sum-result"
+        description: "Captura del resultado 5+3=8"
+
+    expectedResult: "La calculadora muestra el resultado correcto: 8"
+
+  - name: "TC002 - Resta"
+    description: "Realiza una resta: 15 - 7 = 8"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.calculator"
+        description: "Abrir Calculadora"
+
+      - action: tap
+        description: "Botón 1"
+
+      - action: tap
+        description: "Botón 5"
+
+      - action: tap
+        description: "Botón -"
+
+      - action: tap
+        description: "Botón 7"
+
+      - action: tap
+        description: "Botón ="
+
+      - action: verify
+        description: "Verificar que el resultado muestra 8"
+
+      - action: screenshot
+        filename: "calculator-subtract-result"
+
+    expectedResult: "La calculadora muestra el resultado correcto: 8"
+
+  - name: "TC003 - Multiplicación"
+    description: "Realiza una multiplicación: 6 × 4 = 24"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.calculator"
+        description: "Abrir Calculadora"
+
+      - action: tap
+        description: "Botón 6"
+
+      - action: tap
+        description: "Botón ×"
+
+      - action: tap
+        description: "Botón 4"
+
+      - action: tap
+        description: "Botón ="
+
+      - action: verify
+        description: "Verificar que el resultado muestra 24"
+
+      - action: screenshot
+        filename: "calculator-multiply-result"
+
+    expectedResult: "La calculadora muestra el resultado correcto: 24"
+
+  - name: "TC004 - División"
+    description: "Realiza una división: 20 ÷ 4 = 5"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.calculator"
+        description: "Abrir Calculadora"
+
+      - action: tap
+        description: "Botón 2"
+
+      - action: tap
+        description: "Botón 0"
+
+      - action: tap
+        description: "Botón ÷"
+
+      - action: tap
+        description: "Botón 4"
+
+      - action: tap
+        description: "Botón ="
+
+      - action: verify
+        description: "Verificar que el resultado muestra 5"
+
+      - action: screenshot
+        filename: "calculator-divide-result"
+
+    expectedResult: "La calculadora muestra el resultado correcto: 5"
+
+  - name: "TC005 - Operación combinada"
+    description: "Realiza operación combinada: 10 + 5 × 2 = 20 (orden de operaciones)"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.calculator"
+        description: "Abrir Calculadora"
+
+      - action: tap
+        description: "Botón 1"
+
+      - action: tap
+        description: "Botón 0"
+
+      - action: tap
+        description: "Botón +"
+
+      - action: tap
+        description: "Botón 5"
+
+      - action: tap
+        description: "Botón ×"
+
+      - action: tap
+        description: "Botón 2"
+
+      - action: tap
+        description: "Botón ="
+
+      - action: screenshot
+        filename: "calculator-combined-operation"
+
+    expectedResult: "La calculadora respeta el orden de operaciones y muestra 20"
+
+  - name: "TC006 - Botón Clear (C)"
+    description: "Verifica que el botón Clear limpia la operación"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.calculator"
+        description: "Abrir Calculadora"
+
+      - action: tap
+        description: "Botón 9"
+
+      - action: tap
+        description: "Botón 9"
+
+      - action: tap
+        description: "Botón 9"
+
+      - action: screenshot
+        filename: "calculator-before-clear"
+
+      - action: tap
+        description: "Botón C o Clear"
+
+      - action: verify
+        description: "Verificar que la pantalla se limpió"
+
+      - action: screenshot
+        filename: "calculator-after-clear"
+
+    expectedResult: "El botón Clear limpia la pantalla correctamente"

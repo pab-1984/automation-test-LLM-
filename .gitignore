@@ -58,4 +58,6 @@ ecommerce-test-app/
 # tests/natural/*.txt  # Uncomment to ignore all natural test files
 
 # Commercialization Strategy Document
-COMERCIALIZACION.md
+COMERCIALIZION.md
+*.db-shm
+*.db-wal

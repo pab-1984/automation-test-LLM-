@@ -241,14 +241,16 @@ class TestItemController {
       testRun.logs.push(`📊 RESULTADO: ${finalStatus === 'success' ? '✅ EXITOSO' : '❌ FALLIDO'}`);
       testRun.logs.push(`⏱️  Duración: ${(duration / 1000).toFixed(2)}s`);
 
-      // Actualizar registro de ejecución en BD
-      db.updateExecution(
-        executionId,
-        finalStatus,
+      // Guardar reporte completo en BD
+      db.saveExecutionReport(executionId, {
+        status: finalStatus,
         duration,
-        JSON.stringify(testRun.logs),
-        result.error || null
-      );
+        consoleLogs: result.consoleLogs,
+        networkRequests: result.networkRequests,
+        performanceData: result.performanceData,
+        steps: result.report,
+        errorMessage: result.error || null,
+      });
 
       testRun.logs.push('💾 Resultados guardados en base de datos');
 

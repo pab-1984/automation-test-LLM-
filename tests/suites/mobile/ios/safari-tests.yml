@@ -1,0 +1,220 @@
+suite: "Safari iOS - Tests de Navegación Web"
+description: "Suite de tests para Safari en iOS - Navegación, búsqueda y tabs"
+platform: "ios"
+bundleId: "com.apple.mobilesafari"
+
+tests:
+  - name: "TC001 - Abrir Safari y navegar a Wikipedia"
+    description: "Abre Safari y navega a Wikipedia.org"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilesafari"
+        description: "Abrir Safari"
+
+      - action: wait
+        description: "Esperar que cargue Safari"
+
+      - action: tap
+        description: "Barra de direcciones en la parte superior"
+
+      - action: fill
+        value: "wikipedia.org"
+        description: "Escribir wikipedia.org"
+
+      - action: pressButton
+        button: "return"
+        description: "Presionar Return/Go para navegar"
+
+      - action: wait
+        description: "Esperar que cargue Wikipedia"
+
+      - action: verify
+        description: "Verificar que aparece el logo de Wikipedia"
+
+      - action: screenshot
+        filename: "safari-wikipedia"
+        description: "Captura de Wikipedia cargada"
+
+    expectedResult: "Safari abre y navega exitosamente a Wikipedia.org"
+
+  - name: "TC002 - Búsqueda en Google"
+    description: "Realiza una búsqueda en Google desde Safari"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilesafari"
+        description: "Abrir Safari"
+
+      - action: tap
+        description: "Barra de direcciones"
+
+      - action: fill
+        value: "testing móvil iOS"
+        description: "Escribir término de búsqueda"
+
+      - action: pressButton
+        button: "return"
+        description: "Buscar"
+
+      - action: wait
+        description: "Esperar resultados de búsqueda"
+
+      - action: verify
+        description: "Verificar que aparecen resultados"
+
+      - action: screenshot
+        filename: "safari-search-results"
+        description: "Captura de resultados de búsqueda"
+
+    expectedResult: "La búsqueda muestra resultados correctamente"
+
+  - name: "TC003 - Navegar usando botón atrás"
+    description: "Navega entre páginas y usa el botón atrás"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilesafari"
+        description: "Abrir Safari"
+
+      - action: tap
+        description: "Barra de direcciones"
+
+      - action: fill
+        value: "apple.com"
+        description: "Ir a Apple.com"
+
+      - action: pressButton
+        button: "return"
+
+      - action: wait
+        description: "Esperar que cargue Apple.com"
+
+      - action: screenshot
+        filename: "safari-apple"
+
+      - action: tap
+        description: "Botón atrás (<) en la esquina inferior izquierda"
+
+      - action: verify
+        description: "Verificar que volvió a la página anterior"
+
+      - action: screenshot
+        filename: "safari-back-navigation"
+
+    expectedResult: "El botón atrás navega correctamente a la página anterior"
+
+  - name: "TC004 - Scroll en página web"
+    description: "Demuestra scroll vertical en una página web"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilesafari"
+        description: "Abrir Safari"
+
+      - action: tap
+        description: "Barra de direcciones"
+
+      - action: fill
+        value: "news.ycombinator.com"
+        description: "Navegar a Hacker News"
+
+      - action: pressButton
+        button: "return"
+
+      - action: wait
+        description: "Esperar que cargue la página"
+
+      - action: screenshot
+        filename: "safari-before-scroll"
+
+      - action: swipe
+        fromX: 200
+        fromY: 600
+        toX: 200
+        toY: 200
+        duration: 300
+        description: "Scroll hacia abajo"
+
+      - action: screenshot
+        filename: "safari-after-scroll"
+
+      - action: swipe
+        fromX: 200
+        fromY: 200
+        toX: 200
+        toY: 600
+        duration: 300
+        description: "Scroll hacia arriba"
+
+      - action: screenshot
+        filename: "safari-scroll-up"
+
+    expectedResult: "El scroll funciona correctamente en ambas direcciones"
+
+  - name: "TC005 - Abrir nueva pestaña"
+    description: "Abre el gestor de pestañas y crea una nueva"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilesafari"
+        description: "Abrir Safari"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Botón de pestañas (ícono de cuadrados) en la barra inferior"
+
+      - action: wait
+        description: "Esperar vista de pestañas"
+
+      - action: screenshot
+        filename: "safari-tabs-view"
+        description: "Captura de vista de pestañas"
+
+      - action: tap
+        description: "Botón '+' para nueva pestaña"
+
+      - action: wait
+        description: "Esperar que abra nueva pestaña"
+
+      - action: screenshot
+        filename: "safari-new-tab"
+
+    expectedResult: "Se puede crear una nueva pestaña correctamente"
+
+  - name: "TC006 - Modo lectura"
+    description: "Activa el modo lectura en un artículo"
+    steps:
+      - action: launchApp
+        bundleId: "com.apple.mobilesafari"
+        description: "Abrir Safari"
+
+      - action: tap
+        description: "Barra de direcciones"
+
+      - action: fill
+        value: "wikipedia.org"
+        description: "Ir a Wikipedia"
+
+      - action: pressButton
+        button: "return"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Cualquier artículo de Wikipedia"
+
+      - action: wait
+        description: "Esperar que cargue el artículo"
+
+      - action: screenshot
+        filename: "safari-article-normal"
+
+      - action: tap
+        description: "Ícono de modo lectura (AA) en la barra de direcciones"
+
+      - action: wait
+        description: "Esperar que active modo lectura"
+
+      - action: screenshot
+        filename: "safari-reader-mode"
+
+    expectedResult: "El modo lectura se activa correctamente"

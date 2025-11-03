@@ -1,0 +1,242 @@
+suite: "Gallery Android - Tests de Galería de Fotos"
+description: "Suite de tests para Galería/Fotos en Android - Navegación, visualización y gestos"
+platform: "android"
+packageName: "com.google.android.apps.photos"
+
+tests:
+  - name: "TC001 - Abrir Galería y verificar álbumes"
+    description: "Abre la galería de fotos y verifica que muestra álbumes"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir Google Photos"
+
+      - action: wait
+        description: "Esperar que cargue la galería"
+
+      - action: verify
+        description: "Verificar que aparece 'Fotos' o 'Photos'"
+
+      - action: screenshot
+        filename: "gallery-home"
+        description: "Captura de la pantalla principal"
+
+    expectedResult: "La galería abre y muestra las fotos/álbumes disponibles"
+
+  - name: "TC002 - Abrir foto individual"
+    description: "Toca una foto para verla en pantalla completa"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir Google Photos"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Primera foto disponible en la cuadrícula"
+
+      - action: wait
+        description: "Esperar que abra la foto"
+
+      - action: screenshot
+        filename: "gallery-photo-fullscreen"
+        description: "Captura de foto en pantalla completa"
+
+      - action: pressBack
+        description: "Volver a la cuadrícula"
+
+      - action: screenshot
+        filename: "gallery-back-grid"
+
+    expectedResult: "La foto se abre en pantalla completa y se puede regresar"
+
+  - name: "TC003 - Zoom con pinch (simulado con swipe)"
+    description: "Simula zoom en una foto usando gestos"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir Google Photos"
+
+      - action: tap
+        description: "Abrir primera foto"
+
+      - action: wait
+        description: "Esperar que cargue la foto"
+
+      - action: screenshot
+        filename: "gallery-before-zoom"
+
+      - action: doubleTap
+        x: 540
+        y: 800
+        description: "Doble tap para hacer zoom"
+
+      - action: wait
+        description: "Esperar animación de zoom"
+
+      - action: screenshot
+        filename: "gallery-zoomed-in"
+        description: "Captura con zoom aplicado"
+
+      - action: doubleTap
+        x: 540
+        y: 800
+        description: "Doble tap para deshacer zoom"
+
+      - action: screenshot
+        filename: "gallery-zoom-out"
+
+    expectedResult: "El doble tap hace zoom in/out correctamente"
+
+  - name: "TC004 - Swipe entre fotos"
+    description: "Navega entre fotos usando swipe horizontal"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir Google Photos"
+
+      - action: tap
+        description: "Abrir una foto"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "gallery-photo-1"
+
+      - action: swipe
+        fromX: 900
+        fromY: 800
+        toX: 200
+        toY: 800
+        duration: 300
+        description: "Swipe hacia la izquierda para siguiente foto"
+
+      - action: screenshot
+        filename: "gallery-photo-2"
+        description: "Segunda foto"
+
+      - action: swipe
+        fromX: 200
+        fromY: 800
+        toX: 900
+        toY: 800
+        duration: 300
+        description: "Swipe hacia la derecha para foto anterior"
+
+      - action: screenshot
+        filename: "gallery-photo-back"
+
+    expectedResult: "El swipe horizontal navega entre fotos"
+
+  - name: "TC005 - Navegar a álbumes"
+    description: "Accede a la vista de álbumes"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir Google Photos"
+
+      - action: tap
+        description: "Pestaña 'Álbumes' o 'Albums' en la barra inferior"
+
+      - action: wait
+        description: "Esperar que cargue álbumes"
+
+      - action: verify
+        description: "Verificar que aparece 'Álbumes' o 'Albums'"
+
+      - action: screenshot
+        filename: "gallery-albums"
+        description: "Captura de vista de álbumes"
+
+      - action: tap
+        description: "Primer álbum disponible"
+
+      - action: wait
+        description: "Esperar que abra el álbum"
+
+      - action: screenshot
+        filename: "gallery-album-content"
+        description: "Contenido del álbum"
+
+    expectedResult: "Navega correctamente a la vista de álbumes"
+
+  - name: "TC006 - Scroll en cuadrícula de fotos"
+    description: "Realiza scroll vertical en la cuadrícula de fotos"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir Google Photos"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "gallery-grid-top"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1400
+        toX: 500
+        toY: 300
+        duration: 500
+        description: "Scroll rápido hacia abajo"
+
+      - action: screenshot
+        filename: "gallery-grid-scrolled"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1400
+        toX: 500
+        toY: 300
+        duration: 500
+        description: "Otro scroll hacia abajo"
+
+      - action: screenshot
+        filename: "gallery-grid-more-scrolled"
+
+      - action: swipe
+        fromX: 500
+        fromY: 300
+        toX: 500
+        toY: 1400
+        duration: 500
+        description: "Scroll hacia arriba"
+
+      - action: screenshot
+        filename: "gallery-grid-back-top"
+
+    expectedResult: "El scroll funciona en la cuadrícula de fotos"
+
+  - name: "TC007 - Menú de opciones de foto"
+    description: "Accede al menú de opciones (más opciones) de una foto"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir Google Photos"
+
+      - action: tap
+        description: "Abrir una foto"
+
+      - action: wait
+        description: "Esperar que cargue la foto"
+
+      - action: tap
+        description: "Botón de más opciones (tres puntos verticales)"
+
+      - action: wait
+        description: "Esperar que abra el menú"
+
+      - action: screenshot
+        filename: "gallery-options-menu"
+        description: "Captura del menú de opciones"
+
+      - action: pressBack
+        description: "Cerrar menú"
+
+      - action: pressBack
+        description: "Volver a la galería"
+
+    expectedResult: "El menú de opciones se muestra correctamente"

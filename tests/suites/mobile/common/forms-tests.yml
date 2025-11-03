@@ -1,0 +1,446 @@
+suite: "Mobile Forms - Tests de Formularios Complejos"
+description: "Suite de tests para formularios móviles - Validación, diferentes tipos de input, selección múltiple"
+platform: "android"
+packageName: "com.android.chrome"  # Usar Chrome para cargar formularios web de prueba
+
+tests:
+  - name: "TC001 - Formulario de registro básico"
+    description: "Completa un formulario de registro con múltiples campos"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir navegador"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Barra de direcciones"
+
+      - action: fill
+        value: "https://www.w3schools.com/html/html_forms.asp"
+        description: "Navegar a página con formulario de ejemplo"
+
+      - action: pressButton
+        button: "enter"
+
+      - action: wait
+        description: "Esperar que cargue la página"
+
+      - action: screenshot
+        filename: "form-registration-initial"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1200
+        toX: 500
+        toY: 400
+        duration: 400
+        description: "Scroll para ver formulario completo"
+
+      - action: tap
+        description: "Campo 'First name'"
+
+      - action: fill
+        value: "Juan"
+        description: "Llenar nombre"
+
+      - action: tap
+        description: "Campo 'Last name'"
+
+      - action: fill
+        value: "Pérez"
+        description: "Llenar apellido"
+
+      - action: screenshot
+        filename: "form-registration-name-filled"
+
+      - action: tap
+        description: "Campo 'Email'"
+
+      - action: fill
+        value: "juan.perez@test.com"
+        description: "Llenar email"
+
+      - action: screenshot
+        filename: "form-registration-complete"
+
+    expectedResult: "El formulario se completa correctamente con todos los campos"
+
+  - name: "TC002 - Formulario con validación de email"
+    description: "Prueba validación de formato de email"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir navegador"
+
+      - action: tap
+        description: "Campo de email en formulario"
+
+      - action: fill
+        value: "emailinvalido"
+        description: "Escribir email con formato inválido"
+
+      - action: screenshot
+        filename: "form-email-invalid-input"
+
+      - action: tap
+        description: "Botón Submit o siguiente campo"
+
+      - action: wait
+        description: "Esperar mensaje de validación"
+
+      - action: screenshot
+        filename: "form-email-validation-error"
+        description: "Captura de error de validación"
+
+      - action: tap
+        description: "Volver al campo email"
+
+      - action: fill
+        value: "email@valido.com"
+        description: "Corregir con email válido"
+
+      - action: screenshot
+        filename: "form-email-valid"
+
+    expectedResult: "La validación de email detecta formatos inválidos"
+
+  - name: "TC003 - Selección de opciones (Radio Buttons)"
+    description: "Selecciona opciones usando radio buttons"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir navegador con formulario"
+
+      - action: wait
+        description: "Esperar que cargue formulario"
+
+      - action: screenshot
+        filename: "form-radio-initial"
+
+      - action: tap
+        description: "Primera opción de radio button"
+
+      - action: screenshot
+        filename: "form-radio-option1-selected"
+
+      - action: tap
+        description: "Segunda opción de radio button"
+
+      - action: screenshot
+        filename: "form-radio-option2-selected"
+        description: "Verifica que solo una opción está seleccionada"
+
+      - action: tap
+        description: "Tercera opción de radio button"
+
+      - action: screenshot
+        filename: "form-radio-option3-selected"
+
+    expectedResult: "Los radio buttons permiten seleccionar solo una opción a la vez"
+
+  - name: "TC004 - Checkboxes (selección múltiple)"
+    description: "Selecciona múltiples opciones usando checkboxes"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir navegador con formulario"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "form-checkbox-initial"
+
+      - action: tap
+        description: "Primer checkbox"
+
+      - action: screenshot
+        filename: "form-checkbox-1-checked"
+
+      - action: tap
+        description: "Segundo checkbox"
+
+      - action: screenshot
+        filename: "form-checkbox-2-checked"
+
+      - action: tap
+        description: "Tercer checkbox"
+
+      - action: screenshot
+        filename: "form-checkbox-3-checked"
+        description: "Verifica que múltiples checkboxes están seleccionados"
+
+      - action: tap
+        description: "Segundo checkbox (deseleccionar)"
+
+      - action: screenshot
+        filename: "form-checkbox-2-unchecked"
+
+    expectedResult: "Los checkboxes permiten selección múltiple independiente"
+
+  - name: "TC005 - Dropdown / Select"
+    description: "Selecciona opciones de un menú desplegable"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir navegador"
+
+      - action: wait
+        description: "Esperar que cargue formulario"
+
+      - action: screenshot
+        filename: "form-dropdown-initial"
+
+      - action: tap
+        description: "Campo dropdown/select"
+
+      - action: wait
+        description: "Esperar que abra el menú"
+
+      - action: screenshot
+        filename: "form-dropdown-opened"
+
+      - action: tap
+        description: "Segunda opción del menú"
+
+      - action: wait
+        description: "Esperar que se seleccione"
+
+      - action: screenshot
+        filename: "form-dropdown-selected"
+
+      - action: tap
+        description: "Abrir dropdown nuevamente"
+
+      - action: screenshot
+        filename: "form-dropdown-reopened"
+
+      - action: tap
+        description: "Cuarta opción"
+
+      - action: screenshot
+        filename: "form-dropdown-changed"
+
+    expectedResult: "El dropdown permite seleccionar diferentes opciones"
+
+  - name: "TC006 - Campo numérico con incremento/decremento"
+    description: "Usa controles numéricos de incremento/decremento"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir navegador"
+
+      - action: tap
+        description: "Campo numérico (input type=number)"
+
+      - action: screenshot
+        filename: "form-number-initial"
+
+      - action: fill
+        value: "5"
+        description: "Ingresar valor numérico"
+
+      - action: screenshot
+        filename: "form-number-entered"
+
+      - action: tap
+        description: "Botón incremento (+) si está disponible"
+
+      - action: screenshot
+        filename: "form-number-incremented"
+
+      - action: tap
+        description: "Botón incremento (+) otra vez"
+
+      - action: screenshot
+        filename: "form-number-incremented-2"
+
+      - action: tap
+        description: "Botón decremento (-)"
+
+      - action: screenshot
+        filename: "form-number-decremented"
+
+    expectedResult: "Los controles numéricos funcionan correctamente"
+
+  - name: "TC007 - Campo de fecha (Date Picker)"
+    description: "Selecciona una fecha usando el date picker"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir navegador"
+
+      - action: tap
+        description: "Campo de fecha (input type=date)"
+
+      - action: wait
+        description: "Esperar que abra date picker nativo"
+
+      - action: screenshot
+        filename: "form-date-picker-opened"
+
+      - action: tap
+        description: "Seleccionar un día específico"
+
+      - action: screenshot
+        filename: "form-date-day-selected"
+
+      - action: tap
+        description: "Botón OK o Done del date picker"
+
+      - action: screenshot
+        filename: "form-date-confirmed"
+
+    expectedResult: "El date picker permite seleccionar fechas correctamente"
+
+  - name: "TC008 - Campo de contraseña con visibilidad toggle"
+    description: "Usa campo de contraseña y alterna visibilidad"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir navegador"
+
+      - action: tap
+        description: "Campo de contraseña (input type=password)"
+
+      - action: fill
+        value: "MiContraseña123"
+        description: "Escribir contraseña"
+
+      - action: screenshot
+        filename: "form-password-hidden"
+        description: "Contraseña oculta (puntos o asteriscos)"
+
+      - action: tap
+        description: "Botón mostrar contraseña (ojo) si está disponible"
+
+      - action: screenshot
+        filename: "form-password-visible"
+
+      - action: tap
+        description: "Botón ocultar contraseña"
+
+      - action: screenshot
+        filename: "form-password-hidden-again"
+
+    expectedResult: "El campo de contraseña oculta/muestra el texto correctamente"
+
+  - name: "TC009 - Formulario largo con scroll y múltiples secciones"
+    description: "Navega y completa un formulario largo con múltiples secciones"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir navegador"
+
+      - action: wait
+        description: "Esperar que cargue formulario largo"
+
+      - action: screenshot
+        filename: "form-long-section1"
+
+      - action: tap
+        description: "Campo en sección 1"
+
+      - action: fill
+        value: "Datos sección 1"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1200
+        toX: 500
+        toY: 300
+        duration: 400
+        description: "Scroll a sección 2"
+
+      - action: screenshot
+        filename: "form-long-section2"
+
+      - action: tap
+        description: "Campo en sección 2"
+
+      - action: fill
+        value: "Datos sección 2"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1200
+        toX: 500
+        toY: 300
+        duration: 400
+        description: "Scroll a sección 3"
+
+      - action: screenshot
+        filename: "form-long-section3"
+
+      - action: tap
+        description: "Campo en sección 3"
+
+      - action: fill
+        value: "Datos sección 3"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1200
+        toX: 500
+        toY: 300
+        duration: 400
+        description: "Scroll a botón submit"
+
+      - action: screenshot
+        filename: "form-long-submit"
+
+    expectedResult: "Se puede navegar y completar formulario largo correctamente"
+
+  - name: "TC010 - Validación de campos requeridos"
+    description: "Intenta enviar formulario sin completar campos requeridos"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir navegador"
+
+      - action: wait
+        description: "Esperar que cargue formulario"
+
+      - action: screenshot
+        filename: "form-validation-empty"
+
+      - action: tap
+        description: "Botón Submit sin llenar campos"
+
+      - action: wait
+        description: "Esperar mensajes de validación"
+
+      - action: screenshot
+        filename: "form-validation-errors"
+        description: "Captura de errores de campos requeridos"
+
+      - action: tap
+        description: "Primer campo requerido marcado con error"
+
+      - action: fill
+        value: "Valor válido"
+
+      - action: screenshot
+        filename: "form-validation-field1-fixed"
+
+      - action: tap
+        description: "Segundo campo requerido"
+
+      - action: fill
+        value: "Otro valor válido"
+
+      - action: screenshot
+        filename: "form-validation-field2-fixed"
+
+      - action: tap
+        description: "Botón Submit"
+
+      - action: wait
+        description: "Esperar que procese el formulario"
+
+      - action: screenshot
+        filename: "form-validation-success"
+
+    expectedResult: "La validación de campos requeridos funciona correctamente"

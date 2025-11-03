@@ -1,0 +1,398 @@
+suite: "Mobile Gestures - Tests de Gestos Complejos"
+description: "Suite de tests para demostrar gestos complejos en móviles - Swipe, Long Press, Multi-touch, Pinch"
+platform: "android"  # Cambiar a "ios" según necesidad
+packageName: "com.google.android.apps.photos"  # App de ejemplo con soporte de gestos
+
+tests:
+  - name: "TC001 - Swipe vertical (scroll rápido)"
+    description: "Demuestra scroll rápido con diferentes velocidades"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir app con lista scrolleable"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "gesture-swipe-initial"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1400
+        toX: 500
+        toY: 300
+        duration: 200
+        description: "Swipe rápido hacia abajo (fling)"
+
+      - action: wait
+        description: "Esperar momentum del scroll"
+
+      - action: screenshot
+        filename: "gesture-swipe-fast"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1400
+        toX: 500
+        toY: 800
+        duration: 800
+        description: "Swipe lento hacia abajo (drag)"
+
+      - action: screenshot
+        filename: "gesture-swipe-slow"
+
+    expectedResult: "Diferentes velocidades de swipe producen diferentes comportamientos"
+
+  - name: "TC002 - Swipe horizontal (cambio de páginas)"
+    description: "Navega horizontalmente entre páginas o elementos"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir app"
+
+      - action: tap
+        description: "Abrir una foto para navegar horizontalmente"
+
+      - action: wait
+        description: "Esperar que cargue la foto"
+
+      - action: screenshot
+        filename: "gesture-horizontal-initial"
+
+      - action: swipe
+        fromX: 900
+        fromY: 800
+        toX: 100
+        toY: 800
+        duration: 300
+        description: "Swipe hacia la izquierda (siguiente)"
+
+      - action: screenshot
+        filename: "gesture-horizontal-next"
+
+      - action: swipe
+        fromX: 900
+        fromY: 800
+        toX: 100
+        toY: 800
+        duration: 300
+        description: "Otro swipe izquierda"
+
+      - action: screenshot
+        filename: "gesture-horizontal-next-2"
+
+      - action: swipe
+        fromX: 100
+        fromY: 800
+        toX: 900
+        toY: 800
+        duration: 300
+        description: "Swipe hacia la derecha (anterior)"
+
+      - action: screenshot
+        filename: "gesture-horizontal-previous"
+
+    expectedResult: "El swipe horizontal navega entre elementos correctamente"
+
+  - name: "TC003 - Swipe diagonal"
+    description: "Realiza swipe en diagonal para navegación compleja"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir app"
+
+      - action: screenshot
+        filename: "gesture-diagonal-initial"
+
+      - action: swipe
+        fromX: 100
+        fromY: 1500
+        toX: 900
+        toY: 300
+        duration: 400
+        description: "Swipe diagonal desde abajo-izquierda a arriba-derecha"
+
+      - action: screenshot
+        filename: "gesture-diagonal-result"
+
+      - action: swipe
+        fromX: 900
+        fromY: 300
+        toX: 100
+        toY: 1500
+        duration: 400
+        description: "Swipe diagonal inverso"
+
+      - action: screenshot
+        filename: "gesture-diagonal-reverse"
+
+    expectedResult: "Los gestos diagonales se ejecutan correctamente"
+
+  - name: "TC004 - Long Press (mantener presionado)"
+    description: "Demuestra long press para menús contextuales"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir app"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "gesture-longpress-before"
+
+      - action: longPress
+        x: 500
+        y: 500
+        duration: 1500
+        description: "Long press en un elemento (mantener 1.5s)"
+
+      - action: wait
+        description: "Esperar que aparezca menú contextual"
+
+      - action: screenshot
+        filename: "gesture-longpress-menu"
+        description: "Captura del menú contextual"
+
+      - action: pressBack
+        description: "Cerrar menú contextual"
+
+    expectedResult: "El long press activa el menú contextual"
+
+  - name: "TC005 - Double Tap (doble toque)"
+    description: "Usa doble tap para zoom o acciones rápidas"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir app"
+
+      - action: tap
+        description: "Abrir una foto"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "gesture-doubletap-before"
+
+      - action: doubleTap
+        x: 540
+        y: 800
+        description: "Doble tap en el centro para zoom"
+
+      - action: wait
+        description: "Esperar animación de zoom"
+
+      - action: screenshot
+        filename: "gesture-doubletap-zoomed"
+
+      - action: doubleTap
+        x: 540
+        y: 800
+        description: "Doble tap nuevamente para zoom out"
+
+      - action: screenshot
+        filename: "gesture-doubletap-normal"
+
+    expectedResult: "El doble tap hace zoom in/out"
+
+  - name: "TC006 - Swipe para eliminar (swipe-to-dismiss)"
+    description: "Demuestra swipe lateral para eliminar items de lista"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.gm"  # Gmail para swipe-to-archive
+        description: "Abrir app con swipe-to-dismiss"
+
+      - action: wait
+        description: "Esperar que cargue lista"
+
+      - action: screenshot
+        filename: "gesture-dismiss-before"
+
+      - action: swipe
+        fromX: 100
+        fromY: 500
+        toX: 900
+        toY: 500
+        duration: 300
+        description: "Swipe hacia la derecha en item de lista"
+
+      - action: screenshot
+        filename: "gesture-dismiss-swiped"
+        description: "Item con acción revelada"
+
+      - action: swipe
+        fromX: 900
+        fromY: 500
+        toX: 100
+        toY: 500
+        duration: 300
+        description: "Swipe inverso para cancelar"
+
+      - action: screenshot
+        filename: "gesture-dismiss-cancelled"
+
+    expectedResult: "El swipe lateral revela/ejecuta acciones en items"
+
+  - name: "TC007 - Pull to Refresh (deslizar para refrescar)"
+    description: "Realiza pull-to-refresh gesture"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.gm"
+        description: "Abrir app con pull-to-refresh"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "gesture-pullrefresh-before"
+
+      - action: swipe
+        fromX: 500
+        fromY: 300
+        toX: 500
+        toY: 1000
+        duration: 500
+        description: "Deslizar hacia abajo desde el tope (pull down)"
+
+      - action: wait
+        description: "Esperar indicador de refresh"
+
+      - action: screenshot
+        filename: "gesture-pullrefresh-indicator"
+
+      - action: wait
+        description: "Esperar que termine de refrescar"
+
+      - action: screenshot
+        filename: "gesture-pullrefresh-complete"
+
+    expectedResult: "El pull-to-refresh actualiza el contenido"
+
+  - name: "TC008 - Pinch to Zoom (pellizcar para zoom)"
+    description: "Simula pinch usando dos swipes simultáneos"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir app con soporte de pinch"
+
+      - action: tap
+        description: "Abrir una foto"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "gesture-pinch-before"
+
+      - action: pinch
+        centerX: 540
+        centerY: 800
+        scale: 2.0
+        description: "Pinch out para zoom in (alejar dedos)"
+
+      - action: wait
+        description: "Esperar animación"
+
+      - action: screenshot
+        filename: "gesture-pinch-zoomin"
+
+      - action: pinch
+        centerX: 540
+        centerY: 800
+        scale: 0.5
+        description: "Pinch in para zoom out (acercar dedos)"
+
+      - action: screenshot
+        filename: "gesture-pinch-zoomout"
+
+    expectedResult: "El pinch gesture hace zoom correctamente"
+
+  - name: "TC009 - Gestos en secuencia (combinados)"
+    description: "Combina múltiples gestos en secuencia"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir app"
+
+      - action: screenshot
+        filename: "gesture-combo-1-initial"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1400
+        toX: 500
+        toY: 400
+        duration: 300
+        description: "1. Scroll vertical"
+
+      - action: screenshot
+        filename: "gesture-combo-2-scrolled"
+
+      - action: tap
+        description: "2. Tap en elemento"
+
+      - action: screenshot
+        filename: "gesture-combo-3-opened"
+
+      - action: doubleTap
+        x: 540
+        y: 800
+        description: "3. Doble tap para zoom"
+
+      - action: screenshot
+        filename: "gesture-combo-4-zoomed"
+
+      - action: swipe
+        fromX: 800
+        fromY: 800
+        toX: 200
+        toY: 800
+        duration: 300
+        description: "4. Swipe horizontal mientras está zoomed"
+
+      - action: screenshot
+        filename: "gesture-combo-5-panned"
+
+      - action: doubleTap
+        x: 540
+        y: 800
+        description: "5. Doble tap para volver a normal"
+
+      - action: screenshot
+        filename: "gesture-combo-6-final"
+
+    expectedResult: "Los gestos combinados funcionan correctamente en secuencia"
+
+  - name: "TC010 - Edge Swipe (deslizar desde borde)"
+    description: "Demuestra swipes desde los bordes de la pantalla"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir app"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "gesture-edge-initial"
+
+      - action: swipe
+        fromX: 0
+        fromY: 800
+        toX: 300
+        toY: 800
+        duration: 300
+        description: "Swipe desde borde izquierdo (navegación back)"
+
+      - action: screenshot
+        filename: "gesture-edge-left"
+
+      - action: wait
+        description: "Esperar resultado del gesture"
+
+      - action: screenshot
+        filename: "gesture-edge-result"
+
+    expectedResult: "El edge swipe activa navegación o menús laterales"

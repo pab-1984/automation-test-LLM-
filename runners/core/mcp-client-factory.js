@@ -47,9 +47,9 @@ class MCPClientFactory {
     const serverPath = path.join(
       process.cwd(),
       'node_modules',
-      '@agenticlabs',
       'chrome-devtools-mcp',
-      'dist',
+      'build',
+      'src',
       'index.js'
     );
 
@@ -70,7 +70,7 @@ class MCPClientFactory {
     try {
       const newPageResult = await mcpClient.callTool({
         name: 'new_page',
-        arguments: {}
+        arguments: { url: 'about:blank' }
       });
 
       if (newPageResult.content && newPageResult.content[0]) {

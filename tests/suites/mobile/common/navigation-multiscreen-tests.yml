@@ -1,0 +1,555 @@
+suite: "Navigation Multi-Screen - Tests de Navegación Compleja"
+description: "Suite de tests para navegación compleja entre múltiples pantallas - Flujos profundos, tabs, drawers, modals"
+platform: "android"
+packageName: "com.android.settings"  # Settings como ejemplo de navegación profunda
+
+tests:
+  - name: "TC001 - Navegación profunda (4+ niveles)"
+    description: "Navega a través de múltiples niveles de profundidad y regresa"
+    steps:
+      - action: launchApp
+        packageName: "com.android.settings"
+        description: "Abrir Configuración (nivel 1)"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "nav-level1-home"
+        description: "Nivel 1: Pantalla principal"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1400
+        toX: 500
+        toY: 400
+        duration: 400
+        description: "Scroll para ver más opciones"
+
+      - action: tap
+        description: "Acerca del teléfono"
+
+      - action: wait
+        description: "Esperar nivel 2"
+
+      - action: screenshot
+        filename: "nav-level2-about"
+        description: "Nivel 2: Acerca del teléfono"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1200
+        toX: 500
+        toY: 400
+        duration: 400
+        description: "Scroll en nivel 2"
+
+      - action: tap
+        description: "Información legal o similar opción"
+
+      - action: wait
+        description: "Esperar nivel 3"
+
+      - action: screenshot
+        filename: "nav-level3-legal"
+        description: "Nivel 3: Información detallada"
+
+      - action: tap
+        description: "Licencias o sub-opción si existe"
+
+      - action: wait
+        description: "Esperar nivel 4"
+
+      - action: screenshot
+        filename: "nav-level4-licenses"
+        description: "Nivel 4: Pantalla profunda"
+
+      # Regresar nivel por nivel
+      - action: pressBack
+        description: "Volver a nivel 3"
+
+      - action: screenshot
+        filename: "nav-back-level3"
+
+      - action: pressBack
+        description: "Volver a nivel 2"
+
+      - action: screenshot
+        filename: "nav-back-level2"
+
+      - action: pressBack
+        description: "Volver a nivel 1"
+
+      - action: screenshot
+        filename: "nav-back-level1"
+
+    expectedResult: "Navega correctamente a través de 4 niveles y regresa"
+
+  - name: "TC002 - Navegación con Drawer/Menú lateral"
+    description: "Usa menú lateral para cambiar entre secciones principales"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.gm"  # Gmail con drawer
+        description: "Abrir app con drawer"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "nav-drawer-initial"
+
+      - action: tap
+        description: "Ícono de menú hamburguesa (≡)"
+
+      - action: wait
+        description: "Esperar que abra el drawer"
+
+      - action: screenshot
+        filename: "nav-drawer-opened"
+
+      - action: tap
+        description: "Opción 'Enviados' en el drawer"
+
+      - action: wait
+        description: "Esperar que cargue Enviados"
+
+      - action: screenshot
+        filename: "nav-drawer-sent"
+
+      - action: tap
+        description: "Abrir drawer nuevamente"
+
+      - action: screenshot
+        filename: "nav-drawer-reopened"
+
+      - action: tap
+        description: "Opción 'Destacados' o 'Starred'"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "nav-drawer-starred"
+
+      - action: tap
+        description: "Abrir drawer"
+
+      - action: tap
+        description: "Volver a 'Recibidos'"
+
+      - action: screenshot
+        filename: "nav-drawer-inbox-again"
+
+    expectedResult: "El drawer permite navegar entre secciones principales"
+
+  - name: "TC003 - Navegación con Bottom Navigation (tabs inferiores)"
+    description: "Navega usando tabs en la barra inferior"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"  # Photos con bottom nav
+        description: "Abrir app con bottom navigation"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "nav-bottomnav-tab1"
+        description: "Tab 1: Fotos"
+
+      - action: tap
+        description: "Tab 'Buscar' en barra inferior"
+
+      - action: wait
+        description: "Esperar que cargue tab"
+
+      - action: screenshot
+        filename: "nav-bottomnav-tab2"
+        description: "Tab 2: Buscar"
+
+      - action: tap
+        description: "Tab 'Biblioteca' en barra inferior"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "nav-bottomnav-tab3"
+        description: "Tab 3: Biblioteca"
+
+      - action: tap
+        description: "Tab 'Compartir' en barra inferior"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "nav-bottomnav-tab4"
+        description: "Tab 4: Compartir"
+
+      - action: tap
+        description: "Volver al primer tab 'Fotos'"
+
+      - action: screenshot
+        filename: "nav-bottomnav-back-tab1"
+
+    expectedResult: "Los tabs inferiores permiten cambiar entre secciones"
+
+  - name: "TC004 - Flujo de compra completo (multi-pantalla)"
+    description: "Simula flujo de e-commerce: búsqueda → producto → carrito → checkout"
+    steps:
+      - action: launchApp
+        packageName: "com.android.vending"  # Play Store como ejemplo
+        description: "Abrir app de tienda"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "nav-flow-1-home"
+        description: "Pantalla 1: Home"
+
+      - action: tap
+        description: "Búsqueda"
+
+      - action: fill
+        value: "Gmail"
+
+      - action: pressButton
+        button: "enter"
+
+      - action: wait
+        description: "Esperar resultados"
+
+      - action: screenshot
+        filename: "nav-flow-2-search-results"
+        description: "Pantalla 2: Resultados de búsqueda"
+
+      - action: tap
+        description: "Primer resultado"
+
+      - action: wait
+        description: "Esperar detalles del producto"
+
+      - action: screenshot
+        filename: "nav-flow-3-product-detail"
+        description: "Pantalla 3: Detalle de producto"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1200
+        toX: 500
+        toY: 400
+        duration: 400
+        description: "Scroll para ver más información"
+
+      - action: screenshot
+        filename: "nav-flow-4-product-info"
+        description: "Más información del producto"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1200
+        toX: 500
+        toY: 400
+        duration: 400
+        description: "Scroll a reviews"
+
+      - action: screenshot
+        filename: "nav-flow-5-reviews"
+        description: "Pantalla 4: Reviews"
+
+      - action: pressBack
+        description: "Volver a resultados"
+
+      - action: screenshot
+        filename: "nav-flow-6-back-results"
+
+      - action: pressBack
+        description: "Volver a home"
+
+      - action: screenshot
+        filename: "nav-flow-7-back-home"
+
+    expectedResult: "El flujo completo navega correctamente entre pantallas"
+
+  - name: "TC005 - Modal/Dialog y navegación suspendida"
+    description: "Abre modals/dialogs y regresa a la navegación principal"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir app"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Abrir una foto"
+
+      - action: wait
+        description: "Esperar que cargue foto"
+
+      - action: screenshot
+        filename: "nav-modal-base-screen"
+
+      - action: tap
+        description: "Botón de compartir (abre sheet/modal)"
+
+      - action: wait
+        description: "Esperar que abra bottom sheet"
+
+      - action: screenshot
+        filename: "nav-modal-opened"
+        description: "Modal/Bottom Sheet abierto"
+
+      - action: tap
+        description: "Fuera del modal para cerrar o botón cancelar"
+
+      - action: screenshot
+        filename: "nav-modal-closed"
+
+      - action: tap
+        description: "Botón más opciones (tres puntos)"
+
+      - action: wait
+        description: "Esperar menú de opciones"
+
+      - action: screenshot
+        filename: "nav-menu-opened"
+
+      - action: pressBack
+        description: "Cerrar menú"
+
+      - action: screenshot
+        filename: "nav-menu-closed"
+
+    expectedResult: "Los modals se abren y cierran sin afectar navegación principal"
+
+  - name: "TC006 - Navegación con tabs superiores (swipeable)"
+    description: "Navega entre tabs superiores usando tap y swipe"
+    steps:
+      - action: launchApp
+        packageName: "com.android.vending"
+        description: "Abrir Play Store"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Sección con tabs (ej: Juegos)"
+
+      - action: wait
+        description: "Esperar que cargue tabs"
+
+      - action: screenshot
+        filename: "nav-toptabs-tab1"
+
+      - action: tap
+        description: "Segundo tab superior"
+
+      - action: wait
+        description: "Esperar contenido del tab"
+
+      - action: screenshot
+        filename: "nav-toptabs-tab2-tap"
+
+      - action: swipe
+        fromX: 800
+        fromY: 600
+        toX: 200
+        toY: 600
+        duration: 300
+        description: "Swipe horizontal para siguiente tab"
+
+      - action: screenshot
+        filename: "nav-toptabs-tab3-swipe"
+
+      - action: swipe
+        fromX: 200
+        fromY: 600
+        toX: 800
+        toY: 600
+        duration: 300
+        description: "Swipe inverso para tab anterior"
+
+      - action: screenshot
+        filename: "nav-toptabs-tab2-swipe-back"
+
+    expectedResult: "Los tabs superiores funcionan con tap y swipe"
+
+  - name: "TC007 - Stack de navegación complejo (múltiples entradas)"
+    description: "Crea stack profundo y verifica que el back stack funciona"
+    steps:
+      - action: launchApp
+        packageName: "com.android.settings"
+        description: "Inicio del stack"
+
+      - action: screenshot
+        filename: "nav-stack-1"
+
+      - action: tap
+        description: "Opción A (nivel 2)"
+
+      - action: wait
+
+      - action: screenshot
+        filename: "nav-stack-2"
+
+      - action: tap
+        description: "Sub-opción B (nivel 3)"
+
+      - action: wait
+
+      - action: screenshot
+        filename: "nav-stack-3"
+
+      - action: pressBack
+        description: "Volver una vez"
+
+      - action: tap
+        description: "Sub-opción C diferente (nivel 3 alternativo)"
+
+      - action: wait
+
+      - action: screenshot
+        filename: "nav-stack-3-alt"
+
+      - action: tap
+        description: "Opción D (nivel 4)"
+
+      - action: wait
+
+      - action: screenshot
+        filename: "nav-stack-4"
+
+      # Probar back múltiples veces
+      - action: pressBack
+
+      - action: screenshot
+        filename: "nav-stack-back-1"
+
+      - action: pressBack
+
+      - action: screenshot
+        filename: "nav-stack-back-2"
+
+      - action: pressBack
+
+      - action: screenshot
+        filename: "nav-stack-back-3"
+
+    expectedResult: "El back stack mantiene correctamente el historial de navegación"
+
+  - name: "TC008 - Navegación interrumpida por notificación/llamada (simulated)"
+    description: "Simula interrupción y retorno a la app"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Abrir app"
+
+      - action: tap
+        description: "Navegar a una sección"
+
+      - action: screenshot
+        filename: "nav-interrupt-before"
+
+      - action: pressHome
+        description: "Simular interrupción yendo a home"
+
+      - action: wait
+        description: "Esperar en home"
+
+      - action: screenshot
+        filename: "nav-interrupt-home"
+
+      - action: launchApp
+        packageName: "com.google.android.apps.photos"
+        description: "Volver a la app"
+
+      - action: wait
+        description: "Esperar que restaure estado"
+
+      - action: screenshot
+        filename: "nav-interrupt-restored"
+        description: "Verificar que mantiene el estado anterior"
+
+    expectedResult: "La app restaura el estado después de interrupción"
+
+  - name: "TC009 - Deep Link / URL navigation"
+    description: "Navega usando deep link directo a pantalla específica"
+    steps:
+      - action: launchApp
+        packageName: "com.android.chrome"
+        description: "Abrir navegador"
+
+      - action: tap
+        description: "Barra de direcciones"
+
+      - action: fill
+        value: "market://details?id=com.google.android.gm"
+        description: "Deep link a Play Store"
+
+      - action: pressButton
+        button: "enter"
+
+      - action: wait
+        description: "Esperar que abra Play Store en pantalla específica"
+
+      - action: screenshot
+        filename: "nav-deeplink-opened"
+        description: "App abierta directamente en pantalla específica"
+
+      - action: pressBack
+        description: "Volver al navegador"
+
+      - action: screenshot
+        filename: "nav-deeplink-back"
+
+    expectedResult: "Los deep links abren directamente pantallas específicas"
+
+  - name: "TC010 - Navegación preservando scroll position"
+    description: "Verifica que la posición de scroll se preserva al regresar"
+    steps:
+      - action: launchApp
+        packageName: "com.android.vending"
+        description: "Abrir Play Store"
+
+      - action: wait
+
+      - action: swipe
+        fromX: 500
+        fromY: 1400
+        toX: 500
+        toY: 300
+        duration: 300
+        description: "Scroll considerable hacia abajo"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1400
+        toX: 500
+        toY: 300
+        duration: 300
+        description: "Más scroll"
+
+      - action: screenshot
+        filename: "nav-scroll-position-before"
+        description: "Posición de scroll antes de navegar"
+
+      - action: tap
+        description: "Abrir un item de la lista"
+
+      - action: wait
+
+      - action: screenshot
+        filename: "nav-scroll-detail"
+
+      - action: pressBack
+        description: "Volver a la lista"
+
+      - action: wait
+
+      - action: screenshot
+        filename: "nav-scroll-position-after"
+        description: "Verificar que mantiene posición de scroll"
+
+    expectedResult: "La posición de scroll se preserva al regresar a la pantalla"

@@ -1,0 +1,293 @@
+suite: "Play Store Android - Tests de Tienda de Aplicaciones"
+description: "Suite de tests para Google Play Store - Búsqueda, navegación y exploración de apps"
+platform: "android"
+packageName: "com.android.vending"
+
+tests:
+  - name: "TC001 - Abrir Play Store y verificar secciones"
+    description: "Abre Play Store y verifica que las secciones principales estén disponibles"
+    steps:
+      - action: launchApp
+        packageName: "com.android.vending"
+        description: "Abrir Google Play Store"
+
+      - action: wait
+        description: "Esperar que cargue Play Store"
+
+      - action: verify
+        description: "Verificar que aparece 'Juegos' o 'Games'"
+
+      - action: verify
+        description: "Verificar que aparece 'Aplicaciones' o 'Apps'"
+
+      - action: screenshot
+        filename: "playstore-home"
+        description: "Captura de la pantalla principal"
+
+    expectedResult: "Play Store abre y muestra las secciones principales"
+
+  - name: "TC002 - Buscar aplicación"
+    description: "Busca una aplicación usando la barra de búsqueda"
+    steps:
+      - action: launchApp
+        packageName: "com.android.vending"
+        description: "Abrir Play Store"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Barra de búsqueda en la parte superior"
+
+      - action: wait
+        description: "Esperar que active el campo de búsqueda"
+
+      - action: fill
+        value: "YouTube"
+        description: "Buscar YouTube"
+
+      - action: pressButton
+        button: "enter"
+        description: "Ejecutar búsqueda"
+
+      - action: wait
+        description: "Esperar resultados de búsqueda"
+
+      - action: verify
+        description: "Verificar que aparece 'YouTube' en los resultados"
+
+      - action: screenshot
+        filename: "playstore-search-results"
+        description: "Captura de resultados"
+
+    expectedResult: "La búsqueda funciona y muestra resultados relevantes"
+
+  - name: "TC003 - Ver detalles de aplicación"
+    description: "Abre los detalles de una aplicación desde búsqueda"
+    steps:
+      - action: launchApp
+        packageName: "com.android.vending"
+        description: "Abrir Play Store"
+
+      - action: tap
+        description: "Barra de búsqueda"
+
+      - action: fill
+        value: "Gmail"
+        description: "Buscar Gmail"
+
+      - action: pressButton
+        button: "enter"
+
+      - action: wait
+        description: "Esperar resultados"
+
+      - action: tap
+        description: "Primer resultado (Gmail)"
+
+      - action: wait
+        description: "Esperar que cargue los detalles"
+
+      - action: verify
+        description: "Verificar que aparece el botón 'Abrir' o 'Instalar'"
+
+      - action: screenshot
+        filename: "playstore-app-details"
+        description: "Captura de detalles de app"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1400
+        toX: 500
+        toY: 400
+        duration: 500
+        description: "Scroll para ver más información"
+
+      - action: screenshot
+        filename: "playstore-app-details-scrolled"
+
+    expectedResult: "Los detalles de la aplicación se muestran correctamente"
+
+  - name: "TC004 - Navegar por categorías"
+    description: "Explora las categorías de aplicaciones"
+    steps:
+      - action: launchApp
+        packageName: "com.android.vending"
+        description: "Abrir Play Store"
+
+      - action: tap
+        description: "Pestaña 'Aplicaciones' o 'Apps'"
+
+      - action: wait
+        description: "Esperar que cargue aplicaciones"
+
+      - action: screenshot
+        filename: "playstore-apps-section"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1200
+        toX: 500
+        toY: 400
+        duration: 400
+        description: "Scroll para ver categorías"
+
+      - action: screenshot
+        filename: "playstore-categories"
+
+      - action: tap
+        description: "Una categoría (ej: Productividad, Entretenimiento)"
+
+      - action: wait
+        description: "Esperar que cargue apps de la categoría"
+
+      - action: screenshot
+        filename: "playstore-category-apps"
+
+    expectedResult: "Navega correctamente por las categorías de apps"
+
+  - name: "TC005 - Ver juegos destacados"
+    description: "Accede a la sección de juegos y explora juegos destacados"
+    steps:
+      - action: launchApp
+        packageName: "com.android.vending"
+        description: "Abrir Play Store"
+
+      - action: tap
+        description: "Pestaña 'Juegos' o 'Games'"
+
+      - action: wait
+        description: "Esperar que cargue juegos"
+
+      - action: verify
+        description: "Verificar que aparece contenido de juegos"
+
+      - action: screenshot
+        filename: "playstore-games"
+
+      - action: swipe
+        fromX: 500
+        fromY: 1200
+        toX: 500
+        toY: 400
+        duration: 400
+        description: "Scroll para ver más juegos"
+
+      - action: screenshot
+        filename: "playstore-games-scrolled"
+
+      - action: tap
+        description: "Un juego destacado"
+
+      - action: wait
+        description: "Esperar detalles del juego"
+
+      - action: screenshot
+        filename: "playstore-game-details"
+
+    expectedResult: "La sección de juegos muestra contenido correctamente"
+
+  - name: "TC006 - Scroll horizontal en carrusel"
+    description: "Realiza scroll horizontal en carruseles de apps recomendadas"
+    steps:
+      - action: launchApp
+        packageName: "com.android.vending"
+        description: "Abrir Play Store"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: screenshot
+        filename: "playstore-carousel-initial"
+
+      - action: swipe
+        fromX: 900
+        fromY: 600
+        toX: 200
+        toY: 600
+        duration: 300
+        description: "Swipe horizontal en carrusel de apps"
+
+      - action: screenshot
+        filename: "playstore-carousel-swiped"
+
+      - action: swipe
+        fromX: 900
+        fromY: 600
+        toX: 200
+        toY: 600
+        duration: 300
+        description: "Otro swipe horizontal"
+
+      - action: screenshot
+        filename: "playstore-carousel-more"
+
+    expectedResult: "El scroll horizontal funciona en los carruseles de apps"
+
+  - name: "TC007 - Ver historial de búsqueda"
+    description: "Accede al campo de búsqueda para ver historial o sugerencias"
+    steps:
+      - action: launchApp
+        packageName: "com.android.vending"
+        description: "Abrir Play Store"
+
+      - action: tap
+        description: "Barra de búsqueda"
+
+      - action: wait
+        description: "Esperar que muestre sugerencias o historial"
+
+      - action: screenshot
+        filename: "playstore-search-suggestions"
+        description: "Captura de sugerencias de búsqueda"
+
+      - action: fill
+        value: "Games"
+        description: "Escribir parcialmente"
+
+      - action: wait
+        description: "Esperar autocompletado"
+
+      - action: screenshot
+        filename: "playstore-search-autocomplete"
+
+      - action: pressBack
+        description: "Cerrar búsqueda"
+
+    expectedResult: "El campo de búsqueda muestra sugerencias y autocompletado"
+
+  - name: "TC008 - Navegar usando botón atrás"
+    description: "Verifica navegación correcta usando el botón atrás"
+    steps:
+      - action: launchApp
+        packageName: "com.android.vending"
+        description: "Abrir Play Store"
+
+      - action: tap
+        description: "Pestaña 'Juegos'"
+
+      - action: wait
+        description: "Esperar que cargue"
+
+      - action: tap
+        description: "Un juego cualquiera"
+
+      - action: wait
+        description: "Esperar detalles"
+
+      - action: screenshot
+        filename: "playstore-game-opened"
+
+      - action: pressBack
+        description: "Volver a lista de juegos"
+
+      - action: screenshot
+        filename: "playstore-back-games"
+
+      - action: pressBack
+        description: "Volver a inicio"
+
+      - action: screenshot
+        filename: "playstore-back-home"
+
+    expectedResult: "El botón atrás navega correctamente entre pantallas"
