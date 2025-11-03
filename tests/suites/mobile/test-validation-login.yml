@@ -1,0 +1,26 @@
+suite: Login Test
+description: Test de inicio de sesión móvil
+platform: android
+packageName: com.example.testapp
+tests:
+  - name: TC001 - Login exitoso
+    steps:
+      - action: launchApp
+        packageName: com.example.testapp
+        description: Abrir la aplicación
+      - action: tap
+        description: Tocar botón "Iniciar Sesión" o "Login"
+      - action: fill
+        description: Llenar campo de email o usuario
+        value: user@test.com
+      - action: fill
+        description: Llenar campo de contraseña
+        value: test123
+      - action: tap
+        description: Tocar botón "Entrar" o "Sign In"
+      - action: verify
+        description: Verificar que aparece el texto "Bienvenido" o nombre de usuario
+      - action: screenshot
+        filename: login-exitoso
+        description: Captura de sesión iniciada
+    expectedResult: El usuario puede iniciar sesión correctamente

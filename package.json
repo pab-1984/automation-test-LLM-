@@ -18,6 +18,7 @@
     "test-natural": "node scripts/test-natural.js",
     "test-mobile": "node scripts/test-mobile.js",
     "mobile-devices": "node scripts/test-mobile.js --list",
+    "create-mobile-test": "node scripts/create-mobile-test.js",
     "migrate-reports": "node scripts/migrate-reports-to-db.js",
     "status": "node scripts/switch-llm.js status"
   },
