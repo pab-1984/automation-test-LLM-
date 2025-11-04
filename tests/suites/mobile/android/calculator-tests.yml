@@ -1,14 +1,14 @@
 suite: "Calculator Android - Tests de Calculadora"
 description: "Suite de tests para la Calculadora de Android - Operaciones básicas y verificación de resultados"
 platform: "android"
-packageName: "com.google.android.calculator"
+packageName: "com.miui.calculator"
 
 tests:
   - name: "TC001 - Suma simple"
     description: "Realiza una suma simple: 5 + 3 = 8"
     steps:
       - action: launchApp
-        packageName: "com.google.android.calculator"
+        packageName: "com.miui.calculator"
         description: "Abrir Calculadora"
 
       - action: wait
@@ -39,7 +39,7 @@ tests:
     description: "Realiza una resta: 15 - 7 = 8"
     steps:
       - action: launchApp
-        packageName: "com.google.android.calculator"
+        packageName: "com.miui.calculator"
         description: "Abrir Calculadora"
 
       - action: tap
@@ -69,7 +69,7 @@ tests:
     description: "Realiza una multiplicación: 6 × 4 = 24"
     steps:
       - action: launchApp
-        packageName: "com.google.android.calculator"
+        packageName: "com.miui.calculator"
         description: "Abrir Calculadora"
 
       - action: tap
@@ -96,7 +96,7 @@ tests:
     description: "Realiza una división: 20 ÷ 4 = 5"
     steps:
       - action: launchApp
-        packageName: "com.google.android.calculator"
+        packageName: "com.miui.calculator"
         description: "Abrir Calculadora"
 
       - action: tap
@@ -126,7 +126,7 @@ tests:
     description: "Realiza operación combinada: 10 + 5 × 2 = 20 (orden de operaciones)"
     steps:
       - action: launchApp
-        packageName: "com.google.android.calculator"
+        packageName: "com.miui.calculator"
         description: "Abrir Calculadora"
 
       - action: tap
@@ -159,7 +159,7 @@ tests:
     description: "Verifica que el botón Clear limpia la operación"
     steps:
       - action: launchApp
-        packageName: "com.google.android.calculator"
+        packageName: "com.miui.calculator"
         description: "Abrir Calculadora"
 
       - action: tap

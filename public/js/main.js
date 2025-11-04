@@ -5,6 +5,9 @@
 let selectedTest = null;
 let currentTestId = null;
 let statusInterval = null;
+let currentPlatform = 'web'; // 'web' o 'mobile'
+let selectedDevice = null;
+let mobileDevices = [];
 
 // ======================================== 
 // NAVEGACIÓN DE TABS
@@ -294,33 +297,84 @@ async function createTest(event) {
 async function loadTestSelector() {
   try {
     const response = await fetch('/api/tests');
-    const tests = await response.json();
+    const data = await response.json();
+    const tests = data.tests || data; // Soporte para ambas estructuras de respuesta
 
     const selectorDiv = document.getElementById('test-selector');
 
-    if (tests.length === 0) {
+    if (!tests || tests.length === 0) {
       selectorDiv.innerHTML = '<p style="color: #7f8c8d;">No hay tests disponibles</p>';
       return;
     }
 
-    selectorDiv.innerHTML = `
-      <ul class="test-list">
-        ${tests.map(test => `
-          <li class="test-item" onclick="selectTest('${test.path}', '${test.name}')">
-            <span>📄 ${test.name}</span>
-            <span style="color: #7f8c8d; font-size: 0.9em;">${(test.size / 1024).toFixed(1)} KB</span>
-          </li>
-        `).join('')}
-      </ul>
-    `;
+    // Filtrar tests según plataforma seleccionada
+    const filteredTests = tests.filter(test => {
+      if (currentPlatform === 'mobile') {
+        return test.platform === 'android' || test.platform === 'ios' || test.platform === 'common' || test.platform === 'mobile';
+      } else {
+        return test.platform === 'web' || !test.platform;
+      }
+    });
+
+    if (filteredTests.length === 0) {
+      selectorDiv.innerHTML = `<p style="color: #7f8c8d;">No hay tests disponibles para la plataforma ${currentPlatform}</p>`;
+      return;
+    }
+
+    // Agrupar tests por plataforma
+    const groupedTests = {};
+    filteredTests.forEach(test => {
+      const platform = test.platform || 'web';
+      if (!groupedTests[platform]) {
+        groupedTests[platform] = [];
+      }
+      groupedTests[platform].push(test);
+    });
+
+    const platformEmoji = {
+      'web': '🌐',
+      'mobile': '📱',
+      'android': '🤖',
+      'ios': '🍎',
+      'common': '📲'
+    };
+
+    let html = '';
+    for (const [platform, platformTests] of Object.entries(groupedTests)) {
+      const emoji = platformEmoji[platform] || '📄';
+      html += `
+        <div class="test-group">
+          <h4 style="margin: 15px 0 10px 0; color: #34495e; font-size: 0.95em;">
+            ${emoji} ${platform.toUpperCase()} (${platformTests.length})
+          </h4>
+          <ul class="test-list">
+            ${platformTests.map(test => `
+              <li class="test-item" onclick="selectTest('${test.path}', '${test.name}', '${test.platform}')">
+                <div style="flex: 1;">
+                  <div style="font-weight: 500;">📄 ${test.name}</div>
+                  ${test.description ? `<div style="font-size: 0.85em; color: #7f8c8d; margin-top: 3px;">${test.description}</div>` : ''}
+                </div>
+                <div style="text-align: right; font-size: 0.85em; color: #7f8c8d;">
+                  <div>${test.testCount || 0} tests</div>
+                  <div>${(test.size / 1024).toFixed(1)} KB</div>
+                </div>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    selectorDiv.innerHTML = html;
   } catch (error) {
+    console.error('Error cargando tests:', error);
     document.getElementById('test-selector').innerHTML =
       '<p class="alert alert-error">Error al cargar tests</p>';
   }
 }
 
-function selectTest(path, name) {
-  selectedTest = { path, name };
+function selectTest(path, name, platform) {
+  selectedTest = { path, name, platform };
 
   // Marcar como seleccionado
   document.querySelectorAll('.test-item').forEach(item => {
@@ -363,13 +417,32 @@ async function runSelectedTest() {
   btn.innerHTML = '<span class="loading"></span> Iniciando...';
 
   try {
+    // Construir payload con información de plataforma
+    const payload = {
+      testPath: selectedTest.path,
+      mode: mode
+    };
+
+    // Agregar información de plataforma móvil si corresponde
+    if (currentPlatform === 'mobile') {
+      payload.platform = 'mobile';
+      payload.deviceId = selectedDevice;
+
+      // Validar que hay un dispositivo seleccionado
+      if (!selectedDevice) {
+        alert('⚠️ Selecciona un dispositivo móvil primero');
+        btn.disabled = false;
+        btn.innerHTML = '📱 Ejecutar Test Móvil';
+        return;
+      }
+    } else {
+      payload.platform = 'web';
+    }
+
     const response = await fetch('/api/tests/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        testPath: selectedTest.path,
-        mode: mode
-      })
+      body: JSON.stringify(payload)
     });
 
     const result = await response.json();
@@ -377,11 +450,21 @@ async function runSelectedTest() {
     if (result.success) {
       currentTestId = result.testId;
 
+      // Construir mensaje de estado según plataforma
+      let platformInfo = '';
+      if (currentPlatform === 'mobile') {
+        const device = mobileDevices.find(d => d.id === selectedDevice);
+        const deviceName = device ? device.model : selectedDevice;
+        platformInfo = `<br>📱 Plataforma: Mobile<br>🤖 Dispositivo: ${deviceName}`;
+      } else {
+        platformInfo = '<br>🌐 Plataforma: Web';
+      }
+
       document.getElementById('execution-status').innerHTML = `
         <div class="alert alert-info">
           🚀 Test iniciado!<br>
           📊 ID: ${result.testId}<br>
-          ⚙️ Modo: ${mode}
+          ⚙️ Modo: ${mode}${platformInfo}
         </div>
       `;
 
@@ -732,11 +815,44 @@ function selectTestFromTree(testId, header, event) {
   viewTestDetails(testId);
 }
 
+async function addTestSuite() {
+  const suiteName = prompt('Nombre de la nueva suite:');
+  if (!suiteName) return;
+
+  const description = prompt('Descripción (opcional):') || '';
+
+  if (!currentProjectId) {
+    showNotification('Error: No hay proyecto seleccionado', 'error');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/suites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId: currentProjectId,
+        name: suiteName,
+        description
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification(`Suite "${suiteName}" creada`, 'success');
+      await loadProjects();
+    } else {
+      showNotification('Error: ' + data.error, 'error');
+    }
+  } catch (error) {
+    showNotification('Error creando suite: ' + error.message, 'error');
+  }
+}
+
 async function addSuiteToProject(projectId) {
   currentProjectId = projectId;
   await addTestSuite();
-  // Recargar explorador
-  await loadProjects();
 }
 
 async function addTestToSuiteFromTree(suiteId) {
@@ -1199,12 +1315,12 @@ async function updateTestSourceList(type) {
 
       tests = data.tests || [];
     } else {
-      // Tests YAML
+      // Tests YAML (incluye web y mobile)
       response = await fetch('/api/tests');
       const data = await response.json();
 
-      // El endpoint devuelve directamente el array de tests
-      tests = Array.isArray(data) ? data : [];
+      // El endpoint ahora devuelve { success: true, tests: [...] }
+      tests = data.tests || (Array.isArray(data) ? data : []);
     }
 
     if (!tests || tests.length === 0) {
@@ -1216,12 +1332,30 @@ async function updateTestSourceList(type) {
     tests.forEach(test => {
       const testData = type === 'natural'
         ? { name: test.name, filename: test.filename, description: test.description, url: test.url, type: 'natural' }
-        : { name: test.name, path: test.path, type: 'yaml' };
+        : { name: test.name, path: test.path, type: 'yaml', platform: test.platform || 'web', description: test.description };
+
+      // Determinar ícono según plataforma
+      let icon = '📄';
+      let platformBadge = '';
+
+      if (type === 'natural') {
+        icon = '💬';
+      } else if (testData.platform) {
+        const platformIcons = {
+          'web': '🌐',
+          'mobile': '📱',
+          'android': '🤖',
+          'ios': '🍎',
+          'common': '📲'
+        };
+        icon = platformIcons[testData.platform] || '📄';
+        platformBadge = `<span style="background: ${testData.platform === 'web' ? '#3498db' : '#e74c3c'}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-left: 8px;">${testData.platform.toUpperCase()}</span>`;
+      }
 
       html += `
         <div class="test-item" onclick='selectTestForSuite(${JSON.stringify(testData).replace(/'/g, "&#39;")})' style="cursor: pointer;">
           <div>
-            <strong>${type === 'natural' ? '💬' : '📄'} ${testData.name}</strong><br>
+            <strong>${icon} ${testData.name}</strong>${platformBadge}<br>
             ${testData.description ? `<span style="color: #7f8c8d; font-size: 0.9em;">${testData.description}</span>` : ''}
           </div>
         </div>
@@ -1440,3 +1574,223 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
+// ========================================
+// MOBILE - GESTIÓN DE PLATAFORMA Y DISPOSITIVOS
+// ========================================
+
+/**
+ * Maneja el cambio de plataforma (Web/Mobile)
+ */
+async function handlePlatformChange(platform) {
+  currentPlatform = platform;
+
+  if (platform === 'mobile') {
+    // Mostrar selector de dispositivos
+    document.getElementById('device-selector-container').style.display = 'flex';
+    // Mostrar panel de dispositivos móviles
+    document.getElementById('mobile-devices-panel').style.display = 'block';
+    // Cargar dispositivos
+    await loadMobileDevices();
+  } else {
+    // Ocultar selector de dispositivos
+    document.getElementById('device-selector-container').style.display = 'none';
+    // Ocultar panel de dispositivos móviles
+    document.getElementById('mobile-devices-panel').style.display = 'none';
+    selectedDevice = null;
+  }
+
+  // Actualizar interfaz
+  updateUIForPlatform(platform);
+
+  // Recargar lista de tests según plataforma
+  await loadTestSelector();
+}
+
+/**
+ * Carga la lista de dispositivos móviles disponibles
+ */
+async function loadMobileDevices() {
+  try {
+    const response = await fetch('/api/mobile/devices');
+    const data = await response.json();
+
+    if (data.success) {
+      mobileDevices = data.devices;
+      updateDeviceSelector(data.devices);
+      updateDevicesPanel(data);
+    } else {
+      console.error('Error cargando dispositivos:', data.error);
+      showNoDevicesMessage();
+    }
+  } catch (error) {
+    console.error('Error en loadMobileDevices:', error);
+    showNoDevicesMessage();
+  }
+}
+
+/**
+ * Actualiza el selector de dispositivos en el header
+ */
+function updateDeviceSelector(devices) {
+  const dropdown = document.getElementById('device-dropdown');
+
+  if (!devices || devices.length === 0) {
+    dropdown.innerHTML = '<option value="">No hay dispositivos</option>';
+    return;
+  }
+
+  const options = devices.map(device => {
+    const icon = device.platform === 'android' ? '🤖' : '🍎';
+    const typeIcon = device.type === 'emulator' ? '💻' : '📱';
+    const statusIcon = device.status === 'device' || device.status === 'online' ? '🟢' : '🔴';
+
+    return `<option value="${device.id}">
+      ${icon} ${typeIcon} ${device.model} ${statusIcon}
+    </option>`;
+  }).join('');
+
+  dropdown.innerHTML = options;
+
+  // Seleccionar primer dispositivo automáticamente
+  if (devices.length > 0) {
+    selectedDevice = devices[0].id;
+    dropdown.value = selectedDevice;
+  }
+}
+
+/**
+ * Actualiza el panel de información de dispositivos
+ */
+function updateDevicesPanel(data) {
+  const panel = document.getElementById('mobile-devices-info');
+
+  if (!data.devices || data.devices.length === 0) {
+    panel.innerHTML = '<p style="color: #e74c3c;">❌ No se encontraron dispositivos móviles conectados</p>';
+    return;
+  }
+
+  const html = `
+    <div style="margin-bottom: 15px;">
+      <strong>Dispositivos Disponibles:</strong> ${data.count}
+    </div>
+    <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: 0.9em;">
+      <span>🤖 Android:</span>
+      <span><strong>${data.platforms.android}</strong> dispositivo(s)</span>
+      <span>🍎 iOS:</span>
+      <span><strong>${data.platforms.ios}</strong> dispositivo(s)</span>
+    </div>
+    <div style="margin-top: 15px; padding: 10px; background: #ecf0f1; border-radius: 6px;">
+      ${data.devices.map(device => {
+        const icon = device.platform === 'android' ? '🤖' : '🍎';
+        const typeIcon = device.type === 'emulator' ? '💻' : '📱';
+        const statusColor = device.status === 'device' || device.status === 'online' ? '#27ae60' : '#e74c3c';
+
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 8px; background: white; border-radius: 4px;">
+            <div>
+              <span style="font-size: 1.2em;">${icon} ${typeIcon}</span>
+              <strong>${device.model}</strong>
+            </div>
+            <span style="font-size: 0.85em; color: ${statusColor};">
+              ● ${device.status}
+            </span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  panel.innerHTML = html;
+}
+
+/**
+ * Muestra mensaje cuando no hay dispositivos
+ */
+function showNoDevicesMessage() {
+  const panel = document.getElementById('mobile-devices-info');
+  panel.innerHTML = `
+    <div style="color: #e74c3c; padding: 15px;">
+      <p><strong>❌ No se encontraron dispositivos móviles</strong></p>
+      <p style="font-size: 0.9em; margin-top: 10px;">
+        <strong>Para Android:</strong><br>
+        • Asegúrate de tener ADB instalado<br>
+        • Conecta un dispositivo o inicia un emulador<br>
+        • Ejecuta: <code>adb devices</code>
+      </p>
+      <p style="font-size: 0.9em; margin-top: 10px;">
+        <strong>Para iOS (macOS):</strong><br>
+        • Asegúrate de tener Xcode instalado<br>
+        • Inicia un simulador desde Xcode
+      </p>
+    </div>
+  `;
+}
+
+/**
+ * Maneja el cambio de dispositivo seleccionado
+ */
+async function handleDeviceChange(deviceId) {
+  selectedDevice = deviceId;
+  console.log('Dispositivo seleccionado:', deviceId);
+
+  // Obtener información detallada del dispositivo si es necesario
+  if (deviceId) {
+    try {
+      const response = await fetch(`/api/mobile/devices/${deviceId}`);
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('Info del dispositivo:', data.device);
+        // Aquí podrías actualizar la UI con información adicional
+      }
+    } catch (error) {
+      console.error('Error obteniendo info del dispositivo:', error);
+    }
+  }
+}
+
+/**
+ * Refresca la lista de dispositivos
+ */
+async function refreshDevices() {
+  showToast('🔄 Actualizando dispositivos...', 'info');
+  await loadMobileDevices();
+  showToast('✅ Dispositivos actualizados', 'success');
+}
+
+/**
+ * Actualiza la UI según la plataforma seleccionada
+ */
+function updateUIForPlatform(platform) {
+  // Actualizar textos y labels según la plataforma
+  const runButton = document.getElementById('run-btn');
+
+  if (platform === 'mobile') {
+    if (runButton) {
+      runButton.innerHTML = '📱 Ejecutar Test Móvil';
+    }
+  } else {
+    if (runButton) {
+      runButton.innerHTML = '▶️ Ejecutar Test';
+    }
+  }
+
+  // Aquí podrías agregar más cambios de UI según la plataforma
+}
+
+// ========================================
+// INICIALIZACIÓN EN CARGA DE PÁGINA
+// ========================================
+
+// Agregar al evento de carga inicial
+document.addEventListener('DOMContentLoaded', () => {
+  // Cargar estado de plataforma
+  const platformDropdown = document.getElementById('platform-dropdown');
+  if (platformDropdown) {
+    currentPlatform = platformDropdown.value;
+    if (currentPlatform === 'mobile') {
+      handlePlatformChange('mobile');
+    }
+  }
+});

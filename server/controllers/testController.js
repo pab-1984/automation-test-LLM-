@@ -8,35 +8,68 @@ const { UniversalTestRunnerCore } = require('../../runners/universal-runner.js')
  */
 class TestController {
   /**
-   * GET /api/tests - Listar tests
+   * GET /api/tests - Listar tests (recursivo, incluye mobile)
    */
   async listTests(req, res) {
     try {
       const tests = [];
-      if (fs.existsSync('./tests/suites')) {
-        fs.readdirSync('./tests/suites')
-          .filter(file => file.endsWith('.yml') || file.endsWith('.yaml'))
-          .forEach(file => {
+      const baseDir = './tests/suites';
+
+      // Función recursiva para buscar tests
+      const scanDirectory = (dir, platform = 'web') => {
+        if (!fs.existsSync(dir)) return;
+
+        const items = fs.readdirSync(dir);
+
+        for (const item of items) {
+          const fullPath = path.join(dir, item);
+          const stat = fs.statSync(fullPath);
+
+          if (stat.isDirectory()) {
+            // Detectar plataforma por nombre de carpeta
+            let subPlatform = platform;
+            if (item === 'mobile') subPlatform = 'mobile';
+            else if (item === 'android' && platform === 'mobile') subPlatform = 'android';
+            else if (item === 'ios' && platform === 'mobile') subPlatform = 'ios';
+            else if (item === 'common' && platform === 'mobile') subPlatform = 'common';
+
+            // Recursivamente escanear subdirectorio
+            scanDirectory(fullPath, subPlatform);
+          } else if (item.endsWith('.yml') || item.endsWith('.yaml')) {
+            // Es un archivo de test
             try {
-              const content = fs.readFileSync(`./tests/suites/${file}`, 'utf8');
-              const stats = fs.statSync(`./tests/suites/${file}`);
+              const content = fs.readFileSync(fullPath, 'utf8');
+              const yaml = require('js-yaml');
+              const testData = yaml.load(content);
+
               tests.push({
-                file: file,
-                name: file.replace('.yml', '').replace('.yaml', ''),
+                file: item,
+                name: testData.suite || item.replace('.yml', '').replace('.yaml', ''),
+                description: testData.description || '',
                 size: content.length,
-                modified: stats.mtime,
-                path: `./tests/suites/${file}`
+                modified: stat.mtime,
+                path: fullPath.replace(/\\/g, '/'),
+                platform: testData.platform || platform,
+                testCount: testData.tests ? testData.tests.length : 0
               });
             } catch (e) {
               tests.push({
-                file: file,
+                file: item,
+                path: fullPath.replace(/\\/g, '/'),
                 error: e.message
               });
             }
-          });
-      }
+          }
+        }
+      };
 
-      res.json(tests);
+      scanDirectory(baseDir);
+
+      res.json({
+        success: true,
+        tests: tests,
+        count: tests.length
+      });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -93,10 +126,17 @@ class TestController {
    */
   async runTest(req, res) {
     try {
-      const { testPath, mode } = req.body;
+      const { testPath, mode, platform, deviceId } = req.body;
 
       if (!testPath) {
         return res.status(400).json({ error: 'Campo requerido: testPath' });
+      }
+
+      // Validar que si es mobile, se proporcione deviceId
+      if (platform === 'mobile' && !deviceId) {
+        return res.status(400).json({
+          error: 'Para plataforma mobile se requiere deviceId'
+        });
       }
 
       // Generar ID único para esta ejecución
@@ -109,16 +149,20 @@ class TestController {
       global.activeTestRuns.set(testId, {
         status: 'running',
         logs: [],
-        startTime: Date.now()
+        startTime: Date.now(),
+        platform: platform || 'web',
+        deviceId: deviceId || null
       });
 
       // Ejecutar test en background
-      this.executeTestAsync(testId, testPath, mode || 'auto');
+      this.executeTestAsync(testId, testPath, mode || 'auto', platform || 'web', deviceId);
 
       res.json({
         success: true,
         testId: testId,
-        message: 'Test iniciado'
+        message: 'Test iniciado',
+        platform: platform || 'web',
+        deviceId: deviceId || null
       });
     } catch (error) {
       console.error('Error iniciando test:', error);
@@ -151,13 +195,22 @@ class TestController {
   /**
    * Ejecutar test en background (helper privado)
    */
-  async executeTestAsync(testId, testPath, mode) {
+  async executeTestAsync(testId, testPath, mode, platform, deviceId) {
     try {
       const testRun = global.activeTestRuns.get(testId);
       testRun.logs.push(`Iniciando test: ${testPath} en modo ${mode}`);
 
-      // Inicializar runner
-      const runner = new UniversalTestRunnerCore();
+      if (platform === 'mobile') {
+        testRun.logs.push(`Plataforma: Mobile | Dispositivo: ${deviceId}`);
+      } else {
+        testRun.logs.push(`Plataforma: Web`);
+      }
+
+      // Inicializar runner con opciones de plataforma
+      const runner = new UniversalTestRunnerCore('./config/llm.config.json', {
+        platform: platform || 'web',
+        deviceId: deviceId || null
+      });
       await runner.initialize();
 
       testRun.logs.push('Runner inicializado');

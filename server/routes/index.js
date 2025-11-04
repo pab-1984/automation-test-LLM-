@@ -6,6 +6,7 @@ const apiRouter = require('./api');
 const testsRouter = require('./tests');
 const naturalRouter = require('./natural');
 const resultsRouter = require('./results');
+const mobileRouter = require('./mobile');
 
 // Nuevas rutas para base de datos
 const projectsRouter = require('./projects');
@@ -17,6 +18,7 @@ router.use('/', apiRouter);        // /api/status, /api/llm/switch
 router.use('/tests', testsRouter); // /api/tests/*
 router.use('/tests/natural', naturalRouter); // /api/tests/natural/*
 router.use('/results', resultsRouter); // /api/results/*
+router.use('/mobile', mobileRouter); // /api/mobile/*
 
 // Rutas de base de datos
 router.use('/projects', projectsRouter);      // /api/projects/*

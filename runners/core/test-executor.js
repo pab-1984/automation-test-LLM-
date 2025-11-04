@@ -79,9 +79,11 @@ class TestExecutor {
       this.executionId = execution.id;
       console.log(`💾 Ejecución creada en DB (execution_id: ${this.executionId})`);
 
-      // Pasar executionId al config para que browser-actions pueda usarlo
+      // Pasar executionId, deviceId y platform al config para que las actions puedan usarlos
       if (!this.config) this.config = {};
       this.config.executionId = this.executionId;
+      this.config.deviceId = this.deviceId;
+      this.config.platform = this.platform;
 
     } catch (err) {
       console.warn('⚠️  No se pudo crear ejecución en DB:', err.message);

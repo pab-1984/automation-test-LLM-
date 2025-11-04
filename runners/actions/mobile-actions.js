@@ -36,7 +36,10 @@ class MobileActions {
           console.log(` 🌐 Navegando a: ${params.url}`);
           await mcpClient.callTool({
             name: 'mobile_open_url',
-            arguments: { url: params.url }
+            arguments: {
+              device: config.deviceId,
+              url: params.url
+            }
           });
           result.success = true;
           break;
@@ -46,6 +49,7 @@ class MobileActions {
           await mcpClient.callTool({
             name: 'mobile_launch_app',
             arguments: {
+              device: config.deviceId,
               packageName: params.packageName,
               bundleId: params.bundleId,
               activity: params.activity
@@ -59,6 +63,7 @@ class MobileActions {
           await mcpClient.callTool({
             name: 'mobile_terminate_app',
             arguments: {
+              device: config.deviceId,
               packageName: params.packageName,
               bundleId: params.bundleId
             }
@@ -70,7 +75,9 @@ class MobileActions {
           console.log(` 📱 Listando apps instaladas...`);
           const appsResult = await mcpClient.callTool({
             name: 'mobile_list_apps',
-            arguments: {}
+            arguments: {
+              device: config.deviceId
+            }
           });
           result.output = appsResult.content[0]?.text || '';
           result.success = true;
@@ -83,12 +90,13 @@ class MobileActions {
 
         case 'click':
         case 'tap':
-          const clickCoords = await this.resolveCoordinates(params, mcpClient, elementFinder);
+          const clickCoords = await this.resolveCoordinates(params, mcpClient, elementFinder, config);
           console.log(` 👆 Click en (${clickCoords.x}, ${clickCoords.y})`);
 
           await mcpClient.callTool({
             name: 'mobile_click_on_screen_at_coordinates',
             arguments: {
+              device: config.deviceId,
               x: clickCoords.x,
               y: clickCoords.y
             }
@@ -97,12 +105,13 @@ class MobileActions {
           break;
 
         case 'doubleTap':
-          const doubleTapCoords = await this.resolveCoordinates(params, mcpClient, elementFinder);
+          const doubleTapCoords = await this.resolveCoordinates(params, mcpClient, elementFinder, config);
           console.log(` 👆👆 Doble tap en (${doubleTapCoords.x}, ${doubleTapCoords.y})`);
 
           await mcpClient.callTool({
             name: 'mobile_double_tap_on_screen',
             arguments: {
+              device: config.deviceId,
               x: doubleTapCoords.x,
               y: doubleTapCoords.y
             }
@@ -111,13 +120,14 @@ class MobileActions {
           break;
 
         case 'longPress':
-          const longPressCoords = await this.resolveCoordinates(params, mcpClient, elementFinder);
+          const longPressCoords = await this.resolveCoordinates(params, mcpClient, elementFinder, config);
           const duration = params.duration || 1000;
           console.log(` 👆⏱️  Long press en (${longPressCoords.x}, ${longPressCoords.y}) por ${duration}ms`);
 
           await mcpClient.callTool({
             name: 'mobile_long_press_on_screen_at_coordinates',
             arguments: {
+              device: config.deviceId,
               x: longPressCoords.x,
               y: longPressCoords.y,
               duration
@@ -129,17 +139,18 @@ class MobileActions {
         case 'swipe':
           const fromCoords = params.fromX && params.fromY
             ? { x: params.fromX, y: params.fromY }
-            : await this.resolveCoordinates({ selector: params.from }, mcpClient, elementFinder);
+            : await this.resolveCoordinates({ selector: params.from }, mcpClient, elementFinder, config);
 
           const toCoords = params.toX && params.toY
             ? { x: params.toX, y: params.toY }
-            : await this.resolveCoordinates({ selector: params.to }, mcpClient, elementFinder);
+            : await this.resolveCoordinates({ selector: params.to }, mcpClient, elementFinder, config);
 
           console.log(` 👉 Swipe de (${fromCoords.x}, ${fromCoords.y}) a (${toCoords.x}, ${toCoords.y})`);
 
           await mcpClient.callTool({
             name: 'mobile_swipe_on_screen',
             arguments: {
+              device: config.deviceId,
               fromX: fromCoords.x,
               fromY: fromCoords.y,
               toX: toCoords.x,
@@ -160,17 +171,24 @@ class MobileActions {
 
           // Si hay selector, hacer click primero
           if (params.selector || (params.x && params.y)) {
-            const typeCoords = await this.resolveCoordinates(params, mcpClient, elementFinder);
+            const typeCoords = await this.resolveCoordinates(params, mcpClient, elementFinder, config);
             await mcpClient.callTool({
               name: 'mobile_click_on_screen_at_coordinates',
-              arguments: { x: typeCoords.x, y: typeCoords.y }
+              arguments: {
+                device: config.deviceId,
+                x: typeCoords.x,
+                y: typeCoords.y
+              }
             });
             await this.sleep(300); // Esperar a que se active el teclado
           }
 
           await mcpClient.callTool({
             name: 'mobile_type_keys',
-            arguments: { keys: params.value }
+            arguments: {
+              device: config.deviceId,
+              keys: params.value
+            }
           });
           result.success = true;
           break;
@@ -184,7 +202,9 @@ class MobileActions {
           console.log(` 📸 Capturando lista de elementos...`);
           const elementsResult = await mcpClient.callTool({
             name: 'mobile_list_elements_on_screen',
-            arguments: {}
+            arguments: {
+              device: config.deviceId
+            }
           });
 
           const elementsText = elementsResult.content[0]?.text || '';
@@ -203,7 +223,10 @@ class MobileActions {
 
           await mcpClient.callTool({
             name: 'mobile_save_screenshot',
-            arguments: { filePath: screenshotPath }
+            arguments: {
+              device: config.deviceId,
+              saveTo: screenshotPath
+            }
           });
 
           result.output = screenshotPath;
@@ -244,7 +267,10 @@ class MobileActions {
           console.log(` ⬅️  Presionando BACK`);
           await mcpClient.callTool({
             name: 'mobile_press_button',
-            arguments: { button: 'BACK' }
+            arguments: {
+              device: config.deviceId,
+              button: 'BACK'
+            }
           });
           result.success = true;
           break;
@@ -253,7 +279,10 @@ class MobileActions {
           console.log(` 🏠 Presionando HOME`);
           await mcpClient.callTool({
             name: 'mobile_press_button',
-            arguments: { button: 'HOME' }
+            arguments: {
+              device: config.deviceId,
+              button: 'HOME'
+            }
           });
           result.success = true;
           break;
@@ -263,7 +292,10 @@ class MobileActions {
           console.log(` 🔘 Presionando ${button}`);
           await mcpClient.callTool({
             name: 'mobile_press_button',
-            arguments: { button }
+            arguments: {
+              device: config.deviceId,
+              button
+            }
           });
           result.success = true;
           break;
@@ -277,7 +309,10 @@ class MobileActions {
           console.log(` 🔄 Cambiando orientación a ${orientation}`);
           await mcpClient.callTool({
             name: 'mobile_set_orientation',
-            arguments: { orientation }
+            arguments: {
+              device: config.deviceId,
+              orientation
+            }
           });
           result.success = true;
           break;
@@ -286,7 +321,9 @@ class MobileActions {
           console.log(` 🔄 Obteniendo orientación...`);
           const orientationResult = await mcpClient.callTool({
             name: 'mobile_get_orientation',
-            arguments: {}
+            arguments: {
+              device: config.deviceId
+            }
           });
           result.output = orientationResult.content[0]?.text || '';
           result.success = true;
@@ -301,7 +338,9 @@ class MobileActions {
           console.log(` 📐 Obteniendo tamaño de pantalla...`);
           const sizeResult = await mcpClient.callTool({
             name: 'mobile_get_screen_size',
-            arguments: {}
+            arguments: {
+              device: config.deviceId
+            }
           });
           result.output = sizeResult.content[0]?.text || '';
           result.success = true;
@@ -340,7 +379,7 @@ class MobileActions {
    * Resuelve coordenadas desde selector o coordenadas directas
    * MEJORADO: Ahora usa cache, fuzzy matching y contexto
    */
-  async resolveCoordinates(params, mcpClient, elementFinder, options = {}) {
+  async resolveCoordinates(params, mcpClient, elementFinder, config, options = {}) {
     // Si ya tiene coordenadas x,y, usarlas directamente
     if (params.x !== undefined && params.y !== undefined) {
       return { x: params.x, y: params.y };
@@ -366,7 +405,9 @@ class MobileActions {
           // Verificar que las coordenadas cached aún son válidas
           const elementsResult = await mcpClient.callTool({
             name: 'mobile_list_elements_on_screen',
-            arguments: {}
+            arguments: {
+              device: config.deviceId
+            }
           });
 
           const elementsText = elementsResult.content[0]?.text || '';
@@ -386,7 +427,9 @@ class MobileActions {
       // Obtener lista de elementos
       const elementsResult = await mcpClient.callTool({
         name: 'mobile_list_elements_on_screen',
-        arguments: {}
+        arguments: {
+          device: config.deviceId
+        }
       });
 
       const elementsText = elementsResult.content[0]?.text || '';

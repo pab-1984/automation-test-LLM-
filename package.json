@@ -25,7 +25,10 @@
     "test:mobile:android": "node scripts/run-all-mobile-tests.js android",
     "test:mobile:ios": "node scripts/run-all-mobile-tests.js ios",
     "test:mobile:common": "node scripts/run-all-mobile-tests.js common",
-    "test:mobile:batch": "node scripts/run-all-mobile-tests.js"
+    "test:mobile:batch": "node scripts/run-all-mobile-tests.js",
+    "validate:mcp-web": "node test-mcp-web.js",
+    "validate:mcp-mobile": "node test-mobile-mcp.js",
+    "check:mobile": "node scripts/check-mobile-setup.js"
   },
   "keywords": [
     "testing",

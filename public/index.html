@@ -35,6 +35,19 @@
           <h1>Testing Automation Framework</h1>
         </div>
         <div class="header-right">
+          <div class="platform-selector-compact">
+            <label for="platform-dropdown">Plataforma:</label>
+            <select id="platform-dropdown" onchange="handlePlatformChange(this.value)">
+              <option value="web">🌐 Web</option>
+              <option value="mobile">📱 Mobile</option>
+            </select>
+          </div>
+          <div class="device-selector-compact" id="device-selector-container" style="display: none;">
+            <label for="device-dropdown">Dispositivo:</label>
+            <select id="device-dropdown" onchange="handleDeviceChange(this.value)">
+              <option value="">Cargando...</option>
+            </select>
+          </div>
           <div class="llm-selector-compact">
             <label for="llm-dropdown">Modelo:</label>
             <select id="llm-dropdown" onchange="handleLLMChange(this.value)">
@@ -81,13 +94,30 @@
             </div>
           </div>
 
-          <!-- Columna Derecha: Estadísticas -->
-          <div class="card">
-            <h2>Estadísticas</h2>
-            <div id="test-statistics">
-              <div class="status">
-                <div class="loading"></div>
-                <span>Cargando...</span>
+          <!-- Columna Derecha: Estadísticas y Dispositivos -->
+          <div>
+            <!-- Panel de Dispositivos Móviles (solo visible en modo mobile) -->
+            <div class="card" id="mobile-devices-panel" style="display: none; margin-bottom: 20px;">
+              <h2>📱 Dispositivos Móviles</h2>
+              <div id="mobile-devices-info">
+                <div class="status">
+                  <div class="loading"></div>
+                  <span>Cargando dispositivos...</span>
+                </div>
+              </div>
+              <button onclick="refreshDevices()" class="btn-compact" style="margin-top: 10px;">
+                🔄 Actualizar Dispositivos
+              </button>
+            </div>
+
+            <!-- Panel de Estadísticas -->
+            <div class="card">
+              <h2>Estadísticas</h2>
+              <div id="test-statistics">
+                <div class="status">
+                  <div class="loading"></div>
+                  <span>Cargando...</span>
+                </div>
               </div>
             </div>
           </div>

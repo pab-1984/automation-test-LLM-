@@ -1,0 +1,22 @@
+suite: "Calculator Launch Test"
+description: "Test simple para verificar que la calculadora se puede abrir"
+platform: "android"
+packageName: "com.miui.calculator"
+
+tests:
+  - name: "Launch Calculator"
+    description: "Abre la calculadora de Xiaomi y toma un screenshot"
+    steps:
+      - action: launchApp
+        packageName: "com.miui.calculator"
+        description: "Abrir Calculadora MIUI"
+
+      - action: wait
+        time: 2000
+        description: "Esperar 2 segundos que cargue"
+
+      - action: screenshot
+        filePath: "./tests/screenshots/miui-calculator-launched.png"
+        description: "Captura de la calculadora abierta"
+
+    expectedResult: "La calculadora se abre correctamente"

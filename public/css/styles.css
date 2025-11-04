@@ -256,6 +256,74 @@ body {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+/* Platform Selector */
+.platform-selector-compact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.platform-selector-compact label {
+  font-size: 0.9em;
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+.platform-selector-compact select {
+  padding: 8px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.9em;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 130px;
+}
+
+.platform-selector-compact select:hover {
+  border-color: #667eea;
+}
+
+.platform-selector-compact select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Device Selector */
+.device-selector-compact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.device-selector-compact label {
+  font-size: 0.9em;
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+.device-selector-compact select {
+  padding: 8px 15px;
+  border: 2px solid #3498db;
+  border-radius: 6px;
+  font-size: 0.9em;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 200px;
+}
+
+.device-selector-compact select:hover {
+  border-color: #2980b9;
+}
+
+.device-selector-compact select:focus {
+  outline: none;
+  border-color: #2980b9;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
 /* Tabs como barra de navegación */
 .tabs-nav {
   background: white;
