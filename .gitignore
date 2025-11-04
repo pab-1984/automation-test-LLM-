@@ -56,6 +56,7 @@ ecommerce-test-app/
 # Documentation files
 *.md
 !README.md
+!MANUAL_USUARIO.md
 !ecommerce-test-app/README.md
 !tests/suites/mobile/README.md
 
