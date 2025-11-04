@@ -382,9 +382,21 @@ function selectTest(path, name, platform) {
   });
   event.currentTarget.classList.add('selected');
 
+  // Determinar si es test móvil
+  const isMobileTest = ['android', 'ios', 'mobile', 'common'].includes(platform);
+  const platformIcon = isMobileTest ? '📱' : '🌐';
+  const platformText = isMobileTest ? 'MÓVIL' : 'WEB';
+
+  let warningMsg = '';
+  if (isMobileTest && !selectedDevice) {
+    warningMsg = '<br><span style="color: #f39c12;">⚠️ Requiere seleccionar un dispositivo móvil</span>';
+  }
+
   document.getElementById('execution-status').innerHTML = `
     <div class="alert alert-info">
-      📄 Test seleccionado: <strong>${name}</strong>
+      ${platformIcon} Test seleccionado: <strong>${name}</strong><br>
+      <span style="font-size: 0.85em; color: #7f8c8d;">Plataforma: ${platformText}</span>
+      ${warningMsg}
     </div>
   `;
 }
@@ -423,16 +435,20 @@ async function runSelectedTest() {
       mode: mode
     };
 
-    // Agregar información de plataforma móvil si corresponde
-    if (currentPlatform === 'mobile') {
+    // Determinar la plataforma basándose en el test seleccionado
+    const testPlatform = selectedTest.platform || 'web';
+    const isMobileTest = ['android', 'ios', 'mobile', 'common'].includes(testPlatform);
+
+    // Agregar información de plataforma móvil si el test es móvil
+    if (isMobileTest) {
       payload.platform = 'mobile';
       payload.deviceId = selectedDevice;
 
       // Validar que hay un dispositivo seleccionado
       if (!selectedDevice) {
-        alert('⚠️ Selecciona un dispositivo móvil primero');
+        alert('⚠️ Este es un test móvil. Selecciona un dispositivo primero');
         btn.disabled = false;
-        btn.innerHTML = '📱 Ejecutar Test Móvil';
+        btn.innerHTML = '▶️ Ejecutar Test';
         return;
       }
     } else {
@@ -564,35 +580,80 @@ function startStatusPolling(testId) {
 async function loadResults() {
   try {
     const response = await fetch('/api/results');
-    const results = await response.json();
+    const data = await response.json();
 
     const resultsDiv = document.getElementById('results-list');
 
-    if (results.length === 0) {
+    if (!data.results || data.results.length === 0) {
       resultsDiv.innerHTML = '<p style="color: #7f8c8d;">No hay reportes generados</p>';
       return;
     }
 
-    resultsDiv.innerHTML = `
-      <ul class="test-list">
-        ${results.map(result => `
-          <li class="test-item" onclick="viewReport('${result.file}')">
+    const results = data.results;
+
+    // Separar resultados de DB y archivos legacy
+    const dbResults = results.filter(r => r.source === 'database');
+    const fileResults = results.filter(r => r.source === 'file');
+
+    let html = '';
+
+    // Mostrar resultados de base de datos
+    if (dbResults.length > 0) {
+      html += '<h3 style="margin-top: 0;">📊 Ejecuciones Recientes</h3>';
+      html += '<ul class="test-list">';
+      dbResults.forEach(result => {
+        const statusIcon = result.status === 'success' ? '✅' : '❌';
+        const statusClass = result.status === 'success' ? 'success' : 'error';
+        const date = new Date(result.started_at);
+        const duration = result.duration ? `${(result.duration / 1000).toFixed(2)}s` : 'N/A';
+
+        html += `
+          <li class="test-item" onclick="viewDatabaseReport(${result.id})" style="cursor: pointer;">
+            <div>
+              <strong>${statusIcon} ${result.test_name}</strong>
+              <span class="badge badge-${statusClass}" style="margin-left: 8px;">${result.status.toUpperCase()}</span>
+              <br>
+              <span style="color: #7f8c8d; font-size: 0.9em;">
+                ${date.toLocaleString()} • Duración: ${duration}
+                ${result.evidence_count > 0 ? ` • ${result.evidence_count} evidencias` : ''}
+              </span>
+            </div>
+            <button onclick="viewDatabaseReport(${result.id}); event.stopPropagation();" class="btn-secondary">
+              Ver Detalle
+            </button>
+          </li>
+        `;
+      });
+      html += '</ul>';
+    }
+
+    // Mostrar reportes legacy si existen
+    if (fileResults.length > 0) {
+      html += '<h3 style="margin-top: 20px;">📄 Reportes Legacy (Archivos .md)</h3>';
+      html += '<ul class="test-list">';
+      fileResults.forEach(result => {
+        html += `
+          <li class="test-item" onclick="viewReport('${result.file}')" style="cursor: pointer;">
             <div>
               <strong>📊 ${result.file}</strong><br>
               <span style="color: #7f8c8d; font-size: 0.9em;">
-                ${new Date(result.modified).toLocaleString()} - ${(result.size / 1024).toFixed(1)} KB
+                ${new Date(result.modified).toLocaleString()} • ${(result.size / 1024).toFixed(1)} KB
               </span>
             </div>
-            <button onclick="viewReport('${result.file}'); event.stopPropagation();">
+            <button onclick="viewReport('${result.file}'); event.stopPropagation();" class="btn-secondary">
               Ver
             </button>
           </li>
-        `).join('')}
-      </ul>
-    `;
+        `;
+      });
+      html += '</ul>';
+    }
+
+    resultsDiv.innerHTML = html;
   } catch (error) {
+    console.error('Error cargando resultados:', error);
     document.getElementById('results-list').innerHTML =
-      '<p class="alert alert-error">Error al cargar resultados</p>';
+      '<p class="alert alert-error">Error al cargar resultados: ' + error.message + '</p>';
   }
 }
 
@@ -624,7 +685,171 @@ async function viewReport(filename) {
   }
 }
 
-// ======================================== 
+async function viewDatabaseReport(executionId) {
+  try {
+    const response = await fetch(`/api/results/${executionId}`);
+    const data = await response.json();
+
+    if (!data) {
+      alert('No se pudo cargar el reporte');
+      return;
+    }
+
+    // Parsear logs si es string JSON
+    let logs = data.logs;
+    if (typeof logs === 'string') {
+      try {
+        logs = JSON.parse(logs);
+      } catch (e) {
+        logs = { console: [], network: [], performance: {}, steps: [] };
+      }
+    }
+
+    const statusIcon = data.status === 'success' ? '✅' : '❌';
+    const statusColor = data.status === 'success' ? '#27ae60' : '#e74c3c';
+    const startDate = new Date(data.started_at).toLocaleString();
+    const duration = data.duration ? `${(data.duration / 1000).toFixed(2)}s` : 'N/A';
+
+    // Construir HTML del reporte
+    let stepsHTML = '';
+    if (logs.steps && logs.steps.length > 0) {
+      stepsHTML = '<h2>📝 Pasos Ejecutados</h2><ul>';
+      logs.steps.forEach((step, idx) => {
+        stepsHTML += `<li><strong>Paso ${idx + 1}:</strong> ${step}</li>`;
+      });
+      stepsHTML += '</ul>';
+    } else if (typeof logs.steps === 'string') {
+      stepsHTML = `<h2>📝 Resultado</h2><pre>${logs.steps}</pre>`;
+    }
+
+    let consoleLogsHTML = '';
+    if (logs.console && logs.console.length > 0) {
+      consoleLogsHTML = '<h2>📋 Logs de Consola</h2><pre style="max-height: 400px; overflow-y: auto;">';
+      logs.console.forEach(log => {
+        consoleLogsHTML += `${log}\n`;
+      });
+      consoleLogsHTML += '</pre>';
+    }
+
+    let networkHTML = '';
+    if (logs.network && logs.network.length > 0) {
+      networkHTML = '<h2>🌐 Peticiones de Red</h2><ul>';
+      logs.network.forEach(req => {
+        networkHTML += `<li><strong>${req.method || 'GET'}</strong> ${req.url || req}</li>`;
+      });
+      networkHTML += '</ul>';
+    }
+
+    let evidencesHTML = '';
+    try {
+      const evidencesResponse = await fetch(`/api/results/${executionId}/evidences`);
+      const evidencesData = await evidencesResponse.json();
+
+      if (evidencesData.evidences && evidencesData.evidences.length > 0) {
+        evidencesHTML = '<h2>📸 Evidencias</h2><div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">';
+        evidencesData.evidences.forEach(ev => {
+          const fileExt = ev.file_path.split('.').pop().toLowerCase();
+          if (['png', 'jpg', 'jpeg', 'gif'].includes(fileExt)) {
+            evidencesHTML += `
+              <div style="border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
+                <img src="/${ev.file_path.replace(/\\/g, '/')}" style="width: 100%; border-radius: 4px;" alt="${ev.type}">
+                <p style="margin: 10px 0 0 0; font-size: 0.9em; color: #666;"><strong>${ev.type}</strong></p>
+                <p style="margin: 5px 0 0 0; font-size: 0.8em; color: #999;">${new Date(ev.created_at).toLocaleString()}</p>
+              </div>
+            `;
+          }
+        });
+        evidencesHTML += '</div>';
+      }
+    } catch (e) {
+      console.error('Error cargando evidencias:', e);
+    }
+
+    // Abrir en nueva ventana
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Reporte #${executionId} - ${data.test_name}</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #f5f6fa;
+          }
+          .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          }
+          .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+          }
+          .section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          }
+          h1 { margin: 0 0 10px 0; color: #2c3e50; }
+          h2 { color: #34495e; margin-top: 0; font-size: 1.3em; }
+          pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-size: 0.9em;
+            border-left: 4px solid #3498db;
+          }
+          ul { line-height: 1.8; }
+          .meta { color: #7f8c8d; font-size: 0.95em; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>${statusIcon} ${data.test_name}</h1>
+          <span class="status-badge" style="background: ${statusColor}; color: white;">
+            ${data.status.toUpperCase()}
+          </span>
+          <div class="meta" style="margin-top: 15px;">
+            <strong>ID de Ejecución:</strong> #${executionId}<br>
+            <strong>Tipo:</strong> ${data.test_type || 'N/A'}<br>
+            <strong>Inicio:</strong> ${startDate}<br>
+            <strong>Duración:</strong> ${duration}
+          </div>
+        </div>
+
+        ${stepsHTML ? `<div class="section">${stepsHTML}</div>` : ''}
+        ${consoleLogsHTML ? `<div class="section">${consoleLogsHTML}</div>` : ''}
+        ${networkHTML ? `<div class="section">${networkHTML}</div>` : ''}
+        ${evidencesHTML ? `<div class="section">${evidencesHTML}</div>` : ''}
+
+        ${data.error_message ? `
+          <div class="section">
+            <h2>❌ Error</h2>
+            <pre style="border-left-color: #e74c3c;">${data.error_message}</pre>
+          </div>
+        ` : ''}
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Error cargando reporte:', error);
+    alert('Error al cargar el reporte: ' + error.message);
+  }
+}
+
+// ========================================
 // SIDEBAR - FUNCIONES
 // ========================================
 
@@ -965,12 +1190,26 @@ async function loadNaturalTests() {
     let html = '<div class="scrollable-list">';
     data.tests.forEach(test => {
       const date = new Date(test.created).toLocaleString('es-UY');
+      const platform = test.platform || 'web';
+      const platformIcon = platform === 'mobile' ? '📱' : '🌐';
+      const platformLabel = platform === 'mobile' ? 'MÓVIL' : 'WEB';
+      const platformColor = platform === 'mobile' ? '#e74c3c' : '#3498db';
+
       html += '<div class="list-item">';
       html += '<div>';
-      html += '<div style="font-weight: bold; margin-bottom: 5px;">📄 ' + test.name + '</div>';
+      html += '<div style="font-weight: bold; margin-bottom: 5px;">';
+      html += '📄 ' + test.name;
+      html += ' <span style="background: ' + platformColor + '; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; margin-left: 8px;">';
+      html += platformIcon + ' ' + platformLabel;
+      html += '</span>';
+      html += '</div>';
       html += '<div style="font-size: 0.9em; color: #7f8c8d;">' + (test.description || 'Sin descripción') + '</div>';
       html += '<div style="font-size: 0.85em; color: #95a5a6; margin-top: 5px;">';
-      html += '🌐 ' + test.url + ' | 📅 ' + date;
+      html += platformIcon + ' ' + test.url;
+      if (platform === 'mobile' && test.deviceId) {
+        html += ' | 📱 ' + test.deviceId;
+      }
+      html += ' | 📅 ' + date;
       html += '</div>';
       html += '</div>';
       html += '<button onclick="runNaturalTest(\'' + test.filename + '\')" class="primary" style="margin-left: auto;">▶️ Ejecutar</button>';
@@ -984,15 +1223,64 @@ async function loadNaturalTests() {
   }
 }
 
+function handleNaturalPlatformChange() {
+  const platform = document.getElementById('natural-platform').value;
+  const mobileFields = document.getElementById('natural-mobile-fields');
+
+  if (platform === 'mobile') {
+    mobileFields.style.display = 'block';
+    loadDevicesForNatural();
+  } else {
+    mobileFields.style.display = 'none';
+  }
+}
+
+async function loadDevicesForNatural() {
+  try {
+    const response = await fetch('/api/mobile/devices');
+    const data = await response.json();
+
+    const deviceSelect = document.getElementById('natural-device');
+    deviceSelect.innerHTML = '<option value="">Seleccionar dispositivo...</option>';
+
+    if (data.devices && data.devices.length > 0) {
+      data.devices.forEach(device => {
+        const icon = device.platform === 'android' ? '🤖' : '🍎';
+        deviceSelect.innerHTML += `
+          <option value="${device.id}">
+            ${icon} ${device.model || device.name} (${device.id})
+          </option>
+        `;
+      });
+    } else {
+      deviceSelect.innerHTML = '<option value="">No hay dispositivos conectados</option>';
+    }
+  } catch (error) {
+    console.error('Error cargando dispositivos:', error);
+    alert('Error al cargar dispositivos: ' + error.message);
+  }
+}
+
 async function createNaturalTest() {
   const name = document.getElementById('natural-name').value.trim();
   const url = document.getElementById('natural-url').value.trim();
   const description = document.getElementById('natural-description').value.trim();
   const instructions = document.getElementById('natural-instructions').value.trim();
+  const platform = document.getElementById('natural-platform').value;
 
   if (!name || !url || !instructions) {
-    alert('Por favor completa los campos obligatorios: nombre, URL e instrucciones');
+    alert('Por favor completa los campos obligatorios: nombre, URL/packageName e instrucciones');
     return;
+  }
+
+  // Validar dispositivo si es móvil
+  let deviceId = null;
+  if (platform === 'mobile') {
+    deviceId = document.getElementById('natural-device').value;
+    if (!deviceId) {
+      alert('Por favor selecciona un dispositivo móvil');
+      return;
+    }
   }
 
   const options = {
@@ -1003,10 +1291,20 @@ async function createNaturalTest() {
   };
 
   try {
+    const requestBody = {
+      name,
+      url,
+      description,
+      instructions,
+      options,
+      platform,
+      deviceId
+    };
+
     const response = await fetch('/api/tests/natural/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, url, description, instructions, options })
+      body: JSON.stringify(requestBody)
     });
 
     const data = await response.json();
@@ -1038,10 +1336,21 @@ async function createAndRunNaturalTest() {
   const url = document.getElementById('natural-url').value.trim();
   const description = document.getElementById('natural-description').value.trim();
   const instructions = document.getElementById('natural-instructions').value.trim();
+  const platform = document.getElementById('natural-platform').value;
 
   if (!name || !url || !instructions) {
-    alert('Por favor completa los campos obligatorios: nombre, URL e instrucciones');
+    alert('Por favor completa los campos obligatorios: nombre, URL/packageName e instrucciones');
     return;
+  }
+
+  // Validar dispositivo si es móvil
+  let deviceId = null;
+  if (platform === 'mobile') {
+    deviceId = document.getElementById('natural-device').value;
+    if (!deviceId) {
+      alert('Por favor selecciona un dispositivo móvil');
+      return;
+    }
   }
 
   const options = {
@@ -1052,11 +1361,21 @@ async function createAndRunNaturalTest() {
   };
 
   try {
+    const requestBody = {
+      name,
+      url,
+      description,
+      instructions,
+      options,
+      platform,
+      deviceId
+    };
+
     // Primero crear
     const createResponse = await fetch('/api/tests/natural/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, url, description, instructions, options })
+      body: JSON.stringify(requestBody)
     });
 
     const createData = await createResponse.json();

@@ -310,5 +310,7 @@ async function takeDeviceScreenshot(req, res) {
 module.exports = {
   getDevices,
   getDeviceInfo,
-  takeDeviceScreenshot
+  takeDeviceScreenshot,
+  listAndroidDevices,
+  listIOSDevices
 };

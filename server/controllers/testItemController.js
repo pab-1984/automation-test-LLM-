@@ -187,8 +187,46 @@ class TestItemController {
       testRun.logs.push(`🚀 Iniciando ejecución del test: ${test.name}`);
       testRun.logs.push(`📋 Modo: ${mode} | Tipo: ${test.type}`);
 
-      // Inicializar runner
-      const runner = new UniversalTestRunnerCore();
+      // Detectar plataforma y dispositivo según el path del test
+      let platform = 'web';
+      let deviceId = null;
+
+      if (test.file_path && test.file_path.includes('/mobile/')) {
+        platform = 'mobile';
+
+        // Intentar obtener un dispositivo disponible
+        const mobileController = require('./mobileController');
+        let devices = [];
+
+        try {
+          const androidDevices = await mobileController.listAndroidDevices();
+          devices = devices.concat(androidDevices);
+        } catch (err) {
+          testRun.logs.push(`⚠️  Error listando dispositivos Android: ${err.message}`);
+        }
+
+        try {
+          const iosDevices = await mobileController.listIOSDevices();
+          devices = devices.concat(iosDevices);
+        } catch (err) {
+          testRun.logs.push(`⚠️  Error listando dispositivos iOS: ${err.message}`);
+        }
+
+        if (devices.length > 0) {
+          deviceId = devices[0].id;
+          testRun.logs.push(`📱 Test móvil detectado - Usando dispositivo: ${deviceId} (${devices[0].model || 'Unknown'})`);
+        } else {
+          throw new Error('Test móvil pero no hay dispositivos conectados');
+        }
+      } else {
+        testRun.logs.push('🌐 Test web detectado');
+      }
+
+      // Inicializar runner con opciones de plataforma
+      const runner = new UniversalTestRunnerCore('./config/llm.config.json', {
+        platform,
+        deviceId
+      });
       await runner.initialize();
       testRun.logs.push('✅ Runner inicializado');
 
@@ -227,28 +265,39 @@ class TestItemController {
       } else {
         // Ejecutar test YAML
         testRun.logs.push('▶️  Ejecutando test YAML...');
-        result = await runner.runTestFromFile(test.file_path);
+        result = await runner.runSuite(test.file_path, { mode });
       }
 
       // Calcular duración
       const duration = Date.now() - testRun.startTime;
 
-      // Determinar estado final
-      const finalStatus = result.success ? 'success' : 'failed';
+      // Determinar estado final basado en el tipo de test
+      let finalStatus;
+      if (test.type === 'natural') {
+        // Para tests naturales, verificar si hubo éxito
+        finalStatus = result.success ? 'success' : 'failed';
+      } else {
+        // Para tests YAML (runSuite), verificar si no hubo fallos
+        finalStatus = result.failed === 0 ? 'success' : 'failed';
+      }
+
       testRun.status = finalStatus;
 
       testRun.logs.push('─'.repeat(60));
       testRun.logs.push(`📊 RESULTADO: ${finalStatus === 'success' ? '✅ EXITOSO' : '❌ FALLIDO'}`);
+      if (test.type !== 'natural') {
+        testRun.logs.push(`✅ Exitosos: ${result.passed} | ❌ Fallidos: ${result.failed}`);
+      }
       testRun.logs.push(`⏱️  Duración: ${(duration / 1000).toFixed(2)}s`);
 
       // Guardar reporte completo en BD
       db.saveExecutionReport(executionId, {
         status: finalStatus,
         duration,
-        consoleLogs: result.consoleLogs,
-        networkRequests: result.networkRequests,
-        performanceData: result.performanceData,
-        steps: result.report,
+        consoleLogs: result.consoleLogs || [],
+        networkRequests: result.networkRequests || [],
+        performanceData: result.performanceData || {},
+        steps: result.report || (result.tests ? JSON.stringify(result.tests) : null),
         errorMessage: result.error || null,
       });
 

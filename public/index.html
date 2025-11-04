@@ -259,8 +259,32 @@ Verifica que aparezca un mensaje de bienvenida." required></textarea>
           </div>
 
           <div class="form-group">
-            <label for="natural-url">URL inicial:</label>
-            <input type="text" id="natural-url" placeholder="ej: https://mercadolibre.com.uy">
+            <label for="natural-url">URL inicial / Package Name:</label>
+            <input type="text" id="natural-url" placeholder="Web: https://mercadolibre.com.uy | Móvil: com.mercadolibre">
+            <small style="color: #7f8c8d; font-size: 0.85em; display: block; margin-top: 5px;">
+              Para WEB: URL del sitio | Para MÓVIL: Package name de la app (Android) o Bundle ID (iOS)
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="natural-platform">Plataforma:</label>
+            <select id="natural-platform" onchange="handleNaturalPlatformChange()">
+              <option value="web">🌐 Web</option>
+              <option value="mobile">📱 Móvil (Android/iOS)</option>
+            </select>
+          </div>
+
+          <!-- Campos específicos para móvil (ocultos por defecto) -->
+          <div id="natural-mobile-fields" style="display: none;">
+            <div class="form-group">
+              <label for="natural-device">Dispositivo:</label>
+              <select id="natural-device">
+                <option value="">Seleccionar dispositivo...</option>
+              </select>
+              <button type="button" onclick="loadDevicesForNatural()" class="secondary" style="margin-top: 8px;">
+                🔄 Actualizar dispositivos
+              </button>
+            </div>
           </div>
 
           <div class="form-group">

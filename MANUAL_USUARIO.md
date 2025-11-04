@@ -300,6 +300,77 @@ Este wizard te guiará para crear:
 - Tests para iOS específicos
 - Tests multiplataforma (common)
 
+### Crear Tests Móviles en Lenguaje Natural ⭐ **NUEVO**
+
+**La forma más fácil de crear tests móviles**: Escribe en español qué quieres probar y el sistema lo ejecuta en tu dispositivo.
+
+#### Desde la Interfaz Web
+
+1. Ve al tab **"Crear Test"**
+2. En el selector **"Plataforma"**, elige **📱 Móvil**
+3. Aparecerá el selector de **"Dispositivo"** - elige tu dispositivo conectado
+4. En el campo **"URL inicial / Package Name"**, ingresa el package de la app:
+   ```
+   Ejemplo Android: com.miui.calculator
+   Ejemplo iOS: com.apple.calculator
+   ```
+
+5. Escribe las instrucciones en lenguaje natural:
+
+```
+Abre la calculadora
+
+Presiona el botón "5"
+Presiona el botón "+"
+Presiona el botón "3"
+Presiona el botón "="
+
+Verifica que el resultado sea "8"
+
+Toma un screenshot
+```
+
+6. Configura opciones si es necesario:
+   - 📸 Screenshot por paso
+   - 📝 Capturar logs
+   - 🌐 Capturar network
+   - 📊 Performance
+
+7. Haz clic en **"💾 Guardar Test"** o **"▶️ Guardar y Ejecutar"**
+
+#### Características de Tests Naturales Móviles
+
+- ✅ **Sin código**: Solo describe las acciones en español
+- ✅ **Detección automática**: El LLM encuentra botones y elementos por su texto visible
+- ✅ **Soporte gestos**: tap, swipe, scroll, long press
+- ✅ **Verificaciones**: El LLM valida texto en pantalla
+- ✅ **Screenshots automáticos**: Captura cada paso si lo configuras
+- ✅ **Multi-dispositivo**: Funciona en Android e iOS
+
+#### Ejemplos de Acciones Soportadas
+
+**Navegación:**
+```
+Abre la app de configuración
+Ve a la sección de Wi-Fi
+Regresa a la pantalla anterior
+```
+
+**Interacciones:**
+```
+Presiona el botón "Aceptar"
+Escribe "Hola mundo" en el campo de texto
+Desliza hacia arriba
+Mantén presionado el botón "Opciones"
+```
+
+**Verificaciones:**
+```
+Verifica que aparezca el texto "Éxito"
+Verifica que el botón "Enviar" esté visible
+Confirma que la app está en la pantalla principal
+```
+
 ---
 
 ## 📊 Interpretación de Reportes

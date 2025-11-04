@@ -1,0 +1,33 @@
+TEST: Prueba SimpleTV
+URL: com.toolboxtve.simpletv
+Plataforma: 📱 Móvil (mobile)
+Dispositivo: BIOBZ97H89MNJZKR
+Descripción: test de prueba en lenguaje natural, mejorado
+
+Opciones:
+- Screenshot por paso: Sí
+- Capturar logs: No
+- Capturar network: Sí
+- Performance: Sí
+
+Pasos:
+==================================================
+
+abrir la aplicacion de Simple
+hacer tap en el icono de en vivo
+hacer tap en el icono de Deportes
+hacer tap en el icono de Inicio
+hacer tap en el icono de iniciar sesion
+comprobar que el resultado sea 6
+
+==================================================
+
+# Opciones de ejecución (JSON)
+{
+  "screenshotPerStep": true,
+  "captureLogs": false,
+  "captureNetwork": true,
+  "performanceMetrics": true,
+  "platform": "mobile",
+  "deviceId": "BIOBZ97H89MNJZKR"
+}

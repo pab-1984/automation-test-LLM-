@@ -72,8 +72,28 @@ npm run cli-test
 **Características**:
 - ✅ SIN YAML, SIN selectores CSS
 - ✅ El LLM identifica elementos por contexto usando MCP
+- ✅ **Soporte WEB y MÓVIL** - Crea tests para apps Android/iOS en lenguaje natural
 - ✅ Opciones avanzadas: screenshots automáticos, logs de consola, network requests, performance
 - ✅ Wizard interactivo paso a paso
+- ✅ Selector de dispositivo integrado para tests móviles
+
+**Ejemplo - Test Móvil en Lenguaje Natural**:
+```
+TEST: Calculadora Android
+Plataforma: 📱 Móvil (mobile)
+Dispositivo: DEVICE_ID_123
+
+Pasos:
+Abre la calculadora
+
+Presiona el botón "5"
+Presiona el botón "+"
+Presiona el botón "3"
+Presiona el botón "="
+
+Verifica que el resultado sea "8"
+Toma un screenshot
+```
 
 **Ver documentación completa**: [TESTS_LENGUAJE_NATURAL.md](TESTS_LENGUAJE_NATURAL.md)
 
@@ -102,22 +122,25 @@ npm run create-test
 
 ```bash
 npm run web
-# Abre http://localhost:3001
+# Abre http://localhost:3000
 ```
 
-**4 Tabs**:
+**5 Tabs**:
 - 📊 **Dashboard**: Estado del sistema, tests activos, métricas
-- 💬 **Tests Naturales**: Crear tests sin YAML, ejecutar con opciones avanzadas
-- ➕ **Crear Test**: Wizard web que genera YAML con IA
+- 🧪 **Explorador**: Gestión completa de proyectos, suites y tests con detección automática de plataforma
+- 💬 **Crear Test**: Tests en lenguaje natural (WEB y MÓVIL) con selector de dispositivos
 - ▶️ **Ejecutar**: Seleccionar y ejecutar tests con logs en tiempo real
-- 📈 **Resultados**: Ver reportes ordenados por fecha
+- 📈 **Resultados**: Reportes visuales con screenshots, logs y evidencias
 
 **Características**:
-- ✅ Crear tests desde lenguaje natural directo en el navegador
+- ✅ **Tests naturales móviles**: Crear tests para Android/iOS en lenguaje natural
+- ✅ **Detección automática**: El explorador detecta si un test es web o móvil y selecciona dispositivo
+- ✅ **Selector de plataforma**: Alterna entre WEB (🌐) y MÓVIL (📱) desde el header
+- ✅ **Gestión de dispositivos**: Lista automática de dispositivos Android e iOS conectados
+- ✅ **Reportes enriquecidos**: Ver resultados con evidencias visuales, logs y métricas
+- ✅ **Badges visuales**: Identificación clara de plataforma en todos los tests
 - ✅ Ejecución con visualización de logs en streaming
-- ✅ Reportes visuales con screenshots
 - ✅ API REST completa
-- ✅ Auto-refresh cada 30 segundos
 
 ---
 
@@ -289,7 +312,9 @@ npm run test:mobile:all        # Todos los tests
 - 📋 **Gestión de test suites** con soporte para tests móviles
 - ▶️ **Ejecución desde la web** de tests en dispositivos físicos
 - 📸 **Screenshots automáticos** de dispositivos móviles
-- 📊 **Reportes en tiempo real** con logs específicos de mobile
+- 💬 **Tests naturales móviles**: Crear tests en lenguaje natural con selector de dispositivo integrado
+- 🎯 **Detección automática de plataforma**: El explorador identifica tests web/móvil y ejecuta en el dispositivo correcto
+- 📊 **Reportes enriquecidos**: Visualización completa con evidencias, logs y métricas de mobile
 
 #### ✅ API REST Completa
 - `GET /api/mobile/devices` - Listar dispositivos conectados

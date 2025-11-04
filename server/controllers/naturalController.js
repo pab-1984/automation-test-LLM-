@@ -28,12 +28,29 @@ class NaturalController {
           const nameMatch = content.match(/^TEST:\s*(.+)$/m);
           const urlMatch = content.match(/^URL:\s*(.+)$/m);
           const descMatch = content.match(/^Descripción:\s*(.+)$/m);
+          const platformMatch = content.match(/^Plataforma:.*\((.+?)\)/m);
+
+          // Parsear opciones JSON para obtener plataforma y deviceId
+          let platform = 'web';
+          let deviceId = null;
+          const optionsMatch = content.match(/# Opciones de ejecución \(JSON\)\n(\{[\s\S]+?\})/);
+          if (optionsMatch) {
+            try {
+              const parsedOptions = JSON.parse(optionsMatch[1]);
+              platform = parsedOptions.platform || 'web';
+              deviceId = parsedOptions.deviceId || null;
+            } catch (e) {
+              // Ignore parsing errors
+            }
+          }
 
           return {
             filename: f,
             name: nameMatch ? nameMatch[1].trim() : f.replace('.txt', ''),
             url: urlMatch ? urlMatch[1].trim() : '',
             description: descMatch ? descMatch[1].trim() : '',
+            platform: platform,
+            deviceId: deviceId,
             created: stats.mtime,
             size: stats.size
           };
@@ -85,11 +102,18 @@ class NaturalController {
    */
   async createNaturalTest(req, res) {
     try {
-      const { name, url, description, instructions, options } = req.body;
+      const { name, url, description, instructions, options, platform, deviceId } = req.body;
 
       if (!name || !url || !instructions) {
         return res.status(400).json({
           error: 'Faltan campos requeridos: name, url, instructions'
+        });
+      }
+
+      // Validar plataforma móvil
+      if (platform === 'mobile' && !deviceId) {
+        return res.status(400).json({
+          error: 'Para plataforma móvil se requiere deviceId'
         });
       }
 
@@ -101,9 +125,18 @@ class NaturalController {
         performanceMetrics: false
       };
 
+      // Agregar plataforma y dispositivo a las opciones
+      testOptions.platform = platform || 'web';
+      if (platform === 'mobile') {
+        testOptions.deviceId = deviceId;
+      }
+
+      const platformLabel = platform === 'mobile' ? '📱 Móvil' : '🌐 Web';
+
       const content = `TEST: ${name}
 URL: ${url}
-Descripción: ${description || 'Sin descripción'}
+Plataforma: ${platformLabel} (${platform || 'web'})
+${platform === 'mobile' ? `Dispositivo: ${deviceId}\n` : ''}Descripción: ${description || 'Sin descripción'}
 
 Opciones:
 - Screenshot por paso: ${testOptions.screenshotPerStep ? 'Sí' : 'No'}
@@ -223,8 +256,21 @@ ${JSON.stringify(testOptions, null, 2)}
       testRun.logs.push(`🚀 Iniciando test natural: ${filePath}`);
       testRun.logs.push(`📋 Opciones: ${JSON.stringify(options)}`);
 
-      // Inicializar runner
-      const runner = new UniversalTestRunnerCore();
+      // Determinar plataforma y dispositivo desde las opciones
+      const platform = options.platform || 'web';
+      const deviceId = options.deviceId || null;
+
+      const platformLabel = platform === 'mobile' ? '📱 MÓVIL' : '🌐 WEB';
+      testRun.logs.push(`🎯 Plataforma: ${platformLabel}`);
+      if (platform === 'mobile' && deviceId) {
+        testRun.logs.push(`📱 Dispositivo: ${deviceId}`);
+      }
+
+      // Inicializar runner con opciones de plataforma
+      const runner = new UniversalTestRunnerCore('./config/llm.config.json', {
+        platform,
+        deviceId
+      });
       await runner.initialize();
 
       testRun.logs.push('✅ Runner inicializado');

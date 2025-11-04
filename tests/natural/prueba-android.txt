@@ -1,0 +1,33 @@
+TEST: Prueba Android
+URL: com.miui.calculator
+Plataforma: 📱 Móvil (mobile)
+Dispositivo: BIOBZ97H89MNJZKR
+Descripción: test de prueba en lenguaje natural, mejorado
+
+Opciones:
+- Screenshot por paso: Sí
+- Capturar logs: No
+- Capturar network: Sí
+- Performance: Sí
+
+Pasos:
+==================================================
+
+abrir la aplicacion de calculadora
+hacer tap en el numero 2
+hacer tap en el boton de mas (una cruz)
+hacer tap en el numero 4
+hacer tap en el boton de igual
+comprobar que el resultado sea 6
+
+==================================================
+
+# Opciones de ejecución (JSON)
+{
+  "screenshotPerStep": true,
+  "captureLogs": false,
+  "captureNetwork": true,
+  "performanceMetrics": true,
+  "platform": "mobile",
+  "deviceId": "BIOBZ97H89MNJZKR"
+}
