@@ -164,19 +164,9 @@ class ResultsController {
         return res.status(404).json({ error: 'Ejecución no encontrada' });
       }
 
-      // Parsear logs si existen
-      let logs = { console: [], network: [], performance: {}, steps: [] };
-      if (report.logs) {
-        try {
-          logs = JSON.parse(report.logs);
-        } catch (e) {
-          console.warn('Error parseando logs:', e.message);
-        }
-      }
-
+      // Los logs ya vienen parseados desde getExecutionReport
       res.json({
         ...report,
-        logs,
         source: 'database'
       });
     } catch (error) {

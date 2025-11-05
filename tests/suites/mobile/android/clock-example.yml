@@ -1,0 +1,88 @@
+suite: "Clock Android - Test de Ejemplo"
+description: "Test de ejemplo para demostrar la estructura correcta de tests móviles"
+platform: "android"
+packageName: "com.google.android.deskclock"
+
+tests:
+  - name: "TC001 - Abrir Clock y verificar"
+    description: "Abre la app de Clock y verifica que funciona"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.deskclock"
+        description: "Abrir app de Reloj"
+
+      - action: wait
+        duration: 2000
+        description: "Esperar que cargue la app"
+
+      - action: screenshot
+        filename: "clock-opened"
+        description: "Captura de Clock abierto"
+
+      - action: verify
+        description: "Verificar que la app se abrió correctamente"
+
+    expectedResult: "La app de Clock se abre correctamente"
+
+  - name: "TC002 - Navegar por tabs"
+    description: "Navega por los tabs de la app"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.deskclock"
+        description: "Abrir app de Reloj"
+
+      - action: wait
+        duration: 2000
+
+      # Para usar tap necesitas coordenadas o un selector
+      # Opción 1: Por coordenadas (x, y)
+      - action: tap
+        x: 270  # Coordenada X del tab Alarm (ejemplo)
+        y: 150  # Coordenada Y del tab
+        description: "Tap en tab Alarm"
+
+      - action: wait
+        duration: 1000
+
+      - action: screenshot
+        filename: "clock-alarm-tab"
+        description: "Captura del tab Alarm"
+
+      # Opción 2: Por texto (busca un elemento con ese texto)
+      - action: tap
+        text: "Timer"
+        description: "Tap en tab Timer por texto"
+
+      - action: wait
+        duration: 1000
+
+      - action: screenshot
+        filename: "clock-timer-tab"
+
+    expectedResult: "Navegación entre tabs funciona correctamente"
+
+  - name: "TC003 - Test con swipe"
+    description: "Demuestra el uso de swipe"
+    steps:
+      - action: launchApp
+        packageName: "com.google.android.deskclock"
+
+      - action: wait
+        duration: 2000
+
+      # Swipe necesita startX, startY, endX, endY
+      - action: swipe
+        startX: 700
+        startY: 1000
+        endX: 200
+        endY: 1000
+        duration: 300
+        description: "Swipe horizontal"
+
+      - action: wait
+        duration: 500
+
+      - action: screenshot
+        filename: "after-swipe"
+
+    expectedResult: "El swipe funciona correctamente"

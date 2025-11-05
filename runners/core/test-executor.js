@@ -264,7 +264,12 @@ class TestExecutor {
       testResult.screenshot = `./tests/screenshots/${screenshotName}`;
 
       try {
-        await this.browserActions.executeActionMCP('screenshot', { filePath: testResult.screenshot, fullPage: true }, suite, this.mcpClient, this.elementFinder, this.config);
+        // Capturar screenshot según la plataforma
+        if (this.platform === 'mobile') {
+          await this.mobileActions.executeActionMCP('screenshot', { filePath: testResult.screenshot }, suite, this.mcpClient, null, this.config);
+        } else {
+          await this.browserActions.executeActionMCP('screenshot', { filePath: testResult.screenshot, fullPage: true }, suite, this.mcpClient, this.elementFinder, this.config);
+        }
         console.log(`   📸 Screenshot: ${testResult.screenshot}`);
 
         // Guardar screenshot en DB si tenemos executionId
