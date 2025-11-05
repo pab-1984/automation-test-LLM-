@@ -29,6 +29,7 @@ class TestController {
             // Detectar plataforma por nombre de carpeta
             let subPlatform = platform;
             if (item === 'mobile') subPlatform = 'mobile';
+            else if (item === 'api') subPlatform = 'api';
             else if (item === 'android' && platform === 'mobile') subPlatform = 'android';
             else if (item === 'ios' && platform === 'mobile') subPlatform = 'ios';
             else if (item === 'common' && platform === 'mobile') subPlatform = 'common';

@@ -18,4 +18,7 @@ router.post('/create', naturalController.createNaturalTest.bind(naturalControlle
 // POST /api/tests/natural/run - Ejecutar test natural
 router.post('/run', naturalController.runNaturalTest.bind(naturalController));
 
+// POST /api/tests/natural/regenerate-yaml - Regenerar YAML para test natural
+router.post('/regenerate-yaml', naturalController.regenerateYAML.bind(naturalController));
+
 module.exports = router;

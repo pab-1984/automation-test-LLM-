@@ -1912,7 +1912,7 @@ async function handlePlatformChange(platform) {
     // Cargar dispositivos
     await loadMobileDevices();
   } else {
-    // Ocultar selector de dispositivos
+    // Ocultar selector de dispositivos (para web y api)
     document.getElementById('device-selector-container').style.display = 'none';
     // Ocultar panel de dispositivos móviles
     document.getElementById('mobile-devices-panel').style.display = 'none';
@@ -2089,6 +2089,10 @@ function updateUIForPlatform(platform) {
     if (runButton) {
       runButton.innerHTML = '📱 Ejecutar Test Móvil';
     }
+  } else if (platform === 'api') {
+    if (runButton) {
+      runButton.innerHTML = '🔌 Ejecutar Test API';
+    }
   } else {
     if (runButton) {
       runButton.innerHTML = '▶️ Ejecutar Test';
@@ -2096,6 +2100,444 @@ function updateUIForPlatform(platform) {
   }
 
   // Aquí podrías agregar más cambios de UI según la plataforma
+}
+
+// ========================================
+// EDITOR DE CÓDIGO
+// ========================================
+
+let codeEditor = null;
+let currentEditorFile = null;
+let editorIsDirty = false;
+
+/**
+ * Inicializa el editor CodeMirror
+ */
+function initializeCodeEditor() {
+  const textarea = document.getElementById('code-editor');
+
+  if (!textarea || codeEditor) return;
+
+  codeEditor = CodeMirror.fromTextArea(textarea, {
+    mode: 'yaml',
+    theme: 'default',
+    lineNumbers: true,
+    lineWrapping: true,
+    indentUnit: 2,
+    tabSize: 2,
+    indentWithTabs: false,
+    autofocus: true,
+    styleActiveLine: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    foldGutter: true,
+    gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
+  });
+
+  // Detectar cambios
+  codeEditor.on('change', () => {
+    editorIsDirty = true;
+    updateEditorButtons();
+  });
+
+  console.log('✅ Editor CodeMirror inicializado');
+}
+
+/**
+ * Carga tests disponibles en el editor
+ */
+async function loadTestsForEditor() {
+  const testType = document.getElementById('editor-test-type').value;
+  const platform = document.getElementById('editor-platform-filter').value;
+  const listContainer = document.getElementById('editor-tests-list');
+  const platformFilterGroup = document.getElementById('editor-platform-filter-group');
+
+  // Mostrar/ocultar filtro de plataforma según el tipo
+  platformFilterGroup.style.display = testType === 'yaml' ? 'block' : 'none';
+
+  listContainer.innerHTML = '<div class="status"><div class="loading"></div><span>Cargando...</span></div>';
+
+  try {
+    let tests = [];
+
+    if (testType === 'natural') {
+      // Cargar tests en lenguaje natural
+      const response = await fetch('/api/tests/natural');
+      const data = await response.json();
+
+      if (!data.success || !data.tests) {
+        listContainer.innerHTML = '<p style="color: #e74c3c;">Error cargando tests</p>';
+        return;
+      }
+
+      tests = data.tests.map(test => ({
+        ...test,
+        path: test.fullPath || `./tests/natural/${test.filename}`,
+        name: test.name || test.filename.replace('.txt', ''),
+        file: test.filename,
+        platform: test.platform || 'natural',
+        type: 'natural'
+      }));
+
+    } else {
+      // Cargar tests YAML
+      const response = await fetch('/api/tests');
+      const data = await response.json();
+
+      if (!data.success || !data.tests) {
+        listContainer.innerHTML = '<p style="color: #e74c3c;">Error cargando tests</p>';
+        return;
+      }
+
+      tests = data.tests.map(test => ({
+        ...test,
+        type: 'yaml'
+      }));
+
+      // Filtrar por plataforma si no es "all"
+      if (platform !== 'all') {
+        tests = tests.filter(test => test.platform === platform);
+      }
+    }
+
+    if (tests.length === 0) {
+      listContainer.innerHTML = '<p style="color: #7f8c8d;">No hay tests disponibles</p>';
+      return;
+    }
+
+    // Agrupar por plataforma (solo para YAML)
+    if (testType === 'yaml') {
+      const grouped = {};
+      tests.forEach(test => {
+        const plat = test.platform || 'web';
+        if (!grouped[plat]) grouped[plat] = [];
+        grouped[plat].push(test);
+      });
+
+      let html = '';
+      Object.keys(grouped).sort().forEach(plat => {
+        const icon = plat === 'web' ? '🌐' : plat === 'mobile' ? '📱' : plat === 'api' ? '🔌' : '📄';
+        html += `<div style="margin-bottom: 15px;">
+          <div style="font-weight: bold; margin-bottom: 8px; color: #2c3e50;">${icon} ${plat.toUpperCase()}</div>`;
+
+        grouped[plat].forEach(test => {
+          html += `
+            <div class="test-item" onclick="loadTestInEditor('${test.path.replace(/\\/g, '\\\\')}', 'yaml')"
+                 style="padding: 8px; margin-bottom: 5px; background: #f8f9fa; border-radius: 4px; cursor: pointer; transition: all 0.2s;">
+              <div style="font-weight: 500; font-size: 0.95em;">${test.name}</div>
+              <div style="font-size: 0.85em; color: #7f8c8d;">${test.file}</div>
+            </div>`;
+        });
+
+        html += '</div>';
+      });
+
+      listContainer.innerHTML = html;
+
+    } else {
+      // Lista simple para tests naturales
+      let html = '<div style="margin-bottom: 15px;">';
+      html += '<div style="font-weight: bold; margin-bottom: 8px; color: #2c3e50;">💬 TESTS EN LENGUAJE NATURAL</div>';
+
+      tests.forEach(test => {
+        const platformBadge = test.platform === 'web' ? '🌐' : test.platform === 'mobile' ? '📱' : test.platform === 'api' ? '🔌' : '📄';
+        html += `
+          <div class="test-item" onclick="loadTestInEditor('${test.path.replace(/\\/g, '\\\\')}', 'natural')"
+               style="padding: 8px; margin-bottom: 5px; background: #f8f9fa; border-radius: 4px; cursor: pointer; transition: all 0.2s;">
+            <div style="font-weight: 500; font-size: 0.95em;">${platformBadge} ${test.name}</div>
+            <div style="font-size: 0.85em; color: #7f8c8d;">${test.file}</div>
+          </div>`;
+      });
+
+      html += '</div>';
+      listContainer.innerHTML = html;
+    }
+
+  } catch (error) {
+    console.error('Error loading tests:', error);
+    listContainer.innerHTML = '<p style="color: #e74c3c;">Error cargando tests</p>';
+  }
+}
+
+/**
+ * Carga un test específico en el editor
+ */
+async function loadTestInEditor(testPath, testType = 'yaml') {
+  if (editorIsDirty) {
+    if (!confirm('Hay cambios sin guardar. ¿Deseas continuar?')) {
+      return;
+    }
+  }
+
+  try {
+    const response = await fetch(`/api/editor/load?path=${encodeURIComponent(testPath)}&type=${testType}`);
+    const data = await response.json();
+
+    if (!data.success) {
+      showToast('❌ Error cargando test: ' + data.error, 'error');
+      return;
+    }
+
+    // Cargar contenido en el editor
+    codeEditor.setValue(data.content);
+
+    // Cambiar modo del editor según el tipo
+    if (testType === 'natural') {
+      codeEditor.setOption('mode', 'text/plain');
+    } else {
+      codeEditor.setOption('mode', 'yaml');
+    }
+
+    currentEditorFile = {
+      path: testPath,
+      name: data.name,
+      platform: data.platform,
+      suite: data.suite,
+      type: testType
+    };
+
+    // Actualizar UI
+    document.getElementById('editor-file-info').textContent = data.name;
+    document.getElementById('editor-filename').textContent = data.name;
+    document.getElementById('editor-platform-badge').innerHTML = getPlatformBadge(data.platform);
+    document.getElementById('editor-suite-name').textContent = data.suite || (testType === 'natural' ? 'Test Natural' : 'N/A');
+    document.getElementById('editor-test-info').style.display = 'block';
+
+    editorIsDirty = false;
+    updateEditorButtons();
+
+    showToast('✅ Test cargado: ' + data.name, 'success');
+
+  } catch (error) {
+    console.error('Error loading test:', error);
+    showToast('❌ Error cargando test', 'error');
+  }
+}
+
+/**
+ * Guarda el test actual
+ */
+async function saveCurrentTest() {
+  if (!currentEditorFile) {
+    showToast('⚠️ No hay archivo abierto', 'warning');
+    return;
+  }
+
+  const content = codeEditor.getValue();
+
+  try {
+    const response = await fetch('/api/editor/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        path: currentEditorFile.path,
+        content: content
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      editorIsDirty = false;
+      updateEditorButtons();
+      showToast('✅ Test guardado correctamente', 'success');
+    } else {
+      showToast('❌ Error guardando: ' + data.error, 'error');
+    }
+
+  } catch (error) {
+    console.error('Error saving test:', error);
+    showToast('❌ Error guardando test', 'error');
+  }
+}
+
+/**
+ * Guarda y ejecuta el test
+ */
+async function saveAndRunTest() {
+  await saveCurrentTest();
+
+  if (!currentEditorFile) return;
+
+  // Cambiar al tab de ejecución y ejecutar
+  showTab('run');
+
+  // Aquí podríamos integrar con la función existente de ejecución
+  showToast('ℹ️ Usa el tab "Ejecutar Test" para ejecutar el test guardado', 'info');
+}
+
+/**
+ * Valida la sintaxis YAML
+ */
+async function validateYAML() {
+  const content = codeEditor.getValue();
+  const messageDiv = document.getElementById('editor-validation-message');
+
+  try {
+    const yaml = jsyaml.load(content);
+
+    messageDiv.style.display = 'block';
+    messageDiv.style.background = '#d4edda';
+    messageDiv.style.color = '#155724';
+    messageDiv.style.border = '1px solid #c3e6cb';
+    messageDiv.innerHTML = '✅ YAML válido - Sintaxis correcta';
+
+    setTimeout(() => {
+      messageDiv.style.display = 'none';
+    }, 3000);
+
+  } catch (error) {
+    messageDiv.style.display = 'block';
+    messageDiv.style.background = '#f8d7da';
+    messageDiv.style.color = '#721c24';
+    messageDiv.style.border = '1px solid #f5c6cb';
+    messageDiv.innerHTML = `❌ Error de sintaxis YAML:<br><code style="font-size: 0.9em;">${error.message}</code>`;
+  }
+}
+
+/**
+ * Formatea el código YAML
+ */
+async function formatYAML() {
+  const content = codeEditor.getValue();
+
+  try {
+    const parsed = jsyaml.load(content);
+    const formatted = jsyaml.dump(parsed, {
+      indent: 2,
+      lineWidth: 100,
+      noRefs: true
+    });
+
+    codeEditor.setValue(formatted);
+    showToast('✅ YAML formateado', 'success');
+
+  } catch (error) {
+    showToast('❌ Error formateando: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Crea un nuevo test
+ */
+function createNewTest() {
+  if (editorIsDirty) {
+    if (!confirm('Hay cambios sin guardar. ¿Deseas continuar?')) {
+      return;
+    }
+  }
+
+  const testType = document.getElementById('editor-test-type').value;
+  const platform = document.getElementById('editor-platform-filter').value || 'web';
+  const platformName = platform === 'all' ? 'web' : platform;
+
+  let template;
+
+  if (testType === 'natural') {
+    // Plantilla para test natural
+    template = `TEST: Nuevo Test en Lenguaje Natural
+Plataforma: Web
+
+Descripción:
+Escribe aquí una descripción del test
+
+Pasos:
+Navega a la URL inicial
+
+Busca el elemento principal
+Haz click en el elemento
+
+Verifica que aparezca el resultado esperado
+
+Toma un screenshot
+
+Opciones:
+- Screenshots automáticos
+- Capturar logs de consola
+- Métricas de rendimiento
+`;
+
+    // Cambiar editor a modo texto
+    codeEditor.setOption('mode', 'text/plain');
+
+  } else {
+    // Plantilla para test YAML
+    template = `suite: "Nuevo Test ${platformName.toUpperCase()}"
+description: "Descripción del test"
+baseUrl: "https://ejemplo.com"
+platform: "${platformName}"
+timeout: 30000
+
+tests:
+  - name: "Primer test"
+    description: "Descripción del primer test"
+    steps:
+      - action: ${platformName === 'api' ? 'api.get' : 'navigate'}
+        ${platformName === 'api' ? 'url: "/endpoint"' : 'url: "/"'}
+        description: "Paso inicial"
+
+expectedResult: "Test debe completarse exitosamente"
+`;
+
+    // Cambiar editor a modo YAML
+    codeEditor.setOption('mode', 'yaml');
+  }
+
+  codeEditor.setValue(template);
+  currentEditorFile = null;
+
+  document.getElementById('editor-file-info').textContent = 'Nuevo test (sin guardar)';
+  document.getElementById('editor-test-info').style.display = 'none';
+
+  editorIsDirty = true;
+  updateEditorButtons();
+
+  showToast(`📝 Nuevo test ${testType === 'natural' ? 'natural' : 'YAML'} creado - No olvides guardarlo`, 'info');
+}
+
+/**
+ * Cierra el editor actual
+ */
+function closeEditor() {
+  if (editorIsDirty) {
+    if (!confirm('Hay cambios sin guardar. ¿Deseas continuar?')) {
+      return;
+    }
+  }
+
+  codeEditor.setValue('');
+  currentEditorFile = null;
+  editorIsDirty = false;
+
+  document.getElementById('editor-file-info').textContent = 'Ningún archivo seleccionado';
+  document.getElementById('editor-test-info').style.display = 'none';
+
+  updateEditorButtons();
+}
+
+/**
+ * Actualiza el estado de los botones del editor
+ */
+function updateEditorButtons() {
+  const hasFile = currentEditorFile !== null || editorIsDirty;
+
+  document.getElementById('editor-save-btn').disabled = !hasFile;
+  document.getElementById('editor-run-btn').disabled = !hasFile;
+  document.getElementById('editor-validate-btn').disabled = !hasFile;
+  document.getElementById('editor-format-btn').disabled = !hasFile;
+  document.getElementById('editor-close-btn').disabled = !hasFile;
+}
+
+/**
+ * Obtiene el badge HTML para una plataforma
+ */
+function getPlatformBadge(platform) {
+  const badges = {
+    web: '🌐 Web',
+    mobile: '📱 Mobile',
+    api: '🔌 API'
+  };
+  return badges[platform] || '📄 ' + platform;
 }
 
 // ========================================
@@ -2112,4 +2554,10 @@ document.addEventListener('DOMContentLoaded', () => {
       handlePlatformChange('mobile');
     }
   }
+
+  // Inicializar editor cuando se carga la página
+  setTimeout(() => {
+    initializeCodeEditor();
+    loadTestsForEditor();
+  }, 500);
 });

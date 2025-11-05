@@ -1,0 +1,249 @@
+suite: "API Tests - Products (Advanced)"
+description: "Tests avanzados con schema validation y chaining"
+baseUrl: "https://fakestoreapi.com"
+platform: "api"
+timeout: 10000
+
+# Rate limiting (opcional)
+rateLimit:
+  enabled: false
+  requestsPerSecond: 5
+
+tests:
+  - name: "GET - Lista de productos con paginación"
+    description: "Obtener productos con límite"
+    steps:
+      - action: api.get
+        url: "/products?limit=5"
+        description: "Obtener primeros 5 productos"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateResponse
+        isArray: true
+        description: "Verificar que es un array"
+
+      - action: api.validateResponseTime
+        maxMs: 3000
+        description: "Respuesta en menos de 3 segundos"
+
+  - name: "GET - Producto específico con schema validation"
+    description: "Validar estructura completa del producto"
+    steps:
+      - action: api.get
+        url: "/products/1"
+        description: "Obtener producto ID 1"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateSchema
+        schema:
+          type: "object"
+          required:
+            - id
+            - title
+            - price
+            - description
+            - category
+            - image
+          properties:
+            id:
+              type: "number"
+            title:
+              type: "string"
+            price:
+              type: "number"
+            description:
+              type: "string"
+            category:
+              type: "string"
+            image:
+              type: "string"
+        description: "Validar schema del producto"
+
+      - action: api.validateBody
+        path: "price"
+        greaterThan: 0
+        description: "El precio debe ser mayor a 0"
+
+  - name: "POST - Crear producto y usarlo en siguiente request"
+    description: "Chaining de requests con variables"
+    steps:
+      - action: api.post
+        url: "/products"
+        headers:
+          Content-Type: "application/json"
+        body:
+          title: "Test Product"
+          price: 99.99
+          description: "A test product"
+          category: "electronics"
+          image: "https://example.com/image.jpg"
+        description: "Crear nuevo producto"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.extractValue
+        path: "id"
+        saveTo: "productId"
+        description: "Guardar ID del producto creado"
+
+      - action: api.extractValue
+        path: "title"
+        saveTo: "productTitle"
+
+      - action: api.extractValue
+        path: "price"
+        saveTo: "productPrice"
+
+      - action: api.log
+        message: "Producto creado"
+        value: "ID: {{productId}}, Título: {{productTitle}}, Precio: {{productPrice}}"
+
+      # Usar el ID en el siguiente request
+      - action: api.wait
+        ms: 500
+        description: "Esperar 500ms"
+
+      - action: api.get
+        url: "/products/{{productId}}"
+        description: "Obtener el producto recién creado usando su ID"
+
+      - action: api.validateStatus
+        expected: 200
+
+  - name: "PUT - Actualizar producto completo"
+    description: "Actualizar todos los campos del producto"
+    steps:
+      - action: api.put
+        url: "/products/1"
+        headers:
+          Content-Type: "application/json"
+        body:
+          id: 1
+          title: "Updated Product Title"
+          price: 149.99
+          description: "Updated description"
+          category: "electronics"
+          image: "https://example.com/updated.jpg"
+        description: "Actualizar producto"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateBody
+        path: "title"
+        equals: "Updated Product Title"
+
+      - action: api.validateBody
+        path: "price"
+        equals: 149.99
+
+  - name: "DELETE - Eliminar producto"
+    description: "Eliminar producto existente"
+    steps:
+      - action: api.delete
+        url: "/products/6"
+        description: "Eliminar producto ID 6"
+
+      - action: api.validateStatus
+        expected: 200
+
+  - name: "GET - Categorías de productos"
+    description: "Obtener todas las categorías"
+    steps:
+      - action: api.get
+        url: "/products/categories"
+        description: "Obtener lista de categorías"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateResponse
+        isArray: true
+        description: "Debe retornar array de categorías"
+
+  - name: "GET - Productos por categoría"
+    description: "Filtrar productos por categoría"
+    steps:
+      - action: api.get
+        url: "/products/category/electronics"
+        description: "Obtener productos de electrónica"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateResponse
+        isArray: true
+
+      # Validar que todos los items tienen la categoría correcta
+      - action: api.validateBody
+        path: "[0].category"
+        equals: "electronics"
+        description: "Primer producto debe ser de electronics"
+
+  - name: "GET - Headers personalizados"
+    description: "Request con headers específicos"
+    steps:
+      - action: api.get
+        url: "/products/1"
+        headers:
+          Accept: "application/json"
+          User-Agent: "LLM-Testing-Bot/1.0"
+          X-Custom-Header: "test-value"
+        description: "Request con headers custom"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateHeaders
+        headers:
+          content-type: "application/json; charset=utf-8"
+        description: "Verificar content-type en respuesta"
+
+  - name: "Múltiples requests en secuencia"
+    description: "Flujo completo de operaciones"
+    steps:
+      # 1. Obtener producto
+      - action: api.get
+        url: "/products/1"
+        description: "Paso 1: Obtener producto"
+
+      - action: api.extractValue
+        path: "title"
+        saveTo: "originalTitle"
+
+      - action: api.extractValue
+        path: "price"
+        saveTo: "originalPrice"
+
+      # 2. Modificar producto
+      - action: api.patch
+        url: "/products/1"
+        headers:
+          Content-Type: "application/json"
+        body:
+          price: 199.99
+        description: "Paso 2: Actualizar precio"
+
+      - action: api.validateStatus
+        expected: 200
+
+      # 3. Verificar cambios
+      - action: api.get
+        url: "/products/1"
+        description: "Paso 3: Verificar actualización"
+
+      - action: api.validateBody
+        path: "price"
+        equals: 199.99
+        description: "Verificar que el precio cambió"
+
+      - action: api.log
+        message: "Flujo completado - Precio original"
+        value: "{{originalPrice}}"
+
+expectedResult: "Todos los flujos avanzados funcionan correctamente"

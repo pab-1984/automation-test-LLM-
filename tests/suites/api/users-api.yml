@@ -1,0 +1,156 @@
+suite: "API Tests - Users CRUD"
+description: "Tests completos de API REST para gestión de usuarios"
+baseUrl: "https://jsonplaceholder.typicode.com"
+platform: "api"
+timeout: 10000
+
+# Opciones de retry (opcional)
+retry:
+  enabled: true
+  maxRetries: 2
+  retryDelay: 1000
+
+tests:
+  - name: "GET - Listar todos los usuarios"
+    description: "Obtener lista de usuarios y validar respuesta"
+    steps:
+      - action: api.get
+        url: "/users"
+        description: "Obtener todos los usuarios"
+
+      - action: api.validateStatus
+        expected: 200
+        description: "Verificar status 200"
+
+      - action: api.validateResponse
+        isArray: true
+        contains:
+          - id
+          - name
+          - email
+          - username
+        description: "Verificar que sea array con propiedades requeridas"
+
+      - action: api.validateResponseTime
+        maxMs: 2000
+        description: "Verificar que responda en menos de 2 segundos"
+
+  - name: "GET - Obtener usuario específico"
+    description: "Obtener un usuario por ID"
+    steps:
+      - action: api.get
+        url: "/users/1"
+        description: "Obtener usuario con ID 1"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateBody
+        path: "id"
+        equals: 1
+        description: "Verificar que el ID sea 1"
+
+      - action: api.validateBody
+        path: "name"
+        contains: "Leanne"
+        description: "Verificar que el nombre contenga 'Leanne'"
+
+      - action: api.validateBody
+        path: "email"
+        contains: "@"
+        description: "Verificar que el email contenga @"
+
+  - name: "POST - Crear nuevo usuario"
+    description: "Crear un usuario y validar respuesta"
+    steps:
+      - action: api.post
+        url: "/users"
+        headers:
+          Content-Type: "application/json"
+        body:
+          name: "Test User"
+          username: "testuser"
+          email: "test@example.com"
+        description: "Crear nuevo usuario"
+
+      - action: api.validateStatus
+        expected: 201
+        description: "Verificar status 201 Created"
+
+      - action: api.validateBody
+        path: "name"
+        equals: "Test User"
+        description: "Verificar que el nombre coincida"
+
+      - action: api.extractValue
+        path: "id"
+        saveTo: "userId"
+        description: "Guardar ID del usuario creado"
+
+      - action: api.log
+        message: "Usuario creado con ID"
+        value: "{{userId}}"
+
+  - name: "PUT - Actualizar usuario"
+    description: "Actualizar datos de un usuario existente"
+    steps:
+      - action: api.put
+        url: "/users/1"
+        headers:
+          Content-Type: "application/json"
+        body:
+          id: 1
+          name: "Updated Name"
+          username: "updated"
+          email: "updated@example.com"
+        description: "Actualizar usuario con ID 1"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateBody
+        path: "name"
+        equals: "Updated Name"
+        description: "Verificar que el nombre se actualizó"
+
+  - name: "PATCH - Actualización parcial"
+    description: "Actualizar solo algunos campos del usuario"
+    steps:
+      - action: api.patch
+        url: "/users/1"
+        headers:
+          Content-Type: "application/json"
+        body:
+          name: "Patched Name"
+        description: "Actualizar solo el nombre"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateBody
+        path: "name"
+        equals: "Patched Name"
+
+  - name: "DELETE - Eliminar usuario"
+    description: "Eliminar un usuario existente"
+    steps:
+      - action: api.delete
+        url: "/users/1"
+        description: "Eliminar usuario con ID 1"
+
+      - action: api.validateStatus
+        expected: 200
+        description: "Verificar que se eliminó correctamente"
+
+  - name: "GET - Usuario no encontrado"
+    description: "Intentar obtener un usuario que no existe"
+    steps:
+      - action: api.get
+        url: "/users/99999"
+        description: "Intentar obtener usuario inexistente"
+
+      - action: api.validateStatus
+        expected: 404
+        description: "Verificar status 404 Not Found"
+
+expectedResult: "Todos los endpoints CRUD funcionan correctamente"

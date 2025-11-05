@@ -14,6 +14,7 @@
 - 🌐 **Interfaz Web Completa**: Dashboard con IA integrada, ejecución en tiempo real y reportes visuales
 - 🔌 **Protocolo MCP**: Integración con Chrome DevTools y mobile-mcp para web y móvil
 - 📱 **Testing Móvil Completo**: ✅ Soporte para Android e iOS con detección automática de dispositivos
+- 🔌 **Testing de APIs REST**: ✅ Cliente HTTP completo con autenticación, validaciones avanzadas y chaining
 - 🎯 **Multi-Interface**: CLI interactiva, CLI natural, API REST, Interfaz Web
 - 📊 **Reportes Ricos**: Logs de consola, network requests, performance metrics, screenshots
 - 🔄 **Compilación Inteligente**: Sistema de caché para tests 35x más rápidos
@@ -195,14 +196,17 @@ automation-test-LLM/
 ├── runners/
 │   ├── core/
 │   │   ├── runner-core.js     # ⭐ Núcleo principal (LLM + MCP)
-│   │   └── mcp-client.js      # Cliente MCP para Chrome DevTools
+│   │   ├── mcp-client.js      # Cliente MCP para Chrome DevTools
+│   │   └── api-client.js      # ⭐ Cliente HTTP para APIs REST
 │   ├── adapters/              # Adapters por LLM
 │   │   ├── gemini.adapter.js
 │   │   ├── ollama.adapter.js
 │   │   ├── openai.adapter.js
 │   │   └── anthropic.adapter.js
 │   ├── actions/
-│   │   └── browser-actions.js # Acciones web via MCP
+│   │   ├── browser-actions.js # Acciones web via MCP
+│   │   ├── mobile-actions.js  # Acciones móviles via mobile-mcp
+│   │   └── api-actions.js     # ⭐ Acciones API REST
 │   ├── utils/
 │   │   └── element-finder.js  # Búsqueda híbrida (local + LLM)
 │   └── test-generator.js      # Generación de tests con IA
@@ -239,6 +243,9 @@ automation-test-LLM/
 │
 ├── tests/
 │   ├── suites/                # Tests YAML
+│   │   ├── web/              # Tests web
+│   │   ├── mobile/           # Tests móviles (Android/iOS)
+│   │   └── api/              # ⭐ Tests de APIs REST
 │   ├── natural/               # ⭐ Tests en lenguaje natural
 │   ├── results/               # Reportes generados
 │   └── screenshots/           # Capturas
@@ -371,6 +378,369 @@ Fase 6: Interfaz Web Integrada        ████████████ 100% 
 - **ADB (Android Debug Bridge)**: Comunicación con dispositivos Android
 - **Xcode simctl** (macOS): Control de simuladores iOS
 - **Detección automática**: Find ADB en rutas estándar del Android SDK
+
+---
+
+## 🔌 Testing de APIs REST Completo ✅
+
+**Estado**: ✅ **Completamente funcional** - Sistema completo para testing de APIs REST/GraphQL
+
+### 🎯 Características Implementadas
+
+#### ✅ Cliente HTTP Completo
+- 🌐 **Todos los métodos HTTP**: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
+- 🔐 **Autenticación múltiple**: Bearer Token, Basic Auth, API Key, OAuth2
+- 🔄 **Retry automático**: Reintentos configurables en errores 5xx
+- ⏱️ **Rate limiting**: Control de requests por segundo
+- 📝 **Variables y chaining**: Extraer valores y usarlos en requests posteriores
+- 📊 **Validaciones avanzadas**: Status, schema, headers, response time, JSON path
+
+#### ✅ Acciones API Disponibles
+
+**Requests HTTP**:
+```yaml
+- action: api.get         # GET request
+- action: api.post        # POST request con body
+- action: api.put         # PUT request (actualización completa)
+- action: api.patch       # PATCH request (actualización parcial)
+- action: api.delete      # DELETE request
+- action: api.head        # HEAD request
+- action: api.options     # OPTIONS request
+```
+
+**Validaciones**:
+```yaml
+- action: api.validateStatus       # Validar código HTTP (200, 404, etc.)
+- action: api.validateResponse     # Validar estructura (array, object, contains)
+- action: api.validateSchema       # Validar JSON schema completo
+- action: api.validateHeaders      # Validar headers de respuesta
+- action: api.validateResponseTime # Validar tiempo de respuesta
+- action: api.validateBody         # Validar valores con JSON path
+```
+
+**Variables y Chaining**:
+```yaml
+- action: api.extractValue         # Extraer valor de respuesta y guardarlo
+- action: api.setVariable          # Establecer variable manual
+- action: api.getVariable          # Obtener variable guardada
+```
+
+**Autenticación**:
+```yaml
+- action: api.setAuth             # Configurar autenticación
+- action: api.clearAuth           # Limpiar autenticación
+```
+
+**Configuración**:
+```yaml
+- action: api.setBaseURL          # Cambiar baseURL dinámicamente
+- action: api.setTimeout          # Configurar timeout
+```
+
+**Utilidades**:
+```yaml
+- action: api.wait                # Esperar N milisegundos
+- action: api.log                 # Log en consola con variables
+```
+
+### 📝 Ejemplo Completo - API Testing
+
+#### Test Básico - CRUD de Usuarios
+```yaml
+suite: "API Tests - Users CRUD"
+description: "Tests de API REST para gestión de usuarios"
+baseUrl: "https://jsonplaceholder.typicode.com"
+platform: "api"
+timeout: 10000
+
+tests:
+  - name: "GET - Listar usuarios"
+    steps:
+      - action: api.get
+        url: "/users"
+        description: "Obtener todos los usuarios"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateResponse
+        isArray: true
+        contains:
+          - id
+          - name
+          - email
+
+  - name: "POST - Crear usuario"
+    steps:
+      - action: api.post
+        url: "/users"
+        headers:
+          Content-Type: "application/json"
+        body:
+          name: "Test User"
+          email: "test@example.com"
+
+      - action: api.validateStatus
+        expected: 201
+
+      - action: api.extractValue
+        path: "id"
+        saveTo: "userId"
+
+      - action: api.log
+        message: "Usuario creado con ID"
+        value: "{{userId}}"
+```
+
+#### Test Avanzado - Schema Validation y Chaining
+```yaml
+suite: "API Tests - Products (Advanced)"
+baseUrl: "https://fakestoreapi.com"
+platform: "api"
+
+# Configuración de retry
+retry:
+  enabled: true
+  maxRetries: 2
+  retryDelay: 1000
+
+# Rate limiting
+rateLimit:
+  enabled: false
+  requestsPerSecond: 5
+
+tests:
+  - name: "GET - Producto con schema validation"
+    steps:
+      - action: api.get
+        url: "/products/1"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateSchema
+        schema:
+          type: "object"
+          required:
+            - id
+            - title
+            - price
+          properties:
+            id:
+              type: "number"
+            title:
+              type: "string"
+            price:
+              type: "number"
+
+      - action: api.validateBody
+        path: "price"
+        greaterThan: 0
+
+  - name: "POST - Crear y usar en siguiente request"
+    steps:
+      - action: api.post
+        url: "/products"
+        body:
+          title: "Test Product"
+          price: 99.99
+          category: "electronics"
+
+      - action: api.extractValue
+        path: "id"
+        saveTo: "productId"
+
+      - action: api.wait
+        ms: 500
+
+      - action: api.get
+        url: "/products/{{productId}}"
+        description: "Usar ID del producto creado"
+
+      - action: api.validateStatus
+        expected: 200
+```
+
+#### Test de Autenticación
+```yaml
+suite: "API Tests - Authentication"
+baseUrl: "https://reqres.in/api"
+platform: "api"
+
+tests:
+  - name: "POST - Login y usar token"
+    steps:
+      - action: api.post
+        url: "/login"
+        body:
+          email: "eve.holt@reqres.in"
+          password: "cityslicka"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.extractValue
+        path: "token"
+        saveTo: "authToken"
+
+      - action: api.setAuth
+        type: "bearer"
+        token: "{{authToken}}"
+
+      - action: api.get
+        url: "/users/2"
+        description: "Request con Bearer token automático"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.clearAuth
+```
+
+### 🚀 Quick Start - Testing de APIs
+
+#### 1. Crear Test API
+```bash
+# Opción 1: Crear archivo YAML manualmente
+# En tests/suites/api/mi-api.yml
+
+# Opción 2: Desde interfaz web
+npm run web
+# Abre http://localhost:3001
+# Selecciona plataforma "API"
+# Crea tu test
+```
+
+#### 2. Ejecutar Tests API
+```bash
+# Ejecutar test específico
+npm test tests/suites/api/users-api.yml
+
+# Desde interfaz web
+npm run web
+# Selecciona plataforma "API"
+# Ejecuta desde el dashboard
+```
+
+### 📦 Tests de Ejemplo Incluidos
+
+El framework incluye **3 suites completas** de ejemplo en `tests/suites/api/`:
+
+1. **users-api.yml** (7 tests) - CRUD básico
+   - GET lista de usuarios
+   - GET usuario específico
+   - POST crear usuario
+   - PUT actualizar completo
+   - PATCH actualización parcial
+   - DELETE eliminar usuario
+   - Manejo de 404
+
+2. **auth-api.yml** (7 tests) - Autenticación
+   - Login exitoso con extracción de token
+   - Login fallido (validación de errores)
+   - Registro de usuarios
+   - Bearer token authentication
+   - API Key authentication
+   - Basic authentication
+   - Requests sin autenticación
+
+3. **products-api.yml** (9 tests) - Características avanzadas
+   - Paginación de resultados
+   - Schema validation completo
+   - Request chaining con variables
+   - Validación de response time
+   - Validación de headers personalizados
+   - Filtrado por categoría
+   - Múltiples requests en secuencia
+   - JSON path con arrays
+
+### ✨ Características Destacadas
+
+#### 🔗 Request Chaining
+Extrae valores de una respuesta y úsalos en requests posteriores:
+```yaml
+- action: api.post
+  url: "/users"
+  body: { name: "John" }
+
+- action: api.extractValue
+  path: "id"
+  saveTo: "userId"
+
+- action: api.get
+  url: "/users/{{userId}}"  # Usa el ID extraído
+```
+
+#### 📋 JSON Path Avanzado
+Accede a valores anidados y arrays:
+```yaml
+- action: api.validateBody
+  path: "data.items[0].price"
+  greaterThan: 0
+
+- action: api.extractValue
+  path: "results[2].name"
+  saveTo: "thirdItemName"
+```
+
+#### 🔐 Múltiples Tipos de Autenticación
+```yaml
+# Bearer Token
+- action: api.setAuth
+  type: "bearer"
+  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+# Basic Auth
+- action: api.setAuth
+  type: "basic"
+  username: "admin"
+  password: "secret"
+
+# API Key en Header
+- action: api.setAuth
+  type: "apikey"
+  key: "X-API-Key"
+  value: "my-secret-key"
+  in: "header"
+
+# API Key en Query
+- action: api.setAuth
+  type: "apikey"
+  key: "api_key"
+  value: "my-secret-key"
+  in: "query"
+```
+
+#### ⏱️ Validación de Performance
+```yaml
+- action: api.validateResponseTime
+  maxMs: 2000  # Falla si tarda más de 2 segundos
+```
+
+#### 📊 JSON Schema Validation
+```yaml
+- action: api.validateSchema
+  schema:
+    type: "object"
+    required: ["id", "name", "email"]
+    properties:
+      id:
+        type: "number"
+      name:
+        type: "string"
+        minLength: 1
+      email:
+        type: "string"
+        pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+```
+
+### 🔧 Tecnologías API Testing
+- **axios**: Cliente HTTP con interceptors para autenticación
+- **JSON Schema Validation**: Validación recursiva de estructuras
+- **Variable Replacement**: Sistema de plantillas {{variable}}
+- **Retry Logic**: Reintentos automáticos con backoff exponencial
+- **Rate Limiting**: Cola de requests con throttling
+- **Request History**: Últimas 50 requests para debugging
 
 ---
 
@@ -556,16 +926,21 @@ npm run test-natural tests/natural/mi-test.txt
 - [x] Compilación inteligente (35x más rápido)
 - [x] Búsqueda híbrida de elementos (local + LLM)
 - [x] Reportes ricos (logs, network, performance)
-- [x] API REST completa
+- [x] API REST completa para la interfaz web
 - [x] Integración MCP con Chrome DevTools
-- [x] Setup mobile-mcp (Fase 1)
-
-### 🚧 En Progreso
-
-- [ ] Integración completa testing móvil (Android/iOS)
+- [x] **Testing móvil completo (Android/iOS)**
   - [x] Fase 1: Setup y configuración
-  - [ ] Fase 2: Infraestructura core
-  - [ ] Fase 3-7: Implementación completa
+  - [x] Fase 2: Infraestructura core
+  - [x] Fase 3-6: Implementación completa (86 tests)
+  - [x] Interfaz web integrada
+- [x] **Testing de APIs REST**
+  - [x] Cliente HTTP con axios
+  - [x] Todos los métodos HTTP (GET, POST, PUT, PATCH, DELETE)
+  - [x] Autenticación múltiple (Bearer, Basic, API Key, OAuth2)
+  - [x] Validaciones avanzadas (status, schema, headers, response time)
+  - [x] Request chaining y variables
+  - [x] Retry logic y rate limiting
+  - [x] 23 tests de ejemplo en 3 suites
 
 ### 🔮 Futuro
 
@@ -574,9 +949,10 @@ npm run test-natural tests/natural/mi-test.txt
 - [ ] Dashboard de métricas avanzadas
 - [ ] Recorder web interactivo
 - [ ] Soporte multi-idioma
-- [ ] Testing de APIs REST
 - [ ] Visual regression testing
 - [ ] Tests de accesibilidad (a11y)
+- [ ] Testing GraphQL (extensión del módulo API)
+- [ ] Contract testing (Pact)
 
 ---
 
@@ -612,4 +988,4 @@ Si este proyecto te ayudó, dale una ⭐️!
 
 ---
 
-**Última actualización**: 2025-10-30 | **Versión**: 1.0.0
+**Última actualización**: 2025-11-04 | **Versión**: 1.1.0 - API Testing Release

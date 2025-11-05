@@ -48,6 +48,19 @@ class ReportGenerator {
 
       if (test.status === 'FAIL') {
         markdown += `- **Error**: ${test.error}\n`;
+
+        // Agregar detalles del error si están disponibles
+        if (test.errorDetails) {
+          markdown += `- **Paso que falló**: ${test.errorDetails.stepNumber}\n`;
+          markdown += `- **Acción**: ${test.errorDetails.action}\n`;
+          if (test.errorDetails.stepDescription) {
+            markdown += `- **Descripción**: ${test.errorDetails.stepDescription}\n`;
+          }
+          if (test.errorDetails.stepParams) {
+            markdown += `- **Parámetros**: ${JSON.stringify(test.errorDetails.stepParams, null, 2)}\n`;
+          }
+        }
+
         if (test.screenshot) {
           markdown += `- **Screenshot**: [Ver captura](${test.screenshot})\n`;
         }
@@ -60,6 +73,8 @@ class ReportGenerator {
         duration: test.duration,
         expectedResult: test.expectedResult,
         error: test.error || null,
+        errorDetails: test.errorDetails || null,
+        failedStep: test.failedStep || null,
         screenshot: test.screenshot || null
       });
 
@@ -176,6 +191,39 @@ class ReportGenerator {
 
       if (step.error) {
         html += `<p style="color: #e74c3c;"><strong>Error:</strong> ${step.error}</p>`;
+
+        // Mostrar detalles del error si están disponibles
+        if (step.errorDetails) {
+          html += `
+    <div style="background: #ffebee; padding: 10px; border-radius: 5px; margin-top: 10px;">
+      <h4 style="margin-top: 0; color: #c62828;">Detalles del Error</h4>
+      <p><strong>Paso que falló:</strong> ${step.errorDetails.stepNumber}</p>
+      <p><strong>Acción:</strong> ${step.errorDetails.action}</p>`;
+
+          if (step.errorDetails.stepDescription) {
+            html += `<p><strong>Descripción:</strong> ${step.errorDetails.stepDescription}</p>`;
+          }
+
+          if (step.errorDetails.stepParams) {
+            html += `<p><strong>Parámetros:</strong></p>
+      <pre style="background: white; padding: 10px; border-radius: 3px; overflow-x: auto;">${JSON.stringify(step.errorDetails.stepParams, null, 2)}</pre>`;
+          }
+
+          html += `</div>`;
+        }
+      }
+
+      // Mostrar screenshot si existe
+      if (step.screenshot) {
+        const screenshotPath = step.screenshot.replace(/\\/g, '/');
+        const screenshotUrl = `/api/screenshots?path=${encodeURIComponent(screenshotPath)}`;
+        html += `
+    <div style="margin-top: 15px;">
+      <h4>📸 Screenshot del Error</h4>
+      <img src="${screenshotUrl}" alt="Screenshot" style="max-width: 100%; border: 1px solid #ddd; border-radius: 5px; cursor: pointer;"
+           onclick="window.open('${screenshotUrl}', '_blank')">
+      <p style="font-size: 0.9em; color: #7f8c8d;">Click en la imagen para ver en tamaño completo</p>
+    </div>`;
       }
 
       html += `</div>`;

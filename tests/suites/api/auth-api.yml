@@ -1,0 +1,162 @@
+suite: "API Tests - Authentication"
+description: "Tests de autenticación y uso de tokens"
+baseUrl: "https://reqres.in/api"
+platform: "api"
+timeout: 10000
+
+tests:
+  - name: "POST - Login exitoso"
+    description: "Autenticar usuario y obtener token"
+    steps:
+      - action: api.post
+        url: "/login"
+        headers:
+          Content-Type: "application/json"
+        body:
+          email: "eve.holt@reqres.in"
+          password: "cityslicka"
+        description: "Enviar credenciales de login"
+
+      - action: api.validateStatus
+        expected: 200
+        description: "Verificar login exitoso"
+
+      - action: api.validateResponse
+        contains:
+          - token
+        description: "Verificar que retorna token"
+
+      - action: api.extractValue
+        path: "token"
+        saveTo: "authToken"
+        description: "Guardar token para requests posteriores"
+
+      - action: api.log
+        message: "Token obtenido"
+        value: "{{authToken}}"
+
+  - name: "POST - Login fallido (credenciales inválidas)"
+    description: "Intentar login sin password"
+    steps:
+      - action: api.post
+        url: "/login"
+        headers:
+          Content-Type: "application/json"
+        body:
+          email: "eve.holt@reqres.in"
+        description: "Enviar solo email, sin password"
+
+      - action: api.validateStatus
+        expected: 400
+        description: "Verificar error 400 Bad Request"
+
+      - action: api.validateResponse
+        contains:
+          - error
+        description: "Verificar que retorna mensaje de error"
+
+  - name: "POST - Registro de usuario"
+    description: "Registrar nuevo usuario y obtener token"
+    steps:
+      - action: api.post
+        url: "/register"
+        headers:
+          Content-Type: "application/json"
+        body:
+          email: "eve.holt@reqres.in"
+          password: "pistol"
+        description: "Registrar nuevo usuario"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateResponse
+        contains:
+          - id
+          - token
+        description: "Verificar que retorna ID y token"
+
+      - action: api.extractValue
+        path: "id"
+        saveTo: "userId"
+        description: "Guardar ID del usuario"
+
+      - action: api.extractValue
+        path: "token"
+        saveTo: "registerToken"
+        description: "Guardar token de registro"
+
+  - name: "GET - Usar token en request autenticado"
+    description: "Hacer request con autenticación Bearer"
+    steps:
+      - action: api.setAuth
+        type: "bearer"
+        token: "{{authToken}}"
+        description: "Configurar autenticación Bearer"
+
+      - action: api.get
+        url: "/users/2"
+        description: "Obtener usuario autenticado"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.clearAuth
+        description: "Limpiar autenticación"
+
+  - name: "GET - Request sin autenticación"
+    description: "Verificar que funciona sin token (API pública)"
+    steps:
+      - action: api.get
+        url: "/users?page=1"
+        description: "Obtener lista de usuarios sin auth"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.validateResponse
+        contains:
+          - page
+          - per_page
+          - total
+          - data
+        description: "Verificar estructura de paginación"
+
+  - name: "API Key Authentication (simulado)"
+    description: "Ejemplo de autenticación con API Key"
+    steps:
+      - action: api.setAuth
+        type: "apikey"
+        key: "X-API-Key"
+        value: "mi-api-key-secreta"
+        in: "header"
+        description: "Configurar API Key en header"
+
+      - action: api.get
+        url: "/users/1"
+        description: "Request con API Key"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.clearAuth
+
+  - name: "Basic Authentication (simulado)"
+    description: "Ejemplo de autenticación básica"
+    steps:
+      - action: api.setAuth
+        type: "basic"
+        username: "admin"
+        password: "admin123"
+        description: "Configurar Basic Auth"
+
+      - action: api.get
+        url: "/users/3"
+        description: "Request con Basic Auth"
+
+      - action: api.validateStatus
+        expected: 200
+
+      - action: api.clearAuth
+
+expectedResult: "Todos los flujos de autenticación funcionan correctamente"

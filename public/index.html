@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Testing Automation Framework</title>
   <link rel="stylesheet" href="/css/styles.css">
+
+  <!-- CodeMirror 6 para el editor -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/yaml/yaml.min.js"></script>
+
+  <!-- js-yaml para validación y formateo -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
 </head>
 <body>
   <div class="app-layout">
@@ -40,6 +48,7 @@
             <select id="platform-dropdown" onchange="handlePlatformChange(this.value)">
               <option value="web">🌐 Web</option>
               <option value="mobile">📱 Mobile</option>
+              <option value="api">🔌 API</option>
             </select>
           </div>
           <div class="device-selector-compact" id="device-selector-container" style="display: none;">
@@ -61,6 +70,7 @@
       <nav class="tabs-nav">
         <button class="tab-button active" onclick="showTab('dashboard')">Dashboard</button>
         <button class="tab-button" onclick="showTab('natural')">Crear Test</button>
+        <button class="tab-button" onclick="showTab('editor')">📝 Editor</button>
         <button class="tab-button" onclick="showTab('run')">Ejecutar Test</button>
         <button class="tab-button" onclick="showTab('results')">Resultados</button>
       </nav>
@@ -271,6 +281,7 @@ Verifica que aparezca un mensaje de bienvenida." required></textarea>
             <select id="natural-platform" onchange="handleNaturalPlatformChange()">
               <option value="web">🌐 Web</option>
               <option value="mobile">📱 Móvil (Android/iOS)</option>
+              <option value="api">🔌 API / REST</option>
             </select>
           </div>
 
@@ -355,6 +366,101 @@ Toma un screenshot"></textarea>
             </div>
             <div id="natural-execution-logs" style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.9em; line-height: 1.5;">
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Editor Tab -->
+    <div id="editor" class="tab-content">
+      <div class="grid" style="grid-template-columns: 300px 1fr; gap: 20px;">
+        <!-- Panel izquierdo: Selector de tests -->
+        <div class="card">
+          <h2>📁 Tests Disponibles</h2>
+          <p style="color: #7f8c8d; margin-bottom: 15px; font-size: 0.9em;">
+            Selecciona un test para editar o crea uno nuevo
+          </p>
+
+          <!-- Tipo de test -->
+          <div class="form-group">
+            <label>Tipo de test:</label>
+            <select id="editor-test-type" onchange="loadTestsForEditor()">
+              <option value="yaml">📄 YAML</option>
+              <option value="natural">💬 Lenguaje Natural</option>
+            </select>
+          </div>
+
+          <!-- Filtro por plataforma (solo para YAML) -->
+          <div class="form-group" id="editor-platform-filter-group">
+            <label>Filtrar por plataforma:</label>
+            <select id="editor-platform-filter" onchange="loadTestsForEditor()">
+              <option value="all">Todos</option>
+              <option value="web">🌐 Web</option>
+              <option value="mobile">📱 Mobile</option>
+              <option value="api">🔌 API</option>
+            </select>
+          </div>
+
+          <!-- Lista de tests -->
+          <div id="editor-tests-list" style="margin-top: 15px; max-height: 500px; overflow-y: auto;">
+            <div class="status">
+              <div class="loading"></div>
+              <span>Cargando...</span>
+            </div>
+          </div>
+
+          <button onclick="createNewTest()" class="primary" style="margin-top: 15px; width: 100%;">
+            ➕ Nuevo Test
+          </button>
+        </div>
+
+        <!-- Panel derecho: Editor de código -->
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="margin: 0;">📝 Editor de Test</h2>
+            <div id="editor-file-info" style="color: #7f8c8d; font-size: 0.9em;">
+              Ningún archivo seleccionado
+            </div>
+          </div>
+
+          <!-- Información del test -->
+          <div id="editor-test-info" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; display: none;">
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 10px; font-size: 0.9em;">
+              <strong>Archivo:</strong>
+              <span id="editor-filename">-</span>
+              <strong>Plataforma:</strong>
+              <span id="editor-platform-badge">-</span>
+              <strong>Suite:</strong>
+              <span id="editor-suite-name">-</span>
+            </div>
+          </div>
+
+          <!-- Barra de herramientas del editor -->
+          <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+            <button onclick="saveCurrentTest()" class="primary" id="editor-save-btn" disabled>
+              💾 Guardar
+            </button>
+            <button onclick="saveAndRunTest()" class="primary" id="editor-run-btn" disabled>
+              ▶️ Guardar y Ejecutar
+            </button>
+            <button onclick="validateYAML()" class="secondary" id="editor-validate-btn" disabled>
+              ✓ Validar YAML
+            </button>
+            <button onclick="formatYAML()" class="secondary" id="editor-format-btn" disabled>
+              🎨 Formatear
+            </button>
+            <button onclick="closeEditor()" class="secondary" id="editor-close-btn" disabled>
+              ✕ Cerrar
+            </button>
+          </div>
+
+          <!-- Área del editor CodeMirror -->
+          <div id="code-editor-container" style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden; min-height: 500px;">
+            <textarea id="code-editor" style="display: none;"></textarea>
+          </div>
+
+          <!-- Mensajes de validación -->
+          <div id="editor-validation-message" style="margin-top: 15px; padding: 10px; border-radius: 6px; display: none;">
           </div>
         </div>
       </div>

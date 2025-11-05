@@ -204,7 +204,8 @@ ${JSON.stringify(testOptions, null, 2)}
         screenshotPerStep: false,
         captureLogs: true,
         captureNetwork: false,
-        performanceMetrics: false
+        performanceMetrics: false,
+        forceRegenerate: false // Nueva opción para forzar regeneración
       };
 
       const optionsMatch = content.match(/# Opciones de ejecución \(JSON\)\n(\{[\s\S]+?\})/);
@@ -248,6 +249,51 @@ ${JSON.stringify(testOptions, null, 2)}
   }
 
   /**
+   * POST /api/tests/natural/regenerate-yaml - Regenerar YAML para un test natural
+   */
+  async regenerateYAML(req, res) {
+    try {
+      const { filename } = req.body;
+
+      if (!filename) {
+        return res.status(400).json({ error: 'Campo requerido: filename' });
+      }
+
+      const filePath = path.join('./tests/natural', filename);
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'Test no encontrado' });
+      }
+
+      // Leer contenido del test
+      const content = fs.readFileSync(filePath, 'utf8');
+
+      // Parsear metadata
+      const nameMatch = content.match(/^TEST:\s*(.+)$/m);
+      const testName = nameMatch ? nameMatch[1].trim() : filename.replace('.txt', '');
+
+      const { YAMLGenerator } = require('../../runners/core/yaml-generator');
+      const yamlGenerator = new YAMLGenerator();
+
+      // Eliminar YAML existente
+      const deleted = yamlGenerator.deleteGeneratedYAML(testName);
+
+      res.json({
+        success: true,
+        message: deleted
+          ? 'YAML eliminado. El próximo test lo regenerará.'
+          : 'No había YAML generado. El próximo test lo creará.',
+        testName,
+        deleted
+      });
+
+    } catch (error) {
+      console.error('Error regenerando YAML:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
    * Ejecutar test natural en background (helper privado)
    */
   async executeNaturalTestAsync(testId, filePath, content, options) {
@@ -275,12 +321,6 @@ ${JSON.stringify(testOptions, null, 2)}
 
       testRun.logs.push('✅ Runner inicializado');
 
-      // Extraer instrucciones del contenido
-      const instructionsMatch = content.match(/Pasos:\n={50}\n\n([\s\S]+?)\n\n={50}/);
-      const instructions = instructionsMatch ? instructionsMatch[1].trim() : content;
-
-      testRun.logs.push('▶️  Ejecutando test en lenguaje natural...');
-
       // Hook para capturar logs en tiempo real
       const originalLog = console.log;
       console.log = function(...args) {
@@ -289,8 +329,84 @@ ${JSON.stringify(testOptions, null, 2)}
         originalLog.apply(console, args);
       };
 
-      // Ejecutar test natural
-      const result = await runner.executeNaturalLanguageTest(instructions, options);
+      let result;
+      let executionMode = 'llm'; // Por defecto LLM
+
+      // EXECUTOR HÍBRIDO: Intentar usar YAML generado primero
+      const { YAMLGenerator } = require('../../runners/core/yaml-generator');
+      const yamlGenerator = new YAMLGenerator();
+
+      // Parsear nombre del test
+      const filename = path.basename(filePath);
+      const nameMatch = content.match(/^TEST:\s*(.+)$/m);
+      const testName = nameMatch ? nameMatch[1].trim() : filename.replace('.txt', '');
+
+      // Verificar si existe YAML generado
+      const generatedYAMLPath = yamlGenerator.getGeneratedYAMLPath(testName);
+
+      if (generatedYAMLPath && !options.forceRegenerate) {
+        testRun.logs.push('');
+        testRun.logs.push('🔍 YAML generado encontrado!');
+        testRun.logs.push(`📄 ${generatedYAMLPath}`);
+        testRun.logs.push('⚡ Ejecutando con YAML (modo rápido, sin LLM)...');
+        testRun.logs.push('');
+
+        executionMode = 'yaml';
+
+        try {
+          // Intentar ejecutar con YAML
+          result = await runner.runSuite(generatedYAMLPath, { recompile: false });
+
+          testRun.logs.push('✅ Ejecución con YAML completada exitosamente');
+
+          // Convertir resultado al formato esperado
+          result = {
+            success: result.failed === 0,
+            report: `Test ejecutado con YAML. Passed: ${result.passed}, Failed: ${result.failed}`,
+            duration: (result.endTime - result.startTime) / 1000,
+            iterations: 1,
+            consoleLogs: runner.consoleLogs || [],
+            networkRequests: runner.networkRequests || [],
+            performanceData: runner.performanceData || {},
+            executedSteps: [], // Ya no necesitamos generar YAML
+            usedYAML: true
+          };
+
+        } catch (yamlError) {
+          testRun.logs.push('');
+          testRun.logs.push(`⚠️  Ejecución con YAML falló: ${yamlError.message}`);
+          testRun.logs.push('🔄 Fallback: Ejecutando con LLM...');
+          testRun.logs.push('');
+
+          executionMode = 'llm-fallback';
+
+          // Extraer instrucciones del contenido
+          const instructionsMatch = content.match(/Pasos:\n={50}\n\n([\s\S]+?)\n\n={50}/);
+          const instructions = instructionsMatch ? instructionsMatch[1].trim() : content;
+
+          // Ejecutar con LLM como fallback
+          result = await runner.executeNaturalLanguageTest(instructions, options);
+        }
+
+      } else {
+        // No hay YAML generado o se forzó regeneración
+        if (options.forceRegenerate) {
+          testRun.logs.push('');
+          testRun.logs.push('🔄 Regeneración forzada - Ejecutando con LLM...');
+          testRun.logs.push('');
+        } else {
+          testRun.logs.push('');
+          testRun.logs.push('📝 Primera ejecución - Usando LLM...');
+          testRun.logs.push('');
+        }
+
+        // Extraer instrucciones del contenido
+        const instructionsMatch = content.match(/Pasos:\n={50}\n\n([\s\S]+?)\n\n={50}/);
+        const instructions = instructionsMatch ? instructionsMatch[1].trim() : content;
+
+        // Ejecutar con LLM
+        result = await runner.executeNaturalLanguageTest(instructions, options);
+      }
 
       // Restaurar console.log
       console.log = originalLog;
@@ -315,6 +431,44 @@ ${JSON.stringify(testOptions, null, 2)}
       }
       if (result.performanceData) {
         testRun.performanceData = result.performanceData;
+      }
+
+      // Si el test fue exitoso y hay pasos ejecutados, generar YAML automáticamente
+      // Solo generar si se ejecutó con LLM (no si usó YAML existente)
+      if (result.success && result.executedSteps && result.executedSteps.length > 0 && !result.usedYAML) {
+        try {
+          testRun.logs.push('');
+          testRun.logs.push('🔨 Generando YAML automático para futuras ejecuciones...');
+
+          // Parsear metadata del test
+          const nameMatch = content.match(/^TEST:\s*(.+)$/m);
+          const urlMatch = content.match(/^URL:\s*(.+)$/m);
+          const descMatch = content.match(/^Descripción:\s*(.+)$/m);
+
+          const metadata = {
+            name: nameMatch ? nameMatch[1].trim() : filename.replace('.txt', ''),
+            baseUrl: urlMatch ? urlMatch[1].trim() : 'https://ejemplo.com',
+            description: descMatch ? descMatch[1].trim() : 'Test generado automáticamente',
+            platform: platform
+          };
+
+          // Generar YAML
+          const yamlTest = yamlGenerator.generateYAMLFromSteps(result.executedSteps, metadata);
+
+          // Guardar YAML
+          const yamlPath = yamlGenerator.saveGeneratedYAML(metadata.name, yamlTest);
+
+          testRun.generatedYAMLPath = yamlPath;
+          testRun.logs.push(`✅ YAML generado exitosamente: ${yamlPath}`);
+          testRun.logs.push('⚡ Próxima ejecución será más rápida usando el YAML!');
+
+        } catch (yamlError) {
+          testRun.logs.push(`⚠️  No se pudo generar YAML: ${yamlError.message}`);
+          testRun.logs.push('   El test seguirá funcionando con LLM');
+        }
+      } else if (result.usedYAML) {
+        testRun.logs.push('');
+        testRun.logs.push('ℹ️  Se usó YAML existente - No es necesario regenerar');
       }
 
       // Limpiar

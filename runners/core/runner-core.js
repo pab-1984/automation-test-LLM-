@@ -5,10 +5,12 @@ const { TestExecutor } = require('./test-executor.js');
 const { ReportGenerator } = require('./report-generator.js');
 const { BrowserActions } = require('../actions/browser-actions.js');
 const { MobileActions } = require('../actions/mobile-actions.js');
+const { APIActions } = require('../actions/api-actions.js');
 const { VariableReplacer } = require('../actions/variable-replacer.js');
 const { LLMProcessor } = require('../llm/llm-processor.js');
 const { ElementFinder } = require('../actions/element-finder.js');
 const { MCPClientFactory } = require('./mcp-client-factory.js');
+const { APIClient } = require('./api-client.js');
 
 class UniversalTestRunnerCore extends TestExecutor {
   constructor(configPath = './config/llm.config.json', options = {}) {
@@ -36,8 +38,12 @@ class UniversalTestRunnerCore extends TestExecutor {
     this.variableReplacer = new VariableReplacer();
     this.browserActions = new BrowserActions();
     this.mobileActions = new MobileActions();
+    this.apiActions = new APIActions();
     this.reportGenerator = new ReportGenerator();
     this.llmProcessor = new LLMProcessor();
+
+    // API Client (se inicializa bajo demanda)
+    this.apiClient = null;
   }
 
   async initialize() {
@@ -168,6 +174,7 @@ class UniversalTestRunnerCore extends TestExecutor {
 
     let iteration = 0;
     let testReport = '';
+    const executedSteps = []; // Capturar pasos para generar YAML
 
     while (iteration < maxIterations) {
       iteration++;
@@ -204,6 +211,15 @@ class UniversalTestRunnerCore extends TestExecutor {
 
               const resultText = result.content[0]?.text || JSON.stringify(result);
               console.log(`   ✅ ${resultText.substring(0, 150)}${resultText.length > 150 ? '...' : ''}`);
+
+              // Capturar paso ejecutado para generar YAML
+              executedSteps.push({
+                action: toolCall.name,
+                arguments: toolCall.arguments,
+                result: resultText,
+                success: true,
+                timestamp: Date.now()
+              });
 
               // Agregar resultado al historial
               messages.push({
@@ -384,7 +400,8 @@ class UniversalTestRunnerCore extends TestExecutor {
       iterations: iteration,
       consoleLogs,
       networkRequests,
-      performanceData
+      performanceData,
+      executedSteps // Pasos ejecutados para generar YAML
     };
   }
 
