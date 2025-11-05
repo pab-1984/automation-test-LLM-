@@ -100,6 +100,164 @@ async function listAndroidDevices() {
 }
 
 /**
+ * Obtiene la ruta del ejecutable de emulator
+ */
+function getEmulatorPath() {
+  // Intentar encontrar emulator en el Android SDK
+  if (process.platform === 'win32') {
+    const localAppData = process.env.LOCALAPPDATA;
+    if (localAppData) {
+      const emulatorPath = path.join(localAppData, 'Android', 'Sdk', 'emulator', 'emulator.exe');
+      if (fs.existsSync(emulatorPath)) {
+        return `"${emulatorPath}"`;
+      }
+    }
+
+    const androidHome = process.env.ANDROID_HOME;
+    if (androidHome) {
+      const emulatorPath = path.join(androidHome, 'emulator', 'emulator.exe');
+      if (fs.existsSync(emulatorPath)) {
+        return `"${emulatorPath}"`;
+      }
+    }
+  } else {
+    // Linux/Mac
+    const androidHome = process.env.ANDROID_HOME;
+    if (androidHome) {
+      const emulatorPath = path.join(androidHome, 'emulator', 'emulator');
+      if (fs.existsSync(emulatorPath)) {
+        return emulatorPath;
+      }
+    }
+  }
+
+  return 'emulator'; // Intentar desde PATH
+}
+
+/**
+ * Lista todos los emuladores Android disponibles (AVDs)
+ */
+async function listAvailableEmulators() {
+  try {
+    const emulatorPath = getEmulatorPath();
+
+    const { stdout } = await execPromise(`${emulatorPath} -list-avds`);
+    const avds = stdout.trim().split('\n').filter(line => line.trim());
+
+    const emulators = avds.map(avd => ({
+      name: avd.trim(),
+      id: `emulator-${avd.trim()}`,
+      status: 'offline',
+      type: 'emulator',
+      platform: 'android',
+      isRunning: false
+    }));
+
+    // Verificar cuáles están corriendo actualmente
+    const runningDevices = await listAndroidDevices();
+    const runningEmulators = runningDevices.filter(d => d.type === 'emulator');
+
+    emulators.forEach(emu => {
+      const running = runningEmulators.find(r => r.id.includes(emu.name) || emu.name.includes(r.id));
+      if (running) {
+        emu.isRunning = true;
+        emu.status = 'online';
+        emu.actualId = running.id;
+        emu.model = running.model;
+      }
+    });
+
+    return emulators;
+  } catch (error) {
+    console.error('Error listando emuladores disponibles:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Inicia un emulador Android específico
+ */
+async function startEmulator(avdName, options = {}) {
+  try {
+    const emulatorPath = getEmulatorPath();
+
+    // Opciones del emulador
+    const opts = [];
+    if (options.noWindow) opts.push('-no-window');
+    if (options.noSnapshot) opts.push('-no-snapshot');
+    if (options.wipeData) opts.push('-wipe-data');
+    if (options.gpu) opts.push(`-gpu ${options.gpu}`);
+
+    const optsString = opts.join(' ');
+
+    // Iniciar emulador en background
+    const command = `${emulatorPath} -avd ${avdName} ${optsString}`;
+
+    console.log(`🚀 Iniciando emulador: ${avdName}`);
+    console.log(`   Comando: ${command}`);
+
+    // Ejecutar en background sin esperar
+    const { exec } = require('child_process');
+    const child = exec(command, { detached: true, stdio: 'ignore' });
+    child.unref();
+
+    // Esperar un poco para que inicie
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Verificar que el emulador esté iniciando
+    let attempts = 0;
+    const maxAttempts = 30; // 30 segundos
+
+    while (attempts < maxAttempts) {
+      const devices = await listAndroidDevices();
+      const emulator = devices.find(d => d.type === 'emulator' && d.status === 'device');
+
+      if (emulator) {
+        console.log(`✅ Emulador iniciado: ${emulator.id}`);
+        return {
+          success: true,
+          emulatorId: emulator.id,
+          avdName,
+          message: 'Emulador iniciado correctamente'
+        };
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      attempts++;
+    }
+
+    return {
+      success: true,
+      message: 'Emulador iniciando... Puede tomar varios minutos',
+      avdName
+    };
+
+  } catch (error) {
+    console.error('Error iniciando emulador:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Detiene un emulador específico
+ */
+async function stopEmulator(deviceId) {
+  try {
+    const adbPath = getAdbPath();
+    await execPromise(`${adbPath} -s ${deviceId} emu kill`);
+
+    return {
+      success: true,
+      message: 'Emulador detenido',
+      deviceId
+    };
+  } catch (error) {
+    console.error('Error deteniendo emulador:', error.message);
+    throw error;
+  }
+}
+
+/**
  * Lista dispositivos iOS disponibles usando simctl (macOS)
  */
 async function listIOSDevices() {
@@ -307,10 +465,86 @@ async function takeDeviceScreenshot(req, res) {
   }
 }
 
+/**
+ * GET /api/mobile/emulators
+ * Lista todos los emuladores Android disponibles (AVDs)
+ */
+async function getAvailableEmulators(req, res) {
+  try {
+    const emulators = await listAvailableEmulators();
+
+    res.json({
+      success: true,
+      emulators,
+      count: emulators.length,
+      running: emulators.filter(e => e.isRunning).length
+    });
+  } catch (error) {
+    console.error('Error en getAvailableEmulators:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}
+
+/**
+ * POST /api/mobile/emulators/:avdName/start
+ * Inicia un emulador específico
+ */
+async function startEmulatorEndpoint(req, res) {
+  try {
+    const { avdName } = req.params;
+    const options = req.body || {};
+
+    const result = await startEmulator(avdName, options);
+
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('Error en startEmulatorEndpoint:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}
+
+/**
+ * POST /api/mobile/devices/:deviceId/stop
+ * Detiene un emulador específico
+ */
+async function stopEmulatorEndpoint(req, res) {
+  try {
+    const { deviceId } = req.params;
+
+    const result = await stopEmulator(deviceId);
+
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('Error en stopEmulatorEndpoint:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}
+
 module.exports = {
   getDevices,
   getDeviceInfo,
   takeDeviceScreenshot,
   listAndroidDevices,
-  listIOSDevices
+  listIOSDevices,
+  getAvailableEmulators,
+  startEmulatorEndpoint,
+  stopEmulatorEndpoint,
+  listAvailableEmulators,
+  startEmulator,
+  stopEmulator
 };

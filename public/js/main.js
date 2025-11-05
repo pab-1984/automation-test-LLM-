@@ -2078,6 +2078,236 @@ async function refreshDevices() {
   showToast('✅ Dispositivos actualizados', 'success');
 }
 
+
+/**
+ * Cambia entre tabs de dispositivos y emuladores
+ */
+function switchMobileTab(tab) {
+  const devicesTab = document.getElementById('devices-tab');
+  const emulatorsTab = document.getElementById('emulators-tab');
+  const devicesContent = document.getElementById('mobile-devices-content');
+  const emulatorsContent = document.getElementById('mobile-emulators-content');
+
+  if (tab === 'devices') {
+    devicesTab.classList.add('active');
+    devicesTab.style.borderBottom = '3px solid #007bff';
+    devicesTab.style.color = '';
+    emulatorsTab.classList.remove('active');
+    emulatorsTab.style.borderBottom = '3px solid transparent';
+    emulatorsTab.style.color = '#666';
+    devicesContent.style.display = 'block';
+    emulatorsContent.style.display = 'none';
+  } else {
+    emulatorsTab.classList.add('active');
+    emulatorsTab.style.borderBottom = '3px solid #007bff';
+    emulatorsTab.style.color = '';
+    devicesTab.classList.remove('active');
+    devicesTab.style.borderBottom = '3px solid transparent';
+    devicesTab.style.color = '#666';
+    emulatorsContent.style.display = 'block';
+    devicesContent.style.display = 'none';
+
+    // Cargar emuladores la primera vez que se abre el tab
+    if (!window.emulatorsLoaded) {
+      loadEmulators();
+      window.emulatorsLoaded = true;
+    }
+  }
+}
+
+/**
+ * Carga la lista de emuladores disponibles
+ */
+async function loadEmulators() {
+  try {
+    const panel = document.getElementById('mobile-emulators-info');
+    panel.innerHTML = '<div class="status"><div class="loading"></div><span>Cargando emuladores...</span></div>';
+
+    const response = await fetch('/api/mobile/emulators');
+    const data = await response.json();
+
+    if (data.success) {
+      updateEmulatorsPanel(data);
+    } else {
+      panel.innerHTML = `<p style="color: #e74c3c;">❌ Error: ${data.error}</p>`;
+    }
+  } catch (error) {
+    console.error('Error en loadEmulators:', error);
+    const panel = document.getElementById('mobile-emulators-info');
+    panel.innerHTML = `
+      <div style="color: #e74c3c; padding: 15px;">
+        <p><strong>❌ Error cargando emuladores</strong></p>
+        <p style="font-size: 0.9em;">Asegúrate de tener Android SDK instalado</p>
+      </div>
+    `;
+  }
+}
+
+/**
+ * Actualiza el panel de emuladores
+ */
+function updateEmulatorsPanel(data) {
+  const panel = document.getElementById('mobile-emulators-info');
+
+  if (!data.emulators || data.emulators.length === 0) {
+    panel.innerHTML = `
+      <div style="color: #e74c3c; padding: 15px;">
+        <p><strong>❌ No se encontraron emuladores (AVDs)</strong></p>
+        <p style="font-size: 0.9em; margin-top: 10px;">
+          <strong>Para crear un emulador:</strong><br>
+          • Abre Android Studio<br>
+          • Ve a Tools → Device Manager<br>
+          • Crea un nuevo Virtual Device (AVD)
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  const html = `
+    <div style="margin-bottom: 15px;">
+      <strong>Emuladores Disponibles:</strong> ${data.count}
+      <span style="margin-left: 10px; color: #27ae60;">
+        🟢 En ejecución: ${data.running}
+      </span>
+    </div>
+    <div style="margin-top: 15px;">
+      ${data.emulators.map(emu => {
+        const isRunning = emu.isRunning;
+        const statusColor = isRunning ? '#27ae60' : '#95a5a6';
+        const statusText = isRunning ? 'En ejecución' : 'Detenido';
+        const deviceId = emu.actualId || emu.id;
+
+        return `
+          <div style="padding: 12px; margin-bottom: 10px; background: white; border: 1px solid #ddd; border-radius: 6px; border-left: 4px solid ${statusColor};">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: bold; margin-bottom: 5px;">
+                  💻 ${emu.name}
+                </div>
+                <div style="font-size: 0.85em; color: ${statusColor};">
+                  ● ${statusText}
+                </div>
+              </div>
+              <div style="display: flex; gap: 5px;">
+                ${isRunning ? `
+                  <button onclick="stopEmulator('${deviceId}')" class="btn-compact" style="background: #e74c3c;">
+                    ⏹️ Detener
+                  </button>
+                  <button onclick="selectEmulator('${deviceId}')" class="btn-compact" style="background: #3498db;">
+                    ✅ Usar
+                  </button>
+                ` : `
+                  <button onclick="startEmulator('${emu.name}')" class="btn-compact" style="background: #27ae60;">
+                    ▶️ Iniciar
+                  </button>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  panel.innerHTML = html;
+}
+
+/**
+ * Inicia un emulador específico
+ */
+async function startEmulator(avdName) {
+  try {
+    showToast(`🚀 Iniciando emulador: ${avdName}...`, 'info');
+
+    const response = await fetch(`/api/mobile/emulators/${encodeURIComponent(avdName)}/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showToast(`✅ ${data.message}`, 'success');
+
+      // Esperar 3 segundos y actualizar
+      setTimeout(async () => {
+        await loadEmulators();
+        await loadMobileDevices();
+      }, 3000);
+    } else {
+      showToast(`❌ Error: ${data.error}`, 'error');
+    }
+  } catch (error) {
+    console.error('Error iniciando emulador:', error);
+    showToast(`❌ Error: ${error.message}`, 'error');
+  }
+}
+
+/**
+ * Detiene un emulador específico
+ */
+async function stopEmulator(deviceId) {
+  if (!confirm(`¿Detener el emulador ${deviceId}?`)) {
+    return;
+  }
+
+  try {
+    showToast(`⏹️ Deteniendo emulador...`, 'info');
+
+    const response = await fetch(`/api/mobile/devices/${encodeURIComponent(deviceId)}/stop`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showToast(`✅ Emulador detenido`, 'success');
+
+      // Actualizar listas
+      setTimeout(async () => {
+        await loadEmulators();
+        await loadMobileDevices();
+      }, 2000);
+    } else {
+      showToast(`❌ Error: ${data.error}`, 'error');
+    }
+  } catch (error) {
+    console.error('Error deteniendo emulador:', error);
+    showToast(`❌ Error: ${error.message}`, 'error');
+  }
+}
+
+/**
+ * Selecciona un emulador para usarlo en tests
+ */
+function selectEmulator(deviceId) {
+  selectedDevice = deviceId;
+  const dropdown = document.getElementById('device-dropdown');
+  dropdown.value = deviceId;
+
+  // Cambiar al tab de dispositivos para mostrar selección
+  switchMobileTab('devices');
+
+  showToast(`✅ Emulador seleccionado: ${deviceId}`, 'success');
+}
+
+/**
+ * Refresca la lista de emuladores
+ */
+async function refreshEmulators() {
+  showToast('🔄 Actualizando emuladores...', 'info');
+  await loadEmulators();
+  showToast('✅ Emuladores actualizados', 'success');
+}
+
+
 /**
  * Actualiza la UI según la plataforma seleccionada
  */

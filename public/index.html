@@ -109,15 +109,42 @@
             <!-- Panel de Dispositivos Móviles (solo visible en modo mobile) -->
             <div class="card" id="mobile-devices-panel" style="display: none; margin-bottom: 20px;">
               <h2>📱 Dispositivos Móviles</h2>
-              <div id="mobile-devices-info">
-                <div class="status">
-                  <div class="loading"></div>
-                  <span>Cargando dispositivos...</span>
-                </div>
+
+              <!-- Tabs para Dispositivos y Emuladores -->
+              <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #e0e0e0;">
+                <button id="devices-tab" onclick="switchMobileTab('devices')" class="mobile-tab active" style="border: none; background: none; padding: 10px 20px; cursor: pointer; font-weight: bold; border-bottom: 3px solid #007bff;">
+                  📱 Dispositivos
+                </button>
+                <button id="emulators-tab" onclick="switchMobileTab('emulators')" class="mobile-tab" style="border: none; background: none; padding: 10px 20px; cursor: pointer; color: #666; border-bottom: 3px solid transparent;">
+                  🖥️ Emuladores
+                </button>
               </div>
-              <button onclick="refreshDevices()" class="btn-compact" style="margin-top: 10px;">
-                🔄 Actualizar Dispositivos
-              </button>
+
+              <!-- Contenido de Dispositivos -->
+              <div id="mobile-devices-content">
+                <div id="mobile-devices-info">
+                  <div class="status">
+                    <div class="loading"></div>
+                    <span>Cargando dispositivos...</span>
+                  </div>
+                </div>
+                <button onclick="refreshDevices()" class="btn-compact" style="margin-top: 10px;">
+                  🔄 Actualizar Dispositivos
+                </button>
+              </div>
+
+              <!-- Contenido de Emuladores -->
+              <div id="mobile-emulators-content" style="display: none;">
+                <div id="mobile-emulators-info">
+                  <div class="status">
+                    <div class="loading"></div>
+                    <span>Cargando emuladores...</span>
+                  </div>
+                </div>
+                <button onclick="refreshEmulators()" class="btn-compact" style="margin-top: 10px;">
+                  🔄 Actualizar Emuladores
+                </button>
+              </div>
             </div>
 
             <!-- Panel de Estadísticas -->
