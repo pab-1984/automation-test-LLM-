@@ -2247,6 +2247,9 @@ async function startEmulator(avdName) {
   }
 }
 
+// Asegurar que las funciones estén en el scope global
+window.startEmulator = startEmulator;
+
 /**
  * Detiene un emulador específico
  */
@@ -2306,6 +2309,14 @@ async function refreshEmulators() {
   await loadEmulators();
   showToast('✅ Emuladores actualizados', 'success');
 }
+
+// Asegurar que todas las funciones de emuladores estén en el scope global
+window.switchMobileTab = switchMobileTab;
+window.loadEmulators = loadEmulators;
+window.updateEmulatorsPanel = updateEmulatorsPanel;
+window.stopEmulator = stopEmulator;
+window.selectEmulator = selectEmulator;
+window.refreshEmulators = refreshEmulators;
 
 
 /**
