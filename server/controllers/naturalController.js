@@ -56,10 +56,10 @@ class NaturalController {
           };
         });
 
-      res.json({ tests: files });
+      res.json({ success: true, tests: files });
     } catch (error) {
       console.error('Error listando tests naturales:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ success: false, error: error.message });
     }
   }
 
