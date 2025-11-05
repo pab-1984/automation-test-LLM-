@@ -9,7 +9,119 @@ let currentPlatform = 'web'; // 'web' o 'mobile'
 let selectedDevice = null;
 let mobileDevices = [];
 
-// ======================================== 
+// ========================================
+// UTILIDADES - TOAST NOTIFICATIONS
+// ========================================
+
+/**
+ * Muestra una notificación toast
+ * @param {string} message - Mensaje a mostrar
+ * @param {string} type - Tipo: 'info', 'success', 'error', 'warning'
+ * @param {number} duration - Duración en ms (default 3000)
+ */
+function showToast(message, type = 'info', duration = 3000) {
+  // Crear contenedor de toasts si no existe
+  let toastContainer = document.getElementById('toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'toast-container';
+    toastContainer.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    `;
+    document.body.appendChild(toastContainer);
+  }
+
+  // Crear toast
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+
+  // Colores según tipo
+  const colors = {
+    info: { bg: '#3498db', icon: 'ℹ️' },
+    success: { bg: '#27ae60', icon: '✅' },
+    error: { bg: '#e74c3c', icon: '❌' },
+    warning: { bg: '#f39c12', icon: '⚠️' }
+  };
+
+  const config = colors[type] || colors.info;
+
+  toast.style.cssText = `
+    background: ${config.bg};
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 250px;
+    max-width: 400px;
+    animation: slideIn 0.3s ease-out;
+    cursor: pointer;
+  `;
+
+  toast.innerHTML = `
+    <span style="font-size: 1.2em;">${config.icon}</span>
+    <span style="flex: 1;">${message}</span>
+  `;
+
+  // Agregar al contenedor
+  toastContainer.appendChild(toast);
+
+  // Click para cerrar
+  toast.addEventListener('click', () => {
+    toast.style.animation = 'slideOut 0.3s ease-in';
+    setTimeout(() => toast.remove(), 300);
+  });
+
+  // Auto-cerrar
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.style.animation = 'slideOut 0.3s ease-in';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, duration);
+}
+
+// Agregar estilos de animación
+if (!document.getElementById('toast-styles')) {
+  const style = document.createElement('style');
+  style.id = 'toast-styles';
+  style.textContent = `
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// Exponer en el scope global
+window.showToast = showToast;
+
+// ========================================
 // NAVEGACIÓN DE TABS
 // ========================================
 
